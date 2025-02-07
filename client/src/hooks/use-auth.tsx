@@ -63,12 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         case 'auth/unauthorized-domain':
           errorMessage = "This domain is not authorized for Google sign-in. Please contact support";
           break;
-        case 'auth/internal-error':
-          errorMessage = "An internal error occurred. Please try again";
+        case 'auth/operation-not-allowed':
+          errorMessage = "Google sign-in is not enabled. Please contact support";
           break;
         case 'auth/invalid-api-key':
           errorMessage = "Invalid API configuration. Please contact support";
           break;
+        default:
+          console.error("Unhandled auth error:", authError);
+          errorMessage = `Authentication error: ${authError.message}`;
       }
 
       toast({
