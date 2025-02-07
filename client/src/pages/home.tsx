@@ -11,17 +11,21 @@ import {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Fixed Banner */}
+      {/* Header with logo and text */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="flex items-center">
+              <Link href="/" className="flex items-center gap-2">
                 <img
                   src="/assets/Color logo - no background.png"
                   alt="TrackedFR Logo"
                   className="h-8 w-auto"
                 />
+                <div className="hidden sm:flex flex-col">
+                  <span className="text-lg font-bold leading-none">Tracked</span>
+                  <span className="text-sm text-muted-foreground leading-none">Financial Reporting</span>
+                </div>
               </Link>
             </div>
             <div className="flex items-center gap-4">
