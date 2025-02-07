@@ -48,17 +48,17 @@ export default function Home() {
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-16">
           <div className="max-w-3xl mx-auto">
-            <div className="w-full flex justify-center mb-8">
-              <div className="flex flex-col items-center w-64">
+            <div className="flex flex-col items-center mb-8">
+              <div className="flex justify-center">
                 <img
                   src="/assets/Color logo - no background.png"
                   alt="TrackedFR Logo"
-                  className="h-24 w-auto"
+                  style={{ height: '96px', width: '192px' }}
                 />
-                <div className="text-center mt-4">
-                  <h2 className="text-2xl font-bold">Tracked</h2>
-                  <p className="text-xl text-muted-foreground">Financial Reporting</p>
-                </div>
+              </div>
+              <div className="text-center mt-4">
+                <h2 className="text-2xl font-bold">Tracked</h2>
+                <p className="text-xl text-muted-foreground">Financial Reporting</p>
               </div>
             </div>
 
