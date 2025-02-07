@@ -5,7 +5,8 @@ import {
   signOut,
   onAuthStateChanged,
   AuthError,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  signInWithRedirect
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -37,28 +38,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       console.log("Starting Google sign-in process...");
+      setIsLoading(true);
+
       // Clear any existing auth state
       await signOut(auth);
 
-      // Attempt sign in
-      const result = await signInWithPopup(auth, googleProvider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
+      // First try popup
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        handleSuccessfulSignIn(result);
+      } catch (popupError: any) {
+        console.log("Popup sign-in failed, trying redirect...", popupError.code);
 
-      if (!credential) {
-        throw new Error("Failed to get credentials from Google");
+        // If popup is blocked, try redirect method
+        if (popupError.code === 'auth/popup-blocked') {
+          toast({
+            title: "Popup Blocked",
+            description: "Switching to redirect sign-in method...",
+          });
+          await signInWithRedirect(auth, googleProvider);
+          return; // Auth state will be handled by the onAuthStateChanged listener
+        }
+
+        // If it's another error, throw it to be caught by the outer catch
+        throw popupError;
       }
-
-      console.log("Sign-in successful:", {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        providerId: credential.providerId
-      });
-
-      setUser(result.user);
-      toast({
-        title: "Welcome!",
-        description: `Successfully signed in as ${result.user.displayName}`,
-      });
     } catch (error) {
       const authError = error as AuthError;
       console.error("Authentication error details:", {
@@ -72,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // More specific error messages based on common error codes
       switch (authError.code) {
         case 'auth/popup-blocked':
-          errorMessage = "Please allow popups for this website to sign in with Google";
+          errorMessage = "Please enable popups for this website in your browser settings and try again";
           break;
         case 'auth/cancelled-popup-request':
           errorMessage = "Sign-in cancelled. Please try again";
@@ -102,7 +106,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleSuccessfulSignIn = (result: any) => {
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (!credential) {
+      throw new Error("Failed to get credentials from Google");
+    }
+
+    console.log("Sign-in successful:", {
+      email: result.user.email,
+      displayName: result.user.displayName,
+      providerId: credential.providerId
+    });
+
+    setUser(result.user);
+    toast({
+      title: "Welcome!",
+      description: `Successfully signed in as ${result.user.displayName}`,
+    });
   };
 
   const logout = async () => {
