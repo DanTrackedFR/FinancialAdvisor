@@ -7,12 +7,16 @@ import Home from "@/pages/home";
 import Analysis from "@/pages/analysis";
 import Privacy from "@/pages/privacy";
 import Cookies from "@/pages/cookies";
+import Auth from "@/pages/auth";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "./components/protected-route";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/analysis" component={Analysis} />
+      <Route path="/auth" component={Auth} />
+      <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/analysis" component={Analysis} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/cookies" component={Cookies} />
       <Route component={NotFound} />
@@ -23,8 +27,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
