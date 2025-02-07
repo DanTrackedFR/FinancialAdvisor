@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { SiReadthedocs } from "react-icons/si";
 import {
   Card,
   CardContent,
@@ -16,9 +15,14 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <SiReadthedocs className="w-8 h-8 text-primary" />
-              <span className="font-bold text-xl">TrackedFR</span>
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center">
+                <img
+                  src="/assets/Color logo - no background.png"
+                  alt="TrackedFR Logo"
+                  className="h-8 w-auto"
+                />
+              </Link>
             </div>
             <div className="flex items-center gap-4">
               <Button variant="ghost" asChild>
@@ -41,7 +45,11 @@ export default function Home() {
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="mb-8">
-              <SiReadthedocs className="w-24 h-24 mx-auto text-primary" />
+              <img
+                src="/assets/Color logo - no background.png"
+                alt="TrackedFR Logo"
+                className="h-24 mx-auto"
+              />
             </div>
             <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
               Automated Financial Reporting
