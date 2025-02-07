@@ -1,4 +1,6 @@
-import { Analysis, Message, InsertAnalysis, InsertMessage } from "@shared/schema";
+import { analyses, messages, type Analysis, type InsertAnalysis, type Message, type InsertMessage } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
@@ -8,59 +10,36 @@ export interface IStorage {
   getMessages(analysisId: number): Promise<Message[]>;
 }
 
-export class MemStorage implements IStorage {
-  private analyses: Map<number, Analysis>;
-  private messages: Map<number, Message>;
-  private currentAnalysisId: number;
-  private currentMessageId: number;
-
-  constructor() {
-    this.analyses = new Map();
-    this.messages = new Map();
-    this.currentAnalysisId = 1;
-    this.currentMessageId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async createAnalysis(analysis: InsertAnalysis): Promise<Analysis> {
-    const id = this.currentAnalysisId++;
-    const newAnalysis: Analysis = {
-      ...analysis,
-      id,
-      status: "pending",
-    };
-    this.analyses.set(id, newAnalysis);
-    return newAnalysis;
+    const [result] = await db.insert(analyses).values(analysis).returning();
+    return result;
   }
 
   async getAnalysis(id: number): Promise<Analysis | undefined> {
-    return this.analyses.get(id);
+    const [result] = await db.select().from(analyses).where(eq(analyses.id, id));
+    return result;
   }
 
   async updateAnalysisStatus(
     id: number,
     status: "pending" | "completed" | "failed",
   ): Promise<void> {
-    const analysis = this.analyses.get(id);
-    if (analysis) {
-      this.analyses.set(id, { ...analysis, status });
-    }
+    await db.update(analyses)
+      .set({ status })
+      .where(eq(analyses.id, id));
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
-    const id = this.currentMessageId++;
-    const newMessage: Message = {
-      ...message,
-      id,
-    };
-    this.messages.set(id, newMessage);
-    return newMessage;
+    const [result] = await db.insert(messages).values(message).returning();
+    return result;
   }
 
   async getMessages(analysisId: number): Promise<Message[]> {
-    return Array.from(this.messages.values()).filter(
-      (message) => message.analysisId === analysisId,
-    );
+    return db.select()
+      .from(messages)
+      .where(eq(messages.analysisId, analysisId));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
