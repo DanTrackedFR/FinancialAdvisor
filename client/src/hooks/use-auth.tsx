@@ -34,7 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      console.log("Starting Google sign-in process...");
       const result = await signInWithPopup(auth, googleProvider);
+      console.log("Sign-in successful:", result.user.email);
       setUser(result.user);
       toast({
         title: "Welcome!",
@@ -42,16 +44,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Authentication error:", authError);
+      console.error("Authentication error details:", {
+        code: authError.code,
+        message: authError.message,
+        customData: authError.customData,
+      });
 
-      // Provide more specific error messages based on the error code
       let errorMessage = "Failed to sign in with Google";
-      if (authError.code === 'auth/popup-blocked') {
-        errorMessage = "Please allow popups for this website to sign in with Google";
-      } else if (authError.code === 'auth/cancelled-popup-request') {
-        errorMessage = "Sign-in cancelled. Please try again";
-      } else if (authError.code === 'auth/unauthorized-domain') {
-        errorMessage = "This domain is not authorized for Google sign-in. Please contact support";
+
+      // More specific error messages based on common error codes
+      switch (authError.code) {
+        case 'auth/popup-blocked':
+          errorMessage = "Please allow popups for this website to sign in with Google";
+          break;
+        case 'auth/cancelled-popup-request':
+          errorMessage = "Sign-in cancelled. Please try again";
+          break;
+        case 'auth/unauthorized-domain':
+          errorMessage = "This domain is not authorized for Google sign-in. Please contact support";
+          break;
+        case 'auth/internal-error':
+          errorMessage = "An internal error occurred. Please try again";
+          break;
+        case 'auth/invalid-api-key':
+          errorMessage = "Invalid API configuration. Please contact support";
+          break;
       }
 
       toast({
@@ -72,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       const authError = error as AuthError;
+      console.error("Sign out error:", authError);
       toast({
         title: "Error signing out",
         description: authError.message || "Failed to sign out",
