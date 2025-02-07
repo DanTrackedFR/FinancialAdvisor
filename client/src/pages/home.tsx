@@ -46,32 +46,37 @@ export default function Home() {
       {/* Main Content with padding for fixed banner */}
       <div className="pt-16">
         {/* Hero Section */}
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <div className="mb-8 space-y-4 flex flex-col items-center justify-center">
-              <img
-                src="/assets/Color logo - no background.png"
-                alt="TrackedFR Logo"
-                className="h-24 w-auto"
-              />
-              <div className="space-y-1 text-center">
-                <h2 className="text-2xl font-bold">Tracked</h2>
-                <p className="text-xl text-muted-foreground">Financial Reporting</p>
+        <section className="container mx-auto px-4 py-16">
+          <div className="max-w-3xl mx-auto">
+            <div className="w-full flex justify-center mb-8">
+              <div className="flex flex-col items-center w-64">
+                <img
+                  src="/assets/Color logo - no background.png"
+                  alt="TrackedFR Logo"
+                  className="h-24 w-auto"
+                />
+                <div className="text-center mt-4">
+                  <h2 className="text-2xl font-bold">Tracked</h2>
+                  <p className="text-xl text-muted-foreground">Financial Reporting</p>
+                </div>
               </div>
             </div>
-            <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-              Automated Financial Reporting
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Transform your general ledger data into compliant financial statements ready to meet your filing obligations
-            </p>
-            <div className="flex justify-center gap-4 pt-4">
-              <Button asChild size="lg" className="px-8">
-                <Link href="/analysis">Start Analysis</Link>
-              </Button>
+
+            <div className="text-center space-y-8">
+              <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                Automated Financial Reporting
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Transform your general ledger data into compliant financial statements ready to meet your filing obligations
+              </p>
+              <div className="flex justify-center gap-4 pt-4">
+                <Button asChild size="lg" className="px-8">
+                  <Link href="/analysis">Start Analysis</Link>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Features Section */}
         <section className="py-16 bg-slate-50">
