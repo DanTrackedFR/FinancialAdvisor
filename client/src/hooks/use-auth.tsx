@@ -3,7 +3,8 @@ import {
   User,
   signInWithPopup,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  AuthError
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -36,9 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await signInWithPopup(auth, googleProvider);
       setUser(result.user);
     } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Error signing in",
-        description: error.message,
+        description: authError.message || "Failed to sign in with Google",
         variant: "destructive",
       });
     }
@@ -49,9 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOut(auth);
       setUser(null);
     } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Error signing out",
-        description: error.message,
+        description: authError.message || "Failed to sign out",
         variant: "destructive",
       });
     }
