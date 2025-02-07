@@ -4,7 +4,8 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
-  AuthError
+  AuthError,
+  GoogleAuthProvider
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? "User logged in" : "User logged out");
       setUser(user);
       setIsLoading(false);
     });
@@ -35,12 +37,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       console.log("Starting Google sign-in process...");
+      // Clear any existing auth state
+      await signOut(auth);
+
+      // Attempt sign in
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("Sign-in successful:", result.user.email);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+
+      if (!credential) {
+        throw new Error("Failed to get credentials from Google");
+      }
+
+      console.log("Sign-in successful:", {
+        email: result.user.email,
+        displayName: result.user.displayName,
+        providerId: credential.providerId
+      });
+
       setUser(result.user);
       toast({
         title: "Welcome!",
-        description: "Successfully signed in with Google",
+        description: `Successfully signed in as ${result.user.displayName}`,
       });
     } catch (error) {
       const authError = error as AuthError;
@@ -68,6 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           break;
         case 'auth/invalid-api-key':
           errorMessage = "Invalid API configuration. Please contact support";
+          break;
+        case 'auth/invalid-action-code':
+          errorMessage = "The sign-in link is invalid or has expired. Please try again";
+          break;
+        case 'auth/internal-error':
+          errorMessage = "An internal error occurred. Please try again later";
           break;
         default:
           console.error("Unhandled auth error:", authError);

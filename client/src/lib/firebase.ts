@@ -34,14 +34,15 @@ console.log("Firebase initialized successfully");
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
-// Configure Google Auth Provider
+// Configure Google Auth Provider with additional settings
 export const googleProvider = new GoogleAuthProvider();
 
-// Add minimal required scopes
-googleProvider.addScope('email');
-googleProvider.addScope('profile');
+// Add scopes for Google OAuth
+googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
-// Force account selection
+// Set custom parameters for Google sign-in
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'consent', // Force consent screen to ensure fresh tokens
+  access_type: 'offline' // Request a refresh token
 });
