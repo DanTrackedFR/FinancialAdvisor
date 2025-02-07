@@ -15,9 +15,12 @@ export default function Home() {
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-3xl mx-auto text-center space-y-8">
-          <div className="relative">
-            <div className="absolute inset-0 -z-10 blur-3xl bg-primary/20 rounded-full" />
-            <SiReadthedocs className="w-24 h-24 mx-auto text-primary" />
+          <div className="relative mb-8">
+            <img
+              src="https://www.trackedfr.com/quality_auto/d97656c5-1a50-4138-890a-83e04e64a15c.png"
+              alt="TrackedFR Logo"
+              className="h-24 mx-auto"
+            />
           </div>
           <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
             Automated Financial Reporting
@@ -68,6 +71,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Partners Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Built by alumni who know what great looks like</h2>
+          <div className="flex justify-center items-center gap-12 flex-wrap">
+            <img
+              src="https://static.wixstatic.com/media/67030e_cdc0b65dd0684915bb65c25bd4bb7033~mv2.jpg/v1/crop/x_15,y_0,w_347,h_282/fill/w_128,h_104,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/pwc_JPG.jpg"
+              alt="PwC"
+              className="h-16 object-contain"
+            />
+            <img
+              src="https://static.wixstatic.com/media/67030e_9a22a0432937434c9a193ce5826f26f3~mv2.jpg/v1/crop/x_0,y_36,w_397,h_245/fill/w_165,h_102,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/amazon_JPG.jpg"
+              alt="Amazon"
+              className="h-16 object-contain"
+            />
+            <img
+              src="https://static.wixstatic.com/media/67030e_213a9d2e46d74951af9851a380d1c33a~mv2.jpg/v1/crop/x_0,y_39,w_904,h_477/fill/w_180,h_95,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/deloitte_JPG.jpg"
+              alt="Deloitte"
+              className="h-16 object-contain"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Customers Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -94,17 +121,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonial Section */}
+      {/* Testimonials Section */}
       <section className="py-16 bg-slate-50">
         <div className="container mx-auto px-4">
-          <Card className="max-w-3xl mx-auto">
-            <CardContent className="p-8">
-              <blockquote className="text-xl text-muted-foreground italic text-center">
-                "We expect Tracked Financial Reporting to transform how we manage preparing financial statements. The accuracy and speed of the platform will significantly improved our processes."
-              </blockquote>
-              <p className="text-center mt-4 font-medium">Sarah Johnson - CFO at Datum Consulting</p>
-            </CardContent>
-          </Card>
+          <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card>
+              <CardContent className="p-8">
+                <blockquote className="text-lg text-muted-foreground italic">
+                  "We expect Tracked Financial Reporting to transform how we manage preparing financial statements. The accuracy and speed of the platform will significantly improve our processes."
+                </blockquote>
+                <p className="mt-4 font-medium">Sarah Johnson - CFO at Datum Consulting</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-8">
+                <blockquote className="text-lg text-muted-foreground italic">
+                  "The automated compliance checks and seamless ERP integration have revolutionized our financial reporting workflow."
+                </blockquote>
+                <p className="mt-4 font-medium">Michael Chen - Senior Manager at PwC</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-8">
+                <blockquote className="text-lg text-muted-foreground italic">
+                  "This platform has significantly reduced the time we spend on financial statement preparation, allowing us to focus on value-added analysis."
+                </blockquote>
+                <p className="mt-4 font-medium">Emma Thompson - Finance Director</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
