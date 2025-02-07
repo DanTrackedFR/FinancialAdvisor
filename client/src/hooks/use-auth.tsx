@@ -40,15 +40,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Starting Google sign-in process...");
       setIsLoading(true);
 
+      // Log current URL and domain information
+      const currentDomain = window.location.hostname;
+      const currentURL = window.location.href;
+      console.log("Authentication attempt from:", {
+        domain: currentDomain,
+        fullURL: currentURL,
+        protocol: window.location.protocol,
+        userAgent: navigator.userAgent
+      });
+
       // Clear any existing auth state
       await signOut(auth);
 
-      // First try popup
+      // Check if we're on a mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      console.log("Device type:", isMobile ? "Mobile" : "Desktop");
+
+      if (isMobile) {
+        // On mobile, use redirect method by default
+        console.log("Using redirect method for mobile device");
+        await signInWithRedirect(auth, googleProvider);
+        return; // Auth state will be handled by the onAuthStateChanged listener
+      }
+
+      // On desktop, try popup first
       try {
         const result = await signInWithPopup(auth, googleProvider);
         handleSuccessfulSignIn(result);
       } catch (popupError: any) {
-        console.log("Popup sign-in failed, trying redirect...", popupError.code);
+        console.log("Popup sign-in failed:", popupError.code);
 
         // If popup is blocked, try redirect method
         if (popupError.code === 'auth/popup-blocked') {
@@ -60,7 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return; // Auth state will be handled by the onAuthStateChanged listener
         }
 
-        // If it's another error, throw it to be caught by the outer catch
         throw popupError;
       }
     } catch (error) {
@@ -82,7 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           errorMessage = "Sign-in cancelled. Please try again";
           break;
         case 'auth/unauthorized-domain':
-          errorMessage = "This domain is not authorized for Google sign-in. Please contact support";
+          const currentDomain = window.location.hostname;
+          errorMessage = `This domain (${currentDomain}) is not authorized for Google sign-in. Please contact support`;
+          console.error("Unauthorized domain:", currentDomain);
           break;
         case 'auth/operation-not-allowed':
           errorMessage = "Google sign-in is not enabled. Please contact support";

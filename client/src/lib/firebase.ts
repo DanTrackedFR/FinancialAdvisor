@@ -10,13 +10,17 @@ console.log("Firebase Config Debug:", {
 
 // Firebase configuration object
 const firebaseConfig = {
-  apiKey: "AIzaSyB3yq9_qhonCpquQ5WuTqocM0nwY_pytW4",
-  authDomain: "trackedfr.firebaseapp.com",
-  projectId: "trackedfr",
-  storageBucket: "trackedfr.appspot.com",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   messagingSenderId: "857363648999",
-  appId: "1:857363648999:web:ec2fe37eeab2258defed42"
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
+
+// Log the current domain for debugging
+console.log("Current domain:", window.location.hostname);
+console.log("Full URL:", window.location.href);
 
 // Log the full config for debugging (excluding sensitive values)
 console.log("Firebase Config Structure:", {
@@ -29,7 +33,7 @@ console.log("Firebase Config Structure:", {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-console.log("Firebase initialized successfully");
+console.log("Firebase initialized with project:", firebaseConfig.projectId);
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
