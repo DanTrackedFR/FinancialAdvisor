@@ -18,7 +18,7 @@ export default function Home() {
             <div className="flex items-center">
               <Link href="/" className="flex items-center">
                 <img
-                  src="/assets/Color logo - no background.png"
+                  src="./assets/Color logo - no background.png"
                   alt="TrackedFR Logo"
                   className="h-8 w-auto"
                 />
@@ -46,9 +46,9 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="mb-8">
               <img
-                src="/assets/Color logo - no background.png"
+                src="./assets/Color logo - no background.png"
                 alt="TrackedFR Logo"
-                className="h-24 mx-auto"
+                className="h-24 w-auto mx-auto"
               />
             </div>
             <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
