@@ -5,9 +5,7 @@ import {
   signOut,
   onAuthStateChanged,
   AuthError,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult
+  GoogleAuthProvider
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -27,16 +25,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for redirect result on component mount
-    getRedirectResult(auth).then((result) => {
-      if (result) {
-        handleSuccessfulSignIn(result);
-      }
-    }).catch((error) => {
-      console.error("Redirect sign-in error:", error);
-      handleAuthError(error);
-    });
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log("Auth state changed:", user ? "User logged in" : "User logged out");
       setUser(user);
@@ -49,58 +37,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       setIsLoading(true);
-      // Always use redirect for consistency across devices
-      await signInWithRedirect(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("Sign-in successful:", {
+        email: result.user.email,
+        displayName: result.user.displayName
+      });
+
+      setUser(result.user);
+      toast({
+        title: "Welcome!",
+        description: `Successfully signed in as ${result.user.displayName}`,
+      });
     } catch (error) {
-      handleAuthError(error as AuthError);
+      console.error("Authentication error:", error);
+      const authError = error as AuthError;
+
+      let errorMessage = "Failed to sign in with Google";
+      if (authError.code === 'auth/unauthorized-domain') {
+        errorMessage = `This domain is not authorized for Google sign-in. Please ensure it's added to Firebase console.`;
+      }
+
+      toast({
+        title: "Error signing in",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSuccessfulSignIn = (result: any) => {
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential) {
-      throw new Error("Failed to get credentials from Google");
-    }
-
-    console.log("Sign-in successful:", {
-      email: result.user.email,
-      displayName: result.user.displayName,
-      providerId: credential.providerId
-    });
-
-    setUser(result.user);
-    toast({
-      title: "Welcome!",
-      description: `Successfully signed in as ${result.user.displayName}`,
-    });
-  };
-
-  const handleAuthError = (error: AuthError) => {
-    console.error("Authentication error:", error);
-
-    let errorMessage = "Failed to sign in with Google";
-    switch (error.code) {
-      case 'auth/popup-blocked':
-      case 'auth/cancelled-popup-request':
-        errorMessage = "Sign-in was cancelled. Please try again";
-        break;
-      case 'auth/unauthorized-domain':
-        errorMessage = `This domain is not authorized for Google sign-in. Please ensure it's added to Firebase console.`;
-        break;
-      case 'auth/operation-not-allowed':
-        errorMessage = "Google sign-in is not enabled. Please contact support";
-        break;
-      default:
-        errorMessage = error.message;
-    }
-
-    toast({
-      title: "Error signing in",
-      description: errorMessage,
-      variant: "destructive",
-    });
   };
 
   const logout = async () => {
