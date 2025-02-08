@@ -27,6 +27,10 @@ const signUpSchema = loginSchema.extend({
   firstName: z.string().min(1, "First name is required"),
   surname: z.string().min(1, "Surname is required"),
   company: z.string().optional(),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -53,13 +57,16 @@ export default function AuthPage() {
       firstName: "",
       surname: "",
       company: "",
+      confirmPassword: "",
     },
   });
 
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
-        await signUp(data as SignUpFormData);
+        // Remove confirmPassword before sending to the auth hook
+        const { confirmPassword, ...signUpData } = data as SignUpFormData;
+        await signUp(signUpData);
       } else {
         await login(data.email, data.password);
       }
@@ -176,6 +183,30 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
+                  {mode === "signup" && (
+                    <FormField
+                      control={signUpForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Confirm your password"
+                              className={
+                                signUpForm.formState.errors.confirmPassword
+                                  ? "border-red-500 focus-visible:ring-red-500"
+                                  : ""
+                              }
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <Button type="submit" className="w-full">
                     {currentForm.formState.isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
