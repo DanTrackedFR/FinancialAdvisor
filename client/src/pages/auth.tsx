@@ -125,11 +125,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="email"
-                              placeholder="Enter your email"
-                              {...field}
-                            />
+                            <Input type="email" placeholder="Enter your email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -142,11 +138,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="password"
-                              placeholder="Enter your password"
-                              {...field}
-                            />
+                            <Input type="password" placeholder="Enter your password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -167,16 +159,11 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="firstName"
-                      render={({ field: { onChange, ...field } }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="Enter your first name"
-                              onChange={e => onChange(e.target.value)}
-                              {...field}
-                            />
+                            <Input type="text" placeholder="Enter your first name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -185,16 +172,11 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="surname"
-                      render={({ field: { onChange, ...field } }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="Enter your surname"
-                              onChange={e => onChange(e.target.value)}
-                              {...field}
-                            />
+                            <Input type="text" placeholder="Enter your surname" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -203,16 +185,11 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="company"
-                      render={({ field: { onChange, ...field } }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Company (Optional)</FormLabel>
                           <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="Enter your company name"
-                              onChange={e => onChange(e.target.value)}
-                              {...field}
-                            />
+                            <Input type="text" placeholder="Enter your company name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -221,16 +198,11 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="email"
-                      render={({ field: { onChange, ...field } }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="Enter your email"
-                              onChange={e => onChange(e.target.value)}
-                              {...field}
-                            />
+                            <Input type="email" placeholder="Enter your email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -239,16 +211,11 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="password"
-                      render={({ field: { onChange, ...field } }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Enter your password"
-                              onChange={e => onChange(e.target.value)}
-                              {...field}
-                            />
+                            <Input type="password" placeholder="Enter your password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -257,14 +224,13 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="confirmPassword"
-                      render={({ field: { onChange, ...field } }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Confirm Password</FormLabel>
                           <FormControl>
                             <Input
                               type="password"
                               placeholder="Confirm your password"
-                              onChange={e => onChange(e.target.value)}
                               {...field}
                               className={
                                 signUpForm.formState.errors.confirmPassword
