@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Card,
   CardContent,
@@ -9,6 +10,16 @@ import {
 } from "@/components/ui/card";
 
 export default function Home() {
+  const { logout } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header with logo and text */}
@@ -37,6 +48,9 @@ export default function Home() {
               </Button>
               <Button asChild>
                 <Link href="/analysis">Start Analysis</Link>
+              </Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                Sign Out
               </Button>
             </div>
           </div>
