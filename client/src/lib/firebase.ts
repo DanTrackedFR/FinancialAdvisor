@@ -11,8 +11,8 @@ console.log("Firebase Config Debug:", {
 // Firebase configuration object
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  authDomain: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.firebaseapp.com',
   storageBucket: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.appspot.com',
   messagingSenderId: "857363648999",
   appId: import.meta.env.VITE_FIREBASE_APP_ID
@@ -21,16 +21,7 @@ const firebaseConfig = {
 // Log the current domain for debugging
 console.log("Current domain:", window.location.hostname);
 console.log("Full URL:", window.location.href);
-
-// Log the full config for debugging (excluding sensitive values)
-console.log("Firebase Config Structure:", {
-  ...firebaseConfig,
-  apiKey: firebaseConfig.apiKey ? "Set" : "Missing",
-  appId: firebaseConfig.appId ? "Set" : "Missing",
-  authDomain: firebaseConfig.authDomain,
-  projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket
-});
+console.log("Auth Domain being used:", firebaseConfig.authDomain);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -49,5 +40,4 @@ googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 // Set custom parameters for Google sign-in
 googleProvider.setCustomParameters({
   prompt: 'consent', // Force consent screen to ensure fresh tokens
-  access_type: 'offline' // Request a refresh token
 });
