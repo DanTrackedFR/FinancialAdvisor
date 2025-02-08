@@ -1,19 +1,20 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { 
   User,
-  signInWithPopup,
   signOut,
   onAuthStateChanged,
-  AuthError,
-  GoogleAuthProvider
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  AuthError
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -26,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log("Auth state changed:", user ? "User logged in" : "User logged out");
       setUser(user);
       setIsLoading(false);
     });
@@ -34,27 +34,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log("Sign-in successful:", {
-        email: result.user.email,
-        displayName: result.user.displayName
-      });
-
+      const result = await createUserWithEmailAndPassword(auth, email, password);
       setUser(result.user);
       toast({
-        title: "Welcome!",
-        description: `Successfully signed in as ${result.user.displayName}`,
+        title: "Account created",
+        description: "Successfully created your account",
       });
     } catch (error) {
-      console.error("Authentication error:", error);
       const authError = error as AuthError;
+      let errorMessage = "Failed to create account";
 
-      let errorMessage = "Failed to sign in with Google";
-      if (authError.code === 'auth/unauthorized-domain') {
-        errorMessage = `This domain is not authorized for Google sign-in. Please ensure it's added to Firebase console.`;
+      if (authError.code === 'auth/email-already-in-use') {
+        errorMessage = "An account with this email already exists";
+      } else if (authError.code === 'auth/weak-password') {
+        errorMessage = "Password should be at least 6 characters";
+      }
+
+      toast({
+        title: "Error creating account",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
+      toast({
+        title: "Welcome back!",
+        description: "Successfully signed in",
+      });
+    } catch (error) {
+      const authError = error as AuthError;
+      let errorMessage = "Failed to sign in";
+
+      if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password') {
+        errorMessage = "Invalid email or password";
       }
 
       toast({
@@ -62,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: errorMessage,
         variant: "destructive",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Sign out error:", authError);
       toast({
         title: "Error signing out",
         description: authError.message || "Failed to sign out",
@@ -91,7 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        signInWithGoogle,
+        signUp,
+        login,
         logout,
       }}
     >

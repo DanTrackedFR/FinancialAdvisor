@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 
 // Debug environment variables
 console.log("Firebase Config Debug:", {
@@ -32,15 +32,3 @@ console.log("Firebase initialized with project:", firebaseConfig.projectId);
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
-
-// Configure Google Auth Provider
-export const googleProvider = new GoogleAuthProvider();
-
-// Add scopes for Google OAuth
-googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
-googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
-
-// Set custom parameters for Google sign-in
-googleProvider.setCustomParameters({
-  prompt: 'select_account'
-});
