@@ -23,10 +23,12 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const signUpSchema = loginSchema.extend({
+const signUpSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   surname: z.string().min(1, "Surname is required"),
   company: z.string().optional(),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -52,11 +54,11 @@ export default function AuthPage() {
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      email: "",
-      password: "",
       firstName: "",
       surname: "",
       company: "",
+      email: "",
+      password: "",
       confirmPassword: "",
     },
   });
@@ -162,7 +164,11 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input name="firstName" placeholder="Enter your first name" {...field} />
+                            <Input 
+                              placeholder="Enter your first name"
+                              {...field}
+                              onChange={event => field.onChange(event.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -175,7 +181,11 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input name="surname" placeholder="Enter your surname" {...field} />
+                            <Input 
+                              placeholder="Enter your surname"
+                              {...field}
+                              onChange={event => field.onChange(event.target.value)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
