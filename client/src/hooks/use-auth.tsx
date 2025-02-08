@@ -6,7 +6,8 @@ import {
   onAuthStateChanged,
   AuthError,
   GoogleAuthProvider,
-  signInWithRedirect
+  signInWithRedirect,
+  getRedirectResult
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check for redirect result on component mount
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        handleSuccessfulSignIn(result);
+      }
+    }).catch((error) => {
+      console.error("Redirect sign-in error:", error);
+      handleAuthError(error);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log("Auth state changed:", user ? "User logged in" : "User logged out");
       setUser(user);
@@ -37,97 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      console.log("Starting Google sign-in process...");
       setIsLoading(true);
-
-      // Log current URL and domain information
-      const currentDomain = window.location.hostname;
-      const currentURL = window.location.href;
-      console.log("Authentication attempt from:", {
-        domain: currentDomain,
-        fullURL: currentURL,
-        protocol: window.location.protocol,
-        userAgent: navigator.userAgent
-      });
-
-      // Clear any existing auth state
-      await signOut(auth);
-
-      // Check if we're on a mobile device
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      console.log("Device type:", isMobile ? "Mobile" : "Desktop");
-
-      if (isMobile) {
-        // On mobile, use redirect method by default
-        console.log("Using redirect method for mobile device");
-        await signInWithRedirect(auth, googleProvider);
-        return; // Auth state will be handled by the onAuthStateChanged listener
-      }
-
-      // On desktop, try popup first
-      try {
-        const result = await signInWithPopup(auth, googleProvider);
-        handleSuccessfulSignIn(result);
-      } catch (popupError: any) {
-        console.log("Popup sign-in failed:", popupError.code);
-
-        // If popup is blocked, try redirect method
-        if (popupError.code === 'auth/popup-blocked') {
-          toast({
-            title: "Popup Blocked",
-            description: "Switching to redirect sign-in method...",
-          });
-          await signInWithRedirect(auth, googleProvider);
-          return; // Auth state will be handled by the onAuthStateChanged listener
-        }
-
-        throw popupError;
-      }
+      // Always use redirect for consistency across devices
+      await signInWithRedirect(auth, googleProvider);
     } catch (error) {
-      const authError = error as AuthError;
-      console.error("Authentication error details:", {
-        code: authError.code,
-        message: authError.message,
-        customData: authError.customData,
-      });
-
-      let errorMessage = "Failed to sign in with Google";
-
-      // More specific error messages based on common error codes
-      switch (authError.code) {
-        case 'auth/popup-blocked':
-          errorMessage = "Please enable popups for this website in your browser settings and try again";
-          break;
-        case 'auth/cancelled-popup-request':
-          errorMessage = "Sign-in cancelled. Please try again";
-          break;
-        case 'auth/unauthorized-domain':
-          const currentDomain = window.location.hostname;
-          errorMessage = `This domain (${currentDomain}) is not authorized for Google sign-in. Please contact support`;
-          console.error("Unauthorized domain:", currentDomain);
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = "Google sign-in is not enabled. Please contact support";
-          break;
-        case 'auth/invalid-api-key':
-          errorMessage = "Invalid API configuration. Please contact support";
-          break;
-        case 'auth/invalid-action-code':
-          errorMessage = "The sign-in link is invalid or has expired. Please try again";
-          break;
-        case 'auth/internal-error':
-          errorMessage = "An internal error occurred. Please try again later";
-          break;
-        default:
-          console.error("Unhandled auth error:", authError);
-          errorMessage = `Authentication error: ${authError.message}`;
-      }
-
-      toast({
-        title: "Error signing in",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      handleAuthError(error as AuthError);
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +74,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toast({
       title: "Welcome!",
       description: `Successfully signed in as ${result.user.displayName}`,
+    });
+  };
+
+  const handleAuthError = (error: AuthError) => {
+    console.error("Authentication error:", error);
+
+    let errorMessage = "Failed to sign in with Google";
+    switch (error.code) {
+      case 'auth/popup-blocked':
+      case 'auth/cancelled-popup-request':
+        errorMessage = "Sign-in was cancelled. Please try again";
+        break;
+      case 'auth/unauthorized-domain':
+        errorMessage = `This domain is not authorized for Google sign-in. Please ensure it's added to Firebase console.`;
+        break;
+      case 'auth/operation-not-allowed':
+        errorMessage = "Google sign-in is not enabled. Please contact support";
+        break;
+      default:
+        errorMessage = error.message;
+    }
+
+    toast({
+      title: "Error signing in",
+      description: errorMessage,
+      variant: "destructive",
     });
   };
 

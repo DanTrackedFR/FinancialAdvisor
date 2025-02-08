@@ -12,9 +12,8 @@ console.log("Firebase Config Debug:", {
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  authDomain: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.firebaseapp.com',
-  storageBucket: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.appspot.com',
-  messagingSenderId: "857363648999",
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
@@ -39,5 +38,5 @@ googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
 // Set custom parameters for Google sign-in
 googleProvider.setCustomParameters({
-  prompt: 'consent', // Force consent screen to ensure fresh tokens
+  prompt: 'select_account' // Allow user to select account each time
 });
