@@ -104,7 +104,12 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "signup")}>
+            <Tabs value={mode} onValueChange={(v) => {
+              setMode(v as "login" | "signup");
+              // Reset forms when switching modes
+              loginForm.reset();
+              signUpForm.reset();
+            }}>
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -223,15 +228,15 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Confirm Password</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="password" 
+                            <Input
+                              type="password"
                               placeholder="Confirm your password"
                               className={
                                 signUpForm.formState.errors.confirmPassword
                                   ? "border-red-500 focus-visible:ring-red-500"
                                   : ""
                               }
-                              {...field} 
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
