@@ -18,30 +18,48 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const authSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-type AuthFormData = z.infer<typeof authSchema>;
+const signUpSchema = loginSchema.extend({
+  firstName: z.string().min(1, "First name is required"),
+  surname: z.string().min(1, "Surname is required"),
+  company: z.string().optional(),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, signUp, login } = useAuth();
   const [, setLocation] = useLocation();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
-  const form = useForm<AuthFormData>({
-    resolver: zodResolver(authSchema),
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: AuthFormData) => {
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      firstName: "",
+      surname: "",
+      company: "",
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
-        await signUp(data.email, data.password);
+        await signUp(data as SignUpFormData);
       } else {
         await login(data.email, data.password);
       }
@@ -63,6 +81,8 @@ export default function AuthPage() {
     return null;
   }
 
+  const currentForm = mode === "login" ? loginForm : signUpForm;
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="flex items-center justify-center p-8">
@@ -75,20 +95,63 @@ export default function AuthPage() {
             />
             <CardTitle className="mt-6 text-3xl">Welcome to Tracked</CardTitle>
             <CardDescription>
-              Sign in to start analyzing your financial statements
+              {mode === "login" ? "Sign in to continue" : "Create your account"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" onValueChange={(v) => setMode(v as "login" | "signup")}>
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "login" | "signup")}>
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
 
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Form {...currentForm}>
+                <form onSubmit={currentForm.handleSubmit(onSubmit)} className="space-y-4">
+                  {mode === "signup" && (
+                    <>
+                      <FormField
+                        control={signUpForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your first name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={signUpForm.control}
+                        name="surname"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Surname</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your surname" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={signUpForm.control}
+                        name="company"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Company (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter your company name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
                   <FormField
-                    control={form.control}
+                    control={currentForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
@@ -101,7 +164,7 @@ export default function AuthPage() {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={currentForm.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
@@ -114,7 +177,7 @@ export default function AuthPage() {
                     )}
                   />
                   <Button type="submit" className="w-full">
-                    {form.formState.isSubmitting ? (
+                    {currentForm.formState.isSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : mode === "login" ? (
                       "Sign In"

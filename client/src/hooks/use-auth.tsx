@@ -5,15 +5,24 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
   AuthError
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
+type SignUpData = {
+  email: string;
+  password: string;
+  firstName: string;
+  surname: string;
+  company?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (data: SignUpData) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -34,10 +43,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async ({ email, password, firstName, surname, company }: SignUpData) => {
     try {
       setIsLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Update the user's profile with additional information
+      await updateProfile(result.user, {
+        displayName: `${firstName} ${surname}`,
+        // Store company in photoURL field as a workaround since Firebase doesn't have a dedicated field for it
+        photoURL: company || null,
+      });
+
       setUser(result.user);
       toast({
         title: "Account created",
