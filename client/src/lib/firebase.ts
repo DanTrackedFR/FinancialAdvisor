@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
 
 // Debug environment variables
 console.log("Firebase Config Debug:", {
@@ -33,3 +33,14 @@ console.log("Firebase initialized successfully");
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
+
+// Email verification link configuration
+export const actionCodeSettings = {
+  url: `${window.location.origin}/auth?email=${encodeURIComponent(window.location.search)}`,
+  handleCodeInApp: true,
+};
+
+// Function to send email verification link
+export async function sendVerificationEmail(email: string) {
+  return sendSignInLinkToEmail(auth, email, actionCodeSettings);
+}

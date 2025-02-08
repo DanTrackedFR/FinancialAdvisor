@@ -6,9 +6,11 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
-  AuthError
+  AuthError,
+  isSignInWithEmailLink,
+  signInWithEmailLink
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, sendVerificationEmail } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 type SignUpData = {
@@ -25,6 +27,7 @@ type AuthContextType = {
   signUp: (data: SignUpData) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  sendEmailVerification: (email: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -41,28 +44,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
 
+    // Check for email link sign-in
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let email = window.localStorage.getItem('emailForSignIn');
+      if (!email) {
+        // If email is not stored, prompt user to provide their email
+        email = window.prompt('Please provide your email for confirmation');
+      }
+
+      if (email) {
+        setIsLoading(true);
+        signInWithEmailLink(auth, email, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            setUser(result.user);
+            toast({
+              title: "Email verified",
+              description: "Your email has been verified successfully",
+            });
+          })
+          .catch((error) => {
+            toast({
+              title: "Verification failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      }
+    }
+
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
+
+  const sendEmailVerification = async (email: string) => {
+    try {
+      await sendVerificationEmail(email);
+      // Save the email for later use
+      window.localStorage.setItem('emailForSignIn', email);
+      toast({
+        title: "Verification email sent",
+        description: "Please check your email to complete the sign-up process",
+      });
+    } catch (error) {
+      console.error("Email verification error:", error);
+      const authError = error as AuthError;
+      toast({
+        title: "Error sending verification",
+        description: authError.message || "Failed to send verification email",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   const signUp = async ({ email, password, firstName, surname, company }: SignUpData) => {
     try {
       setIsLoading(true);
       console.log("Starting sign up process...");
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("User created successfully, updating profile...");
+      // First send verification email
+      await sendEmailVerification(email);
 
-      // Update the user's profile with additional information
-      await updateProfile(result.user, {
-        displayName: `${firstName} ${surname}`,
-        photoURL: company || null,
-      });
-      console.log("Profile updated successfully");
+      // Store user details for later
+      window.localStorage.setItem('pendingUserDetails', JSON.stringify({
+        firstName,
+        surname,
+        company
+      }));
 
-      setUser(result.user);
-      toast({
-        title: "Account created",
-        description: "Successfully created your account",
-      });
     } catch (error) {
       console.error("Authentication error:", error);
       const authError = error as AuthError;
@@ -167,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         login,
         logout,
+        sendEmailVerification,
       }}
     >
       {children}
