@@ -107,7 +107,6 @@ export default function AuthPage() {
           <CardContent>
             <Tabs value={mode} onValueChange={(v) => {
               setMode(v as "login" | "signup");
-              // Reset forms when switching modes
               loginForm.reset();
               signUpForm.reset();
             }}>
@@ -165,9 +164,9 @@ export default function AuthPage() {
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
                             <Input 
+                              onChange={(e) => signUpForm.setValue('firstName', e.target.value)}
+                              value={signUpForm.watch('firstName')}
                               placeholder="Enter your first name"
-                              {...field}
-                              onChange={event => field.onChange(event.target.value)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -182,9 +181,9 @@ export default function AuthPage() {
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
                             <Input 
+                              onChange={(e) => signUpForm.setValue('surname', e.target.value)}
+                              value={signUpForm.watch('surname')}
                               placeholder="Enter your surname"
-                              {...field}
-                              onChange={event => field.onChange(event.target.value)}
                             />
                           </FormControl>
                           <FormMessage />
