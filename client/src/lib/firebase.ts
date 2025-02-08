@@ -10,25 +10,26 @@ console.log("Firebase Config Debug:", {
 
 // Get the full domain for configuration
 const currentDomain = window.location.hostname;
-console.log("Current full domain:", currentDomain);
+console.log("Current domain:", currentDomain);
 
 // Firebase configuration object
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  authDomain: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.firebaseapp.com',
-  storageBucket: import.meta.env.VITE_FIREBASE_PROJECT_ID + '.appspot.com',
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Log the current domain for debugging
-console.log("Current domain:", window.location.hostname);
-console.log("Full URL:", window.location.href);
-console.log("Auth Domain being used:", firebaseConfig.authDomain);
+// Log configuration for debugging
+console.log("Firebase configuration:", {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain
+});
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-console.log("Firebase initialized with project:", firebaseConfig.projectId);
+console.log("Firebase initialized successfully");
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);

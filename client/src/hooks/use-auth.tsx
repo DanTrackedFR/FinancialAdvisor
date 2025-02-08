@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? "User logged in" : "User logged out");
       setUser(user);
       setIsLoading(false);
     });
@@ -46,14 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async ({ email, password, firstName, surname, company }: SignUpData) => {
     try {
       setIsLoading(true);
+      console.log("Starting sign up process...");
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("User created successfully, updating profile...");
 
       // Update the user's profile with additional information
       await updateProfile(result.user, {
         displayName: `${firstName} ${surname}`,
-        // Store company in photoURL field as a workaround since Firebase doesn't have a dedicated field for it
         photoURL: company || null,
       });
+      console.log("Profile updated successfully");
 
       setUser(result.user);
       toast({
@@ -61,13 +64,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Successfully created your account",
       });
     } catch (error) {
+      console.error("Authentication error:", error);
       const authError = error as AuthError;
       let errorMessage = "Failed to create account";
 
-      if (authError.code === 'auth/email-already-in-use') {
-        errorMessage = "An account with this email already exists";
-      } else if (authError.code === 'auth/weak-password') {
-        errorMessage = "Password should be at least 6 characters";
+      switch (authError.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = "An account with this email already exists";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Invalid email address format";
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = "Email/password accounts are not enabled. Please contact support.";
+          break;
+        case 'auth/weak-password':
+          errorMessage = "Password should be at least 6 characters";
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = "Network error. Please check your internet connection.";
+          break;
+        default:
+          errorMessage = `Registration failed: ${authError.message}`;
       }
 
       toast({
@@ -84,18 +102,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Starting login process...");
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Login successful");
       setUser(result.user);
       toast({
         title: "Welcome back!",
         description: "Successfully signed in",
       });
     } catch (error) {
+      console.error("Login error:", error);
       const authError = error as AuthError;
       let errorMessage = "Failed to sign in";
 
-      if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password') {
-        errorMessage = "Invalid email or password";
+      switch (authError.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          errorMessage = "Invalid email or password";
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = "Too many failed attempts. Please try again later.";
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = "Network error. Please check your internet connection.";
+          break;
+        default:
+          errorMessage = `Login failed: ${authError.message}`;
       }
 
       toast({
