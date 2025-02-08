@@ -8,6 +8,10 @@ console.log("Firebase Config Debug:", {
   appId: import.meta.env.VITE_FIREBASE_APP_ID ? "Present" : "Missing"
 });
 
+// Get the full domain for configuration
+const currentDomain = window.location.hostname;
+console.log("Current full domain:", currentDomain);
+
 // Firebase configuration object
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
