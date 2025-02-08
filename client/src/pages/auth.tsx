@@ -126,8 +126,8 @@ export default function AuthPage() {
                           <FormLabel>Email</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="Enter your email"
                               type="email"
+                              placeholder="Enter your email"
                               {...field}
                             />
                           </FormControl>
@@ -167,15 +167,15 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="firstName"
-                      render={({ field }) => (
+                      render={({ field: { onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
                             <Input
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
+                              type="text"
                               placeholder="Enter your first name"
+                              onChange={e => onChange(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -185,15 +185,15 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="surname"
-                      render={({ field }) => (
+                      render={({ field: { onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
                             <Input
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
+                              type="text"
                               placeholder="Enter your surname"
+                              onChange={e => onChange(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -203,15 +203,15 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="company"
-                      render={({ field }) => (
+                      render={({ field: { onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Company (Optional)</FormLabel>
                           <FormControl>
                             <Input
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
+                              type="text"
                               placeholder="Enter your company name"
+                              onChange={e => onChange(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -221,16 +221,15 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="email"
-                      render={({ field }) => (
+                      render={({ field: { onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
                             <Input
                               type="email"
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
                               placeholder="Enter your email"
+                              onChange={e => onChange(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -240,16 +239,15 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="password"
-                      render={({ field }) => (
+                      render={({ field: { onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
                             <Input
                               type="password"
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
                               placeholder="Enter your password"
+                              onChange={e => onChange(e.target.value)}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -259,16 +257,15 @@ export default function AuthPage() {
                     <FormField
                       control={signUpForm.control}
                       name="confirmPassword"
-                      render={({ field }) => (
+                      render={({ field: { onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Confirm Password</FormLabel>
                           <FormControl>
                             <Input
                               type="password"
-                              value={field.value}
-                              onChange={(e) => field.onChange(e.target.value)}
-                              onBlur={field.onBlur}
                               placeholder="Confirm your password"
+                              onChange={e => onChange(e.target.value)}
+                              {...field}
                               className={
                                 signUpForm.formState.errors.confirmPassword
                                   ? "border-red-500 focus-visible:ring-red-500"
