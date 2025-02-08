@@ -64,7 +64,6 @@ export default function AuthPage() {
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
-        // Remove confirmPassword before sending to the auth hook
         const { confirmPassword, ...signUpData } = data as SignUpFormData;
         await signUp(signUpData);
       } else {
@@ -163,7 +162,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input type="text" placeholder="Enter your first name" {...field} />
+                            <Input name="firstName" placeholder="Enter your first name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -176,7 +175,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input type="text" placeholder="Enter your surname" {...field} />
+                            <Input name="surname" placeholder="Enter your surname" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -189,7 +188,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Company (Optional)</FormLabel>
                           <FormControl>
-                            <Input type="text" placeholder="Enter your company name" {...field} />
+                            <Input placeholder="Enter your company name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
