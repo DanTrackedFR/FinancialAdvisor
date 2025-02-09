@@ -77,9 +77,6 @@ export default function Home() {
                     style={{ height: '96px', width: '192px' }}
                   />
                 </div>
-                <div className="text-center mt-4">
-                  <h2 className="text-2xl font-bold">Coming in 2025</h2>
-                </div>
               </div>
 
               <div className="text-center space-y-8">
@@ -91,7 +88,7 @@ export default function Home() {
                 </p>
                 <div className="flex justify-center gap-4 pt-4">
                   <Button asChild size="lg" className="px-8">
-                    <Link href="/auth?mode=signup">Register interest</Link>
+                    <Link href="/auth?mode=signup">Sign Up Now</Link>
                   </Button>
                 </div>
               </div>
@@ -99,7 +96,7 @@ export default function Home() {
           </section>
 
           {/* Features Section */}
-          <section className="py-16 bg-slate-50">
+          <section className="py-16 bg-slate-50/50">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Effortless Financial Statement Generation</h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -142,6 +139,61 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Enhanced Financial Understanding Section */}
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-12">Enhanced Financial Understanding</h2>
+              <Card className="max-w-3xl mx-auto">
+                <CardContent className="p-8">
+                  <p className="text-lg text-muted-foreground">
+                    Deepen your understanding of financial statements and their impact on your business. Our tool provides valuable insights to help you make informed financial decisions.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* About Tracked Section */}
+          <section className="py-16 bg-slate-50/50">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-12">About Tracked</h2>
+              <div className="grid md:grid-cols-3 gap-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Our Story</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Frustrated by work that added no value, we are building the ability to automatically create compliant financial statements- at speed, perfectly accurate.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Our Vision</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Our vision is to revolutionize financial statement creation and empower accounting professionals and finance teams with a seamless and efficient solution. Be the reviewer, not the preparer.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Advanced Technology</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Explore the advanced technology that drives Tracked Financial Reporting. Our commitment to innovation ensures a robust and reliable platform for our users.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+
           {/* Partners Section */}
           <section className="py-16">
             <div className="container mx-auto px-4">
@@ -167,7 +219,7 @@ export default function Home() {
           </section>
 
           {/* Customers Section */}
-          <section className="py-16">
+          <section className="py-16 bg-slate-50/50">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Who are our customers?</h2>
               <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -193,7 +245,7 @@ export default function Home() {
           </section>
 
           {/* Testimonials Section */}
-          <section className="py-16 bg-slate-50">
+          <section className="py-16">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
               <div className="grid md:grid-cols-3 gap-8">
@@ -228,7 +280,7 @@ export default function Home() {
           </section>
 
           {/* CTA Section */}
-          <section className="py-16">
+          <section className="py-16 bg-slate-50/50">
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-3xl font-bold mb-4">Experience automated financial statements</h2>
               <p className="text-xl text-muted-foreground mb-8">
