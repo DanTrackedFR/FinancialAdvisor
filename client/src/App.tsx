@@ -14,8 +14,8 @@ import { ProtectedRoute } from "./components/protected-route";
 function Router() {
   return (
     <Switch>
+      <Route path="/" component={Home} />
       <Route path="/auth" component={Auth} />
-      <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/analysis" component={Analysis} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/cookies" component={Cookies} />
