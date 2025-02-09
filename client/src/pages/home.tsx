@@ -29,7 +29,7 @@ export default function Home() {
             <div className="flex items-center">
               <Link href="/" className="flex items-center gap-2">
                 <img
-                  src="/attached_assets/Black logo - no background.png"
+                  src="/assets/Black logo - no background.png"
                   alt="TrackedFR Logo"
                   className="h-8 w-auto"
                 />
@@ -72,7 +72,7 @@ export default function Home() {
               <div className="flex flex-col items-center mb-8">
                 <div className="flex justify-center">
                   <img
-                    src="/attached_assets/Black logo - no background.png"
+                    src="/assets/Black logo - no background.png"
                     alt="TrackedFR Logo"
                     style={{ height: '96px', width: '192px' }}
                   />
