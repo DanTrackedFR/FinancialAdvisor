@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 
 export default function Home() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleSignOut = async () => {
     try {
@@ -46,156 +46,181 @@ export default function Home() {
               <Button variant="ghost" asChild>
                 <Link href="/cookies">Cookies</Link>
               </Button>
-              <Button variant="ghost" asChild>
-                <Link href="/auth">Sign Up</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/auth">Login</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/analysis">Analysis</Link>
+                  </Button>
+                  <Button variant="outline" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/auth?mode=signup">Sign Up</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/auth?mode=login">Login</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content with padding for fixed banner */}
-      <div className="pt-16">
-        {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-b from-white to-slate-50">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-5xl font-bold tracking-tight mb-6">
-                Transform Your Financial Statement Preparation
-              </h1>
-              <p className="text-xl text-muted-foreground mb-8">
-                Automated generation of financial statements from trial balances, ensuring accuracy and freeing up your time.
-              </p>
-              <div className="flex justify-center gap-4">
-                <Button size="lg" asChild>
-                  <Link href="/auth">Sign Up</Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <Link href="/auth">Learn More</Link>
-                </Button>
+      {!user && (
+        <div className="pt-16">
+          {/* Hero Section */}
+          <section className="py-20 bg-gradient-to-b from-white to-slate-50">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto text-center">
+                <h1 className="text-5xl font-bold tracking-tight mb-6">
+                  Transform Your Financial Statement Preparation
+                </h1>
+                <p className="text-xl text-muted-foreground mb-8">
+                  Automated generation of financial statements from trial balances, ensuring accuracy and freeing up your time.
+                </p>
+                <div className="flex justify-center gap-4">
+                  <Button size="lg" asChild>
+                    <Link href="/auth?mode=signup">Sign Up</Link>
+                  </Button>
+                  <Button variant="outline" size="lg" asChild>
+                    <Link href="/auth?mode=login">Login</Link>
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Features Section */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12">Why Choose Tracked?</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Automated & Accurate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Our AI-powered platform ensures precise financial statement generation, eliminating manual errors and saving valuable time.
-                  </p>
-                </CardContent>
-              </Card>
+          {/* Features Section */}
+          <section className="py-20 bg-white">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-12">Why Choose Tracked?</h2>
+              <div className="grid md:grid-cols-3 gap-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Automated & Accurate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Our AI-powered platform ensures precise financial statement generation, eliminating manual errors and saving valuable time.
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Time-Saving Solution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Reduce the time spent on financial statement preparation by up to 80%, allowing you to focus on value-added analysis.
-                  </p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Time-Saving Solution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Reduce the time spent on financial statement preparation by up to 80%, allowing you to focus on value-added analysis.
+                    </p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Compliance Assured</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Stay compliant with the latest accounting standards while maintaining consistency across all your financial reports.
-                  </p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Compliance Assured</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Stay compliant with the latest accounting standards while maintaining consistency across all your financial reports.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Testimonials */}
-        <section className="py-20 bg-slate-50">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <Card>
-                <CardContent className="p-8">
-                  <p className="text-muted-foreground mb-4">
-                    "Tracked has revolutionized how we prepare financial statements. The automation and accuracy are game-changing."
-                  </p>
-                  <p className="font-medium">Sarah Chen - Financial Controller</p>
-                </CardContent>
-              </Card>
+          {/* Testimonials */}
+          <section className="py-20 bg-slate-50">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
+              <div className="grid md:grid-cols-3 gap-8">
+                <Card>
+                  <CardContent className="p-8">
+                    <p className="text-muted-foreground mb-4">
+                      "Tracked has revolutionized how we prepare financial statements. The automation and accuracy are game-changing."
+                    </p>
+                    <p className="font-medium">Sarah Chen - Financial Controller</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardContent className="p-8">
-                  <p className="text-muted-foreground mb-4">
-                    "The time savings are incredible. What used to take days now takes hours, with better accuracy."
-                  </p>
-                  <p className="font-medium">James Wilson - Senior Accountant</p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardContent className="p-8">
+                    <p className="text-muted-foreground mb-4">
+                      "The time savings are incredible. What used to take days now takes hours, with better accuracy."
+                    </p>
+                    <p className="font-medium">James Wilson - Senior Accountant</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardContent className="p-8">
-                  <p className="text-muted-foreground mb-4">
-                    "Excellent platform for maintaining consistency across all our financial reporting requirements."
-                  </p>
-                  <p className="font-medium">Emily Thompson - CFO</p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardContent className="p-8">
+                    <p className="text-muted-foreground mb-4">
+                      "Excellent platform for maintaining consistency across all our financial reporting requirements."
+                    </p>
+                    <p className="font-medium">Emily Thompson - CFO</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Financial Reporting?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Join the growing number of professionals who trust Tracked for their financial statement preparation.
-            </p>
-            <Button size="lg" asChild className="px-8">
-              <Link href="/auth">Sign Up Now</Link>
+          {/* CTA Section */}
+          <section className="py-20 bg-white">
+            <div className="container mx-auto px-4 text-center">
+              <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Financial Reporting?</h2>
+              <p className="text-xl text-muted-foreground mb-8">
+                Join the growing number of professionals who trust Tracked for their financial statement preparation.
+              </p>
+              <Button size="lg" asChild className="px-8">
+                <Link href="/auth?mode=signup">Sign Up Now</Link>
+              </Button>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="py-8 border-t">
+            <div className="container mx-auto px-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/assets/Color logo - no background.png"
+                    alt="TrackedFR Logo"
+                    className="h-8 w-auto"
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    © 2024 Tracked Financial Reporting
+                  </span>
+                </div>
+                <div className="flex gap-4">
+                  <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">
+                    Privacy Policy
+                  </Link>
+                  <Link href="/cookies" className="text-sm text-muted-foreground hover:text-primary">
+                    Cookie Policy
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </footer>
+        </div>
+      )}
+
+      {user && (
+        <div className="pt-16 container mx-auto px-4">
+          <div className="py-8">
+            <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
+            <Button asChild>
+              <Link href="/analysis">Start Analysis</Link>
             </Button>
           </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="py-8 border-t">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-2">
-                <img
-                  src="/assets/Color logo - no background.png"
-                  alt="TrackedFR Logo"
-                  className="h-8 w-auto"
-                />
-                <span className="text-sm text-muted-foreground">
-                  © 2024 Tracked Financial Reporting
-                </span>
-              </div>
-              <div className="flex gap-4">
-                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">
-                  Privacy Policy
-                </Link>
-                <Link href="/cookies" className="text-sm text-muted-foreground hover:text-primary">
-                  Cookie Policy
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
