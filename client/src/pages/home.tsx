@@ -79,19 +79,25 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Hero section styles update */}
               <div className="text-center space-y-8">
-                <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500">
                   Automated Financial Reporting
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                   Transform your general ledger data into compliant financial statements ready to meet your filing obligations
                 </p>
                 <div className="flex justify-center gap-4 pt-4">
-                  <Button asChild size="lg" className="px-8">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="px-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                  >
                     <Link href="/auth?mode=signup">Sign Up Now</Link>
                   </Button>
                 </div>
               </div>
+
             </div>
           </section>
 
