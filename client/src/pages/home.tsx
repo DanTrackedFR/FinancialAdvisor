@@ -81,7 +81,7 @@ export default function Home() {
 
               {/* Hero section styles update */}
               <div className="text-center space-y-8">
-                <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500">
+                <h1 className="text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500 leading-tight">
                   Automated Financial Reporting
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -102,7 +102,7 @@ export default function Home() {
           </section>
 
           {/* Features Section */}
-          <section className="py-16 bg-slate-50/50">
+          <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Effortless Financial Statement Generation</h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -146,7 +146,7 @@ export default function Home() {
           </section>
 
           {/* Enhanced Financial Understanding Section */}
-          <section className="py-16">
+          <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Enhanced Financial Understanding</h2>
               <Card className="max-w-3xl mx-auto">
@@ -160,7 +160,7 @@ export default function Home() {
           </section>
 
           {/* About Tracked Section */}
-          <section className="py-16 bg-slate-50/50">
+          <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">About Tracked</h2>
               <div className="grid md:grid-cols-3 gap-8">
@@ -201,7 +201,7 @@ export default function Home() {
           </section>
 
           {/* Partners Section */}
-          <section className="py-16">
+          <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Built by alumni who know what great looks like</h2>
               <div className="flex justify-center items-center gap-12 flex-wrap">
@@ -225,7 +225,7 @@ export default function Home() {
           </section>
 
           {/* Customers Section */}
-          <section className="py-16 bg-slate-50/50">
+          <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Who are our customers?</h2>
               <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -251,7 +251,7 @@ export default function Home() {
           </section>
 
           {/* Testimonials Section */}
-          <section className="py-16">
+          <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
               <div className="grid md:grid-cols-3 gap-8">
@@ -286,7 +286,7 @@ export default function Home() {
           </section>
 
           {/* CTA Section */}
-          <section className="py-16 bg-slate-50/50">
+          <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-3xl font-bold mb-4">Experience automated financial statements</h2>
               <p className="text-xl text-muted-foreground mb-8">
