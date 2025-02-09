@@ -78,8 +78,7 @@ export default function Home() {
                   />
                 </div>
                 <div className="text-center mt-4">
-                  <h2 className="text-2xl font-bold">Tracked</h2>
-                  <p className="text-xl text-muted-foreground">Financial Reporting</p>
+                  <h2 className="text-2xl font-bold">Coming in 2025</h2>
                 </div>
               </div>
 
@@ -92,7 +91,7 @@ export default function Home() {
                 </p>
                 <div className="flex justify-center gap-4 pt-4">
                   <Button asChild size="lg" className="px-8">
-                    <Link href="/auth?mode=signup">Sign Up</Link>
+                    <Link href="/auth?mode=signup">Register interest</Link>
                   </Button>
                 </div>
               </div>
@@ -103,13 +102,13 @@ export default function Home() {
           <section className="py-16 bg-slate-50">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">Effortless Financial Statement Generation</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <Card>
                   <CardHeader>
                     <CardTitle>Automated & Accurate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Generate accurate financial statements from trial balances, saving time and reducing errors.</p>
+                    <p className="text-muted-foreground">Based on prior-year financial statements, Tracked will create fully compliant financial statements instantly.</p>
                   </CardContent>
                 </Card>
 
@@ -118,7 +117,7 @@ export default function Home() {
                     <CardTitle>Cost-Efficient Solution</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Streamline your financial reporting process while reducing costs.</p>
+                    <p className="text-muted-foreground">Streamline your financial reporting process while reducing costs. Our solution offers a cost-efficient approach to generating compliant financial statements.</p>
                   </CardContent>
                 </Card>
 
@@ -128,6 +127,15 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">Integrate effortlessly with popular ERPs like Netsuite, Xero, Quickbooks for smoother financial reporting.</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Automated Compliance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">Automate compliance checks for financial records, ensuring accuracy and efficiency.</p>
                   </CardContent>
                 </Card>
               </div>
