@@ -27,16 +27,12 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center">
                 <img
                   src="/assets/Black logo - no background.png"
                   alt="TrackedFR Logo"
                   className="h-8 w-auto"
                 />
-                <div className="hidden sm:flex flex-col">
-                  <span className="text-lg font-bold leading-none">Tracked</span>
-                  <span className="text-sm text-muted-foreground leading-none">Financial Reporting</span>
-                </div>
               </Link>
             </div>
             <div className="flex items-center gap-4">
@@ -74,7 +70,7 @@ export default function Home() {
                   <img
                     src="/assets/Black logo - no background.png"
                     alt="TrackedFR Logo"
-                    style={{ height: '96px', width: '192px' }}
+                    className="h-24 w-auto"
                   />
                 </div>
               </div>
@@ -97,7 +93,6 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
-
             </div>
           </section>
 
