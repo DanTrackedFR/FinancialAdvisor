@@ -14,11 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export function AnalysisTable({ 
   analyses,
@@ -29,6 +42,7 @@ export function AnalysisTable({
 }) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     await apiRequest(`/api/analysis/${id}/status`, {
@@ -36,6 +50,25 @@ export function AnalysisTable({
       body: JSON.stringify({ status: newStatus }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await apiRequest(`/api/analysis/${id}`, {
+        method: "DELETE"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+      toast({
+        title: "Analysis Deleted",
+        description: "The analysis has been successfully deleted.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the analysis. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const navigateToAnalysis = (id: number) => {
@@ -49,7 +82,7 @@ export function AnalysisTable({
           <TableHead>Analysis Name</TableHead>
           <TableHead>Date Created</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Action</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -86,10 +119,37 @@ export function AnalysisTable({
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right space-x-2">
                 <Button onClick={() => navigateToAnalysis(analysis.id)}>
                   {analysis.status === "Complete" ? "View Analysis" : "Access Analysis"}
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Analysis</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this analysis? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDelete(analysis.id);
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </TableCell>
             </TableRow>
           ))
