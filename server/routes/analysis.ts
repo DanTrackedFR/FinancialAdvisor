@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { analyzeFinancialStatement } from "../services/analysis";
 import { db } from "../db";
-import { analyses } from "@shared/schema";
+import { analyses, messages } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -9,7 +9,13 @@ const router = Router();
 router.post("/analysis", async (req, res) => {
   try {
     const { fileContent, fileName, standard } = req.body;
-    
+
+    if (!fileContent || !fileName || !standard) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    console.log("Starting analysis for file:", fileName);
+
     // Create analysis record
     const [analysis] = await db
       .insert(analyses)
@@ -22,8 +28,11 @@ router.post("/analysis", async (req, res) => {
       })
       .returning();
 
+    console.log("Analysis record created:", analysis.id);
+
     // Generate initial AI analysis
     const initialAnalysis = await analyzeFinancialStatement(fileContent, standard);
+    console.log("Initial AI analysis generated");
 
     // Store the AI message
     await db.insert(messages).values({

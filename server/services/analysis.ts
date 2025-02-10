@@ -6,6 +6,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function analyzeFinancialStatement(content: string, standard: StandardType) {
   try {
+    console.log("Starting financial statement analysis for", standard);
     const prompt = `You are a financial expert analyzing financial statements. Review the following financial statement content and provide a detailed analysis comparing it against ${standard} standards. Focus on:
 
 1. Compliance with ${standard} presentation requirements
@@ -33,6 +34,7 @@ ${content}`;
       max_tokens: 2000,
     });
 
+    console.log("Analysis completed successfully");
     return response.choices[0].message.content;
   } catch (error: any) {
     console.error("Error analyzing financial statement:", error);
