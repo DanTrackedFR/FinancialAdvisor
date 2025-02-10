@@ -17,7 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useState } from "react";
 
 const profileSchema = z.object({
@@ -95,13 +101,18 @@ export default function Profile() {
           <CardHeader>
             <div>
               <CardTitle>Profile Information</CardTitle>
-              <CardDescription>View or update your profile details</CardDescription>
+              <CardDescription>
+                View or update your profile details
+              </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
             {isEditing ? (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -149,7 +160,11 @@ export default function Profile() {
                         "Save Changes"
                       )}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -160,7 +175,7 @@ export default function Profile() {
                 <div className="flex justify-end">
                   <Button variant="outline" onClick={() => setIsEditing(true)}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Profile
+                    Edit Profile
                   </Button>
                 </div>
                 <div>
@@ -171,12 +186,16 @@ export default function Profile() {
                 </div>
                 <div>
                   <h3 className="font-medium">Email</h3>
-                  <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {profile?.email}
+                  </p>
                 </div>
                 {profile?.company && (
                   <div>
                     <h3 className="font-medium">Company</h3>
-                    <p className="text-sm text-muted-foreground">{profile.company}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {profile.company}
+                    </p>
                   </div>
                 )}
               </div>
