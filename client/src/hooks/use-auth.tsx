@@ -3,10 +3,7 @@ import {
   User,
   signOut,
   onAuthStateChanged,
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  updateProfile,
-  AuthError,
   isSignInWithEmailLink,
   signInWithEmailLink
 } from "firebase/auth";
@@ -47,15 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedDetails) {
           try {
             const details = JSON.parse(storedDetails);
-            await apiRequest('POST', '/api/users', {
-              firebaseUid: user.uid,
-              firstName: details.firstName,
-              surname: details.surname,
-              company: details.company,
-              email: user.email!,
+            await fetch('/api/users', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'firebase-uid': user.uid
+              },
+              body: JSON.stringify({
+                firebaseUid: user.uid,
+                firstName: details.firstName,
+                surname: details.surname,
+                company: details.company,
+                email: user.email!,
+              }),
             });
             window.localStorage.removeItem('pendingUserDetails');
-          } catch (error) {
+          } catch (error: any) {
             console.error('Error creating user profile:', error);
           }
         }
@@ -64,109 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
 
-    // Check for email link sign-in
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (!email) {
-        email = window.prompt('Please provide your email for confirmation');
-      }
-
-      if (email) {
-        setIsLoading(true);
-        signInWithEmailLink(auth, email, window.location.href)
-          .then((result) => {
-            window.localStorage.removeItem('emailForSignIn');
-            setUser(result.user);
-            toast({
-              title: "Email verified",
-              description: "Your email has been verified successfully",
-            });
-          })
-          .catch((error) => {
-            toast({
-              title: "Verification failed",
-              description: error.message,
-              variant: "destructive",
-            });
-          })
-          .finally(() => {
-            setIsLoading(false);
-          });
-      }
-    }
-
     return () => unsubscribe();
   }, [toast]);
-
-  const sendEmailVerification = async (email: string) => {
-    try {
-      await sendVerificationEmail(email);
-      window.localStorage.setItem('emailForSignIn', email);
-      toast({
-        title: "Verification email sent",
-        description: "Please check your email to complete the sign-up process",
-      });
-    } catch (error) {
-      console.error("Email verification error:", error);
-      const authError = error as AuthError;
-      toast({
-        title: "Error sending verification",
-        description: authError.message || "Failed to send verification email",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const signUp = async ({ email, password, firstName, surname, company }: SignUpData) => {
-    try {
-      setIsLoading(true);
-      console.log("Starting sign up process...");
-      // First send verification email
-      await sendEmailVerification(email);
-
-      // Store user details for later
-      window.localStorage.setItem('pendingUserDetails', JSON.stringify({
-        firstName,
-        surname,
-        company
-      }));
-
-    } catch (error) {
-      console.error("Authentication error:", error);
-      const authError = error as AuthError;
-      let errorMessage = "Failed to create account";
-
-      switch (authError.code) {
-        case 'auth/email-already-in-use':
-          errorMessage = "An account with this email already exists";
-          break;
-        case 'auth/invalid-email':
-          errorMessage = "Invalid email address format";
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = "Email/password accounts are not enabled. Please contact support.";
-          break;
-        case 'auth/weak-password':
-          errorMessage = "Password should be at least 6 characters";
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = "Network error. Please check your internet connection.";
-          break;
-        default:
-          errorMessage = `Registration failed: ${authError.message}`;
-      }
-
-      toast({
-        title: "Error creating account",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -179,29 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Welcome back!",
         description: "Successfully signed in",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
-      const authError = error as AuthError;
-      let errorMessage = "Failed to sign in";
-
-      switch (authError.code) {
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-          errorMessage = "Invalid email or password";
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = "Too many failed attempts. Please try again later.";
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = "Network error. Please check your internet connection.";
-          break;
-        default:
-          errorMessage = `Login failed: ${authError.message}`;
-      }
-
       toast({
         title: "Error signing in",
-        description: errorMessage,
+        description: error.message || "Failed to sign in",
         variant: "destructive",
       });
       throw error;
@@ -218,13 +103,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Signed out",
         description: "Successfully signed out",
       });
-    } catch (error) {
-      const authError = error as AuthError;
+    } catch (error: any) {
       toast({
         title: "Error signing out",
-        description: authError.message || "Failed to sign out",
+        description: error.message || "Failed to sign out",
         variant: "destructive",
       });
+    }
+  };
+
+  const signUp = async ({ email, password, firstName, surname, company }: SignUpData) => {
+    try {
+      setIsLoading(true);
+      console.log("Starting sign up process...");
+      await sendEmailVerification(email);
+
+      window.localStorage.setItem('pendingUserDetails', JSON.stringify({
+        firstName,
+        surname,
+        company
+      }));
+
+    } catch (error: any) {
+      console.error("Authentication error:", error);
+      toast({
+        title: "Error creating account",
+        description: error.message || "Failed to create account",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendEmailVerification = async (email: string) => {
+    try {
+      await sendVerificationEmail(email);
+      window.localStorage.setItem('emailForSignIn', email);
+      toast({
+        title: "Verification email sent",
+        description: "Please check your email to complete the sign-up process",
+      });
+    } catch (error: any) {
+      console.error("Email verification error:", error);
+      toast({
+        title: "Error sending verification",
+        description: error.message || "Failed to send verification email",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 

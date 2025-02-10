@@ -17,7 +17,7 @@ export default function NewAnalysis() {
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [analysisName, setAnalysisName] = useState("");
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
     mutationFn: async ({
@@ -27,9 +27,7 @@ export default function NewAnalysis() {
       fileName: string;
       content: string;
     }) => {
-      console.log("Starting analysis with name:", analysisName || fileName);
-
-      if (!user?.firebaseUid) {
+      if (!user) {
         throw new Error("You must be logged in to create an analysis");
       }
 
@@ -37,7 +35,7 @@ export default function NewAnalysis() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "firebase-uid": user.firebaseUid,
+          "firebase-uid": user.uid
         },
         body: JSON.stringify({
           fileName: analysisName || fileName,
@@ -85,6 +83,14 @@ export default function NewAnalysis() {
       });
     },
   });
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
