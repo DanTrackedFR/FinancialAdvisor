@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type User, type Analysis } from "@shared/schema";
+import { type User } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { AnalysisTable } from "@/components/analysis-table";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -36,11 +35,6 @@ export default function Profile() {
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
-    enabled: !!user,
-  });
-
-  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
-    queryKey: ["/api/user/analyses"],
     enabled: !!user,
   });
 
@@ -86,7 +80,7 @@ export default function Profile() {
     updateProfile(data);
   };
 
-  if (isLoadingProfile || isLoadingAnalyses) {
+  if (isLoadingProfile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -96,7 +90,7 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -187,16 +181,6 @@ export default function Profile() {
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Analyses</CardTitle>
-            <CardDescription>View and manage your financial analyses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AnalysisTable analyses={analyses} />
           </CardContent>
         </Card>
       </div>

@@ -6,11 +6,11 @@ import { StandardSelector } from "@/components/standard-selector";
 import { ConversationThread } from "@/components/conversation-thread";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, FileText, Plus } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Plus } from "lucide-react";
+import { AnalysisTable } from "@/components/analysis-table";
 
 export default function Analysis() {
   const [analysisId, setAnalysisId] = useState<number>();
@@ -19,9 +19,9 @@ export default function Analysis() {
   const [showNewAnalysis, setShowNewAnalysis] = useState(false);
   const { toast } = useToast();
 
-  // Fetch all analyses
+  // Fetch user's analyses
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery({
-    queryKey: ["/api/analyses"],
+    queryKey: ["/api/user/analyses"],
   });
 
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
@@ -37,10 +37,13 @@ export default function Analysis() {
       fileName: string;
       content: string;
     }) => {
-      const res = await apiRequest("POST", "/api/analysis", {
-        fileName,
-        fileContent: content,
-        standard,
+      const res = await apiRequest("/api/analysis", {
+        method: "POST",
+        body: JSON.stringify({
+          fileName,
+          fileContent: content,
+          standard,
+        }),
       });
       return res.json();
     },
@@ -52,7 +55,7 @@ export default function Analysis() {
         description: "Your financial statement is being analyzed",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message,
@@ -63,16 +66,19 @@ export default function Analysis() {
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiRequest("POST", `/api/analysis/${analysisId}/messages`, {
-        content,
-        role: "user",
+      const res = await apiRequest(`/api/analysis/${analysisId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({
+          content,
+          role: "user",
+        }),
       });
       return res.json();
     },
     onSuccess: () => {
       setMessage("");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message,
@@ -89,96 +95,82 @@ export default function Analysis() {
     );
   }
 
+  if (analysisId) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => setAnalysisId(undefined)}
+            >
+              ← Back to Analysis
+            </Button>
+          </div>
+          <ConversationThread
+            messages={messages}
+            isLoading={isLoadingMessages || isSending}
+          />
+          <div className="flex gap-4">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Ask a question about the analysis..."
+              className="flex-1"
+              disabled={isSending}
+            />
+            <Button
+              onClick={() => sendMessage(message)}
+              disabled={!message.trim() || isSending}
+            >
+              Send
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        {!analysisId ? (
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Financial Statement Analysis</h1>
-              <Button onClick={() => setShowNewAnalysis(true)}>
-                <Plus className="mr-2 h-4 w-4" /> New Analysis
-              </Button>
-            </div>
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Your Analysis</h1>
+          <Button onClick={() => setShowNewAnalysis(true)}>
+            <Plus className="mr-2 h-4 w-4" /> New Analysis
+          </Button>
+        </div>
 
-            {showNewAnalysis ? (
-              <Card className="p-6 space-y-6">
-                <CardHeader>
-                  <CardTitle>New Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <StandardSelector
-                    value={standard}
-                    onChange={setStandard}
-                    disabled={isAnalyzing}
-                  />
-                  <UploadArea
-                    onFileProcessed={(fileName, content) =>
-                      startAnalysis({ fileName, content })
-                    }
-                    isLoading={isAnalyzing}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {analyses.map((analysis) => (
-                  <Card
-                    key={analysis.id}
-                    className="cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setAnalysisId(analysis.id)}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h3 className="font-medium">{analysis.fileName}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(analysis.createdAt), "PPP")}
-                          </p>
-                        </div>
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div className="mt-4">
-                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                          {analysis.standard}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={() => setAnalysisId(undefined)}
-              >
-                ← Back to Analyses
-              </Button>
-            </div>
-            <ConversationThread
-              messages={messages}
-              isLoading={isLoadingMessages || isSending}
-            />
-            <div className="flex gap-4">
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ask a question about the analysis..."
-                className="flex-1"
-                disabled={isSending}
+        {showNewAnalysis ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>New Analysis</CardTitle>
+              <CardDescription>Upload a financial statement to analyze</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <StandardSelector
+                value={standard}
+                onChange={setStandard}
+                disabled={isAnalyzing}
               />
-              <Button
-                onClick={() => sendMessage(message)}
-                disabled={!message.trim() || isSending}
-              >
-                Send
-              </Button>
-            </div>
-          </div>
+              <UploadArea
+                onFileProcessed={(fileName, content) =>
+                  startAnalysis({ fileName, content })
+                }
+                isLoading={isAnalyzing}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Analysis</CardTitle>
+              <CardDescription>View and manage your financial analyses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AnalysisTable analyses={analyses} />
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
