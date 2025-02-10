@@ -1,7 +1,7 @@
 import * as pdfjs from "pdfjs-dist";
 
 // Set up PDF.js worker with a static configuration
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   try {
@@ -12,7 +12,9 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     console.log("Loading PDF document...");
     const pdf = await pdfjs.getDocument({
       data: arrayBuffer,
-      verbosity: 0
+      verbosity: 0,
+      cMapUrl: `https://unpkg.com/pdfjs-dist@3.11.174/cmaps/`,
+      cMapPacked: true,
     }).promise;
 
     console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
