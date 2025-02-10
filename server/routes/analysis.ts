@@ -122,4 +122,44 @@ router.post("/analysis/:id/messages", async (req, res) => {
   }
 });
 
+router.delete("/analysis/:id", async (req, res) => {
+  try {
+    console.log("Delete request for analysis:", req.params.id);
+    const analysisId = parseInt(req.params.id);
+    const firebaseUid = req.headers["firebase-uid"] as string;
+
+    if (!firebaseUid) {
+      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
+      return;
+    }
+
+    const user = await storage.getUserByFirebaseUid(firebaseUid);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Get the analysis to verify ownership
+    const analysis = await storage.getAnalysis(analysisId);
+    if (!analysis) {
+      res.status(404).json({ error: "Analysis not found" });
+      return;
+    }
+
+    if (analysis.userId !== user.id) {
+      res.status(403).json({ error: "Unauthorized - Analysis belongs to another user" });
+      return;
+    }
+
+    // Delete the analysis and its messages
+    await storage.deleteAnalysis(analysisId);
+
+    console.log("Analysis deleted successfully:", analysisId);
+    res.status(200).json({ message: "Analysis deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting analysis:", error);
+    res.status(500).json({ error: "Failed to delete analysis" });
+  }
+});
+
 export default router;
