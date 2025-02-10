@@ -13,10 +13,26 @@ router.post("/analysis", async (req, res) => {
       standard: req.body.standard
     });
 
+    const firebaseUid = req.headers["firebase-uid"] as string;
+    if (!firebaseUid) {
+      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
+      return;
+    }
+
+    const user = await storage.getUserByFirebaseUid(firebaseUid);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
     const data = insertAnalysisSchema.parse(req.body);
     console.log("Analysis data validated");
 
-    const analysis = await storage.createAnalysis(data);
+    const analysis = await storage.createAnalysis({
+      ...data,
+      userId: user.id,
+      status: "Drafting"
+    });
     console.log("Analysis record created:", analysis.id);
 
     // Start AI analysis in the background
