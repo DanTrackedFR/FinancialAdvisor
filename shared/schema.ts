@@ -5,6 +5,9 @@ import { z } from "zod";
 export const standardTypes = ["IFRS", "US_GAAP", "UK_GAAP"] as const;
 export type StandardType = typeof standardTypes[number];
 
+export const analysisStatus = ["Drafting", "In Review", "Complete"] as const;
+export type AnalysisStatus = typeof analysisStatus[number];
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   firebaseUid: text("firebase_uid").notNull().unique(),
@@ -22,7 +25,7 @@ export const analyses = pgTable("analyses", {
   fileName: text("file_name").notNull(),
   fileContent: text("file_content").notNull(),
   standard: text("standard", { enum: standardTypes }).notNull(),
-  status: text("status", { enum: ["pending", "completed", "failed"] }).notNull().default("pending"),
+  status: text("status", { enum: analysisStatus }).notNull().default("Drafting"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

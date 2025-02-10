@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertAnalysisSchema, insertMessageSchema, insertUserSchema } from "@shared/schema";
+import { insertAnalysisSchema, insertMessageSchema, insertUserSchema, analysisStatus } from "@shared/schema";
 import { analyzeFinancialStatement, generateFollowupResponse } from "./ai/openai";
+import { z } from "zod";
 
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -180,6 +181,40 @@ export function registerRoutes(app: Express) {
       });
 
       res.json([message, aiMessage]);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/user/analyses", async (req, res) => {
+    try {
+      const firebaseUid = req.headers["firebase-uid"] as string;
+      if (!firebaseUid) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const user = await storage.getUserByFirebaseUid(firebaseUid);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      const analyses = await storage.getUserAnalyses(user.id);
+      res.json(analyses);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/analysis/:id/status", async (req, res) => {
+    try {
+      const { status } = z.object({
+        status: z.enum(analysisStatus),
+      }).parse(req.body);
+
+      await storage.updateAnalysisStatus(Number(req.params.id), status);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

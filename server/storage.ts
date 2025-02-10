@@ -8,13 +8,14 @@ export interface IStorage {
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User>;
   updateLastLogin(id: number): Promise<void>;
-  getAllUsers(): Promise<User[]>; // New method
+  getAllUsers(): Promise<User[]>;
 
   // Analysis methods
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
   getAnalysis(id: number): Promise<Analysis | undefined>;
   getAnalyses(): Promise<Analysis[]>;
-  updateAnalysisStatus(id: number, status: "pending" | "completed" | "failed"): Promise<void>;
+  updateAnalysisStatus(id: number, status: "Drafting" | "In Review" | "Complete"): Promise<void>;
+  getUserAnalyses(userId: number): Promise<Analysis[]>;
 
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
@@ -72,11 +73,18 @@ export class DatabaseStorage implements IStorage {
 
   async updateAnalysisStatus(
     id: number,
-    status: "pending" | "completed" | "failed",
+    status: "Drafting" | "In Review" | "Complete",
   ): Promise<void> {
     await db.update(analyses)
       .set({ status })
       .where(eq(analyses.id, id));
+  }
+
+  async getUserAnalyses(userId: number): Promise<Analysis[]> {
+    return db.select()
+      .from(analyses)
+      .where(eq(analyses.userId, userId))
+      .orderBy(desc(analyses.createdAt));
   }
 
   // Message methods

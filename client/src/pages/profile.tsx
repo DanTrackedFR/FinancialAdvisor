@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type User } from "@shared/schema";
+import { type User, type Analysis } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
+import { AnalysisTable } from "@/components/analysis-table";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -35,6 +36,11 @@ export default function Profile() {
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
+    enabled: !!user,
+  });
+
+  const { data: analyses, isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
+    queryKey: ["/api/user/analyses"],
     enabled: !!user,
   });
 
@@ -63,7 +69,6 @@ export default function Profile() {
         title: "Profile updated",
         description: "Your profile has been updated successfully",
       });
-      setLocation("/"); // Redirect to User Home Page after successful update
     },
     onError: (error: Error) => {
       toast({
@@ -78,7 +83,7 @@ export default function Profile() {
     updateProfile(data);
   };
 
-  if (isLoadingProfile) {
+  if (isLoadingProfile || isLoadingAnalyses) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -88,7 +93,7 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Edit Profile</CardTitle>
@@ -145,6 +150,20 @@ export default function Profile() {
                 </Button>
               </form>
             </Form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Analyses</CardTitle>
+            <CardDescription>View and manage your financial analyses</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {analyses && analyses.length > 0 ? (
+              <AnalysisTable analyses={analyses} />
+            ) : (
+              <p className="text-muted-foreground">No analyses found. Start by uploading a financial statement.</p>
+            )}
           </CardContent>
         </Card>
       </div>
