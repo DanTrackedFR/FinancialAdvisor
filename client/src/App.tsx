@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Analysis from "@/pages/analysis";
+import NewAnalysis from "@/pages/new-analysis";
 import Privacy from "@/pages/privacy";
 import Cookies from "@/pages/cookies";
 import Auth from "@/pages/auth";
@@ -32,6 +33,8 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/auth" component={Auth} />
         <ProtectedRoute path="/analysis" component={Analysis} />
+        <ProtectedRoute path="/analysis/:id" component={Analysis} />
+        <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
         <Route path="/privacy" component={Privacy} />
