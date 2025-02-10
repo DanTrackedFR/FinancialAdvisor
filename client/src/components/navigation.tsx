@@ -18,16 +18,12 @@ export function Navigation() {
 
         {/* Navigation buttons on the right */}
         <div className="flex items-center space-x-4">
-          <Link to="/analysis">
-            <Button variant={location === "/analysis" ? "default" : "ghost"}>
-              Analysis
-            </Button>
-          </Link>
-          <Link to="/profile">
-            <Button variant={location === "/profile" ? "default" : "ghost"}>
-              Profile
-            </Button>
-          </Link>
+          <Button variant={location === "/analysis" ? "default" : "ghost"} asChild>
+            <Link to="/analysis">Analysis</Link>
+          </Button>
+          <Button variant={location === "/profile" ? "default" : "ghost"} asChild>
+            <Link to="/profile">Profile</Link>
+          </Button>
           <Button variant="ghost" asChild>
             <Link to="/auth">Sign Out</Link>
           </Button>
