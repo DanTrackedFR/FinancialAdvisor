@@ -10,7 +10,7 @@ export function Navigation() {
         {/* Logo on the left */}
         <Link to="/" className="flex-none">
           <img 
-            src="/assets/Color logo - no background.png" 
+            src="/assets/Black logo - no background.png" 
             alt="Tracked Logo" 
             className="h-8"
           />
