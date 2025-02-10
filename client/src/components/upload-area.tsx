@@ -19,7 +19,17 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
       if (!file) return;
 
       try {
+        toast({
+          title: "Processing PDF",
+          description: "Please wait while we extract the text from your PDF...",
+        });
+
         const text = await extractTextFromPDF(file);
+
+        if (!text.trim()) {
+          throw new Error("No text could be extracted from the PDF");
+        }
+
         onFileProcessed(file.name, text);
       } catch (error) {
         console.error("Error processing file:", error);
@@ -30,7 +40,7 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
         });
       }
     },
-    [onFileProcessed, toast],
+    [onFileProcessed, toast]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -55,6 +65,7 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
           <div className="flex flex-col items-center">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
             <p className="mt-2">Processing your document...</p>
+            <p className="text-sm text-muted-foreground">This may take a few moments</p>
           </div>
         ) : isDragActive ? (
           <>

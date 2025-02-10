@@ -1,8 +1,7 @@
 import * as pdfjs from "pdfjs-dist";
 
-// Initialize PDF.js worker using CDN
-const workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+// Set up PDF.js worker with a static configuration
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   try {
@@ -11,7 +10,11 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 
     // Load the PDF document
     console.log("Loading PDF document...");
-    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    const pdf = await pdfjs.getDocument({
+      data: arrayBuffer,
+      verbosity: 0
+    }).promise;
+
     console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
 
     let text = "";
