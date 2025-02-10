@@ -12,19 +12,33 @@ import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
+import { Navigation } from "./components/navigation";
+import { useAuth } from "@/hooks/use-auth";
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  return (
+    <div>
+      {user && <Navigation />}
+      {children}
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/auth" component={Auth} />
-      <ProtectedRoute path="/analysis" component={Analysis} />
-      <ProtectedRoute path="/profile" component={Profile} />
-      <ProtectedRoute path="/users" component={Users} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/cookies" component={Cookies} />
-      <Route component={NotFound} />
-    </Switch>
+    <Layout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/auth" component={Auth} />
+        <ProtectedRoute path="/analysis" component={Analysis} />
+        <ProtectedRoute path="/profile" component={Profile} />
+        <ProtectedRoute path="/users" component={Users} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/cookies" component={Cookies} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
   );
 }
 
