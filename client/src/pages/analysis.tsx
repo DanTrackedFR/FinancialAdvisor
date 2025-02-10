@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AnalysisTable } from "@/components/analysis-table";
 
 export default function Analysis() {
@@ -134,12 +134,6 @@ export default function Analysis() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <Button onClick={() => setShowNewAnalysis(true)}>
-            <Plus className="mr-2 h-4 w-4" /> New Analysis
-          </Button>
-        </div>
-
         {showNewAnalysis ? (
           <Card>
             <CardHeader>
@@ -167,7 +161,10 @@ export default function Analysis() {
               <CardDescription>View and manage your financial analyses</CardDescription>
             </CardHeader>
             <CardContent>
-              <AnalysisTable analyses={analyses} />
+              <AnalysisTable 
+                analyses={analyses} 
+                onNewAnalysis={() => setShowNewAnalysis(true)}
+              />
             </CardContent>
           </Card>
         )}

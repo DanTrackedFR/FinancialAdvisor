@@ -20,7 +20,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 
-export function AnalysisTable({ analyses }: { analyses: Analysis[] }) {
+export function AnalysisTable({ 
+  analyses,
+  onNewAnalysis 
+}: { 
+  analyses: Analysis[];
+  onNewAnalysis: () => void;
+}) {
   const queryClient = useQueryClient();
 
   const handleStatusChange = async (id: number, newStatus: string) => {
@@ -45,9 +51,7 @@ export function AnalysisTable({ analyses }: { analyses: Analysis[] }) {
         {analyses.length === 0 ? (
           <TableRow>
             <TableCell>
-              <Button asChild variant="default">
-                <Link to="/analysis">New Analysis</Link>
-              </Button>
+              <Button onClick={onNewAnalysis}>New Analysis</Button>
             </TableCell>
             <TableCell>-</TableCell>
             <TableCell>-</TableCell>
