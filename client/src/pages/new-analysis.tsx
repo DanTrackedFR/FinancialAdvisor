@@ -25,12 +25,13 @@ export default function NewAnalysis() {
       fileName: string;
       content: string;
     }) => {
-      console.log("Starting analysis for:", fileName);
+      console.log("Starting analysis with name:", analysisName || fileName);
 
       const response = await fetch("/api/analysis", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "firebase-uid": localStorage.getItem("firebase_uid") || "",
         },
         body: JSON.stringify({
           fileName: analysisName || fileName,
@@ -60,9 +61,12 @@ export default function NewAnalysis() {
     },
     onSuccess: (data) => {
       console.log("Analysis created successfully:", data);
-      setLocation(`/analysis/${data.id}`);
 
+      // Invalidate the analyses query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+
+      // Navigate to the analysis view
+      setLocation(`/analysis/${data.id}`);
 
       toast({
         title: "Analysis Started",
