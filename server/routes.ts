@@ -58,7 +58,6 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // New endpoint for updating user profile
   app.patch("/api/users/profile", async (req, res) => {
     try {
       const firebaseUid = req.headers["firebase-uid"] as string;
@@ -81,7 +80,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Existing routes
+  // Analysis routes
   app.get("/api/analyses", async (req, res) => {
     try {
       const analyses = await storage.getAnalyses();
@@ -110,9 +109,9 @@ export function registerRoutes(app: Express) {
           metadata: result,
         });
 
-        await storage.updateAnalysisStatus(analysis.id, "completed");
+        await storage.updateAnalysisStatus(analysis.id, "Complete");
       } catch (error: any) {
-        await storage.updateAnalysisStatus(analysis.id, "failed");
+        await storage.updateAnalysisStatus(analysis.id, "Drafting");
         throw error;
       }
 
