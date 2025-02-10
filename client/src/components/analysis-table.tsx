@@ -46,7 +46,7 @@ export function AnalysisTable({ analyses }: { analyses: Analysis[] }) {
           <TableRow>
             <TableCell>
               <Button asChild variant="default">
-                <Link to="/analysis">Start Analysis</Link>
+                <Link to="/analysis">New Analysis</Link>
               </Button>
             </TableCell>
             <TableCell>-</TableCell>
