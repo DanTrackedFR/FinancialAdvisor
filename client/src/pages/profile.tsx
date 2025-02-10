@@ -100,7 +100,7 @@ export default function Profile() {
             {!isEditing && (
               <Button variant="outline" onClick={() => setIsEditing(true)}>
                 <Edit className="h-4 w-4 mr-2" />
-                Profile
+                Edit Profile
               </Button>
             )}
           </CardHeader>
