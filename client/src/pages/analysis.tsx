@@ -54,27 +54,48 @@ export default function Analysis() {
     }) => {
       console.log("Starting analysis for:", fileName, "with content length:", content.length);
       try {
+        const requestBody = {
+          fileName,
+          fileContent: content,
+          standard,
+        };
+        console.log("Sending request with body:", { fileName, contentLength: content.length, standard });
+
         const response = await fetch("/api/analysis", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            fileName,
-            fileContent: content,
-            standard,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
+        console.log("Response status:", response.status);
+        const responseText = await response.text();
+        console.log("Raw response:", responseText);
+
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Failed to parse error response" }));
-          throw new Error(errorData.message || `Failed to start analysis: ${response.statusText}`);
+          let errorMessage;
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || `Server error: ${response.status}`;
+          } catch {
+            errorMessage = `Failed to parse error response: ${responseText}`;
+          }
+          throw new Error(errorMessage);
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          throw new Error("Invalid JSON response from server");
+        }
+
         if (!data?.id) {
+          console.error("Invalid response data:", data);
           throw new Error("Invalid response from server - missing analysis ID");
         }
+
         console.log("Analysis created successfully:", data);
         return data;
       } catch (error) {
@@ -216,7 +237,7 @@ export default function Analysis() {
             </CardHeader>
             <CardContent>
               <AnalysisTable 
-                analyses={analyses} 
+                analyses={analyses}
                 onNewAnalysis={() => setShowNewAnalysis(true)}
               />
             </CardContent>
