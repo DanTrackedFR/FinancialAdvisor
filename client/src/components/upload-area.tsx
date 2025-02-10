@@ -25,11 +25,6 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
         });
 
         const text = await extractTextFromPDF(file);
-
-        if (!text.trim()) {
-          throw new Error("No text could be extracted from the PDF");
-        }
-
         onFileProcessed(file.name, text);
       } catch (error) {
         console.error("Error processing file:", error);
@@ -53,37 +48,42 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
   });
 
   return (
-    <Card
-      {...getRootProps()}
-      className={`p-8 border-2 border-dashed cursor-pointer transition-colors ${
-        isDragActive ? "border-primary bg-primary/5" : "border-border"
-      } ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
-    >
-      <input {...getInputProps()} />
-      <div className="flex flex-col items-center gap-4 text-center">
-        {isLoading ? (
-          <div className="flex flex-col items-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
-            <p className="mt-2">Processing your document...</p>
-            <p className="text-sm text-muted-foreground">This may take a few moments</p>
-          </div>
-        ) : isDragActive ? (
-          <>
-            <FileIcon className="w-12 h-12 text-primary" />
-            <p>Drop the file here...</p>
-          </>
-        ) : (
-          <>
-            <Upload className="w-12 h-12 text-muted-foreground" />
-            <div>
-              <p className="text-lg font-medium">Upload Financial Statement</p>
-              <p className="text-sm text-muted-foreground">
-                Drag and drop a PDF file here, or click to select
-              </p>
+    <div className="space-y-4">
+      <Card
+        {...getRootProps()}
+        className={`p-8 border-2 border-dashed cursor-pointer transition-colors ${
+          isDragActive ? "border-primary bg-primary/5" : "border-border"
+        } ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+      >
+        <input {...getInputProps()} />
+        <div className="flex flex-col items-center gap-4 text-center">
+          {isLoading ? (
+            <div className="flex flex-col items-center">
+              <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              <p className="mt-2">Processing your document...</p>
+              <p className="text-sm text-muted-foreground">This may take a few moments</p>
             </div>
-          </>
-        )}
-      </div>
-    </Card>
+          ) : isDragActive ? (
+            <>
+              <FileIcon className="w-12 h-12 text-primary" />
+              <p>Drop the file here...</p>
+            </>
+          ) : (
+            <>
+              <Upload className="w-12 h-12 text-muted-foreground" />
+              <div>
+                <p className="text-lg font-medium">Upload Financial Statement</p>
+                <p className="text-sm text-muted-foreground">
+                  Drag and drop a PDF file here, or click to select
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+      <p className="text-sm text-muted-foreground">
+        Note: We currently support PDFs with selectable text only. Scanned documents need to be converted to searchable PDFs first.
+      </p>
+    </div>
   );
 }
