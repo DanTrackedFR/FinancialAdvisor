@@ -28,10 +28,16 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
         onFileProcessed(file.name, text);
       } catch (error) {
         console.error("Error processing file:", error);
+
+        // Determine if it's a scanned document error
+        const errorMessage = error instanceof Error ? error.message : "Failed to process PDF file";
+        const isScannedDoc = errorMessage.includes("scanned document");
+
         toast({
-          title: "Error processing PDF",
-          description: error instanceof Error ? error.message : "Failed to process PDF file",
+          title: isScannedDoc ? "Scanned Document Detected" : "Error Processing PDF",
+          description: errorMessage,
           variant: "destructive",
+          duration: 10000, // Show longer for scanned document messages
         });
       }
     },
@@ -81,9 +87,14 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
           )}
         </div>
       </Card>
-      <p className="text-sm text-muted-foreground">
-        Note: We currently support PDFs with selectable text only. Scanned documents need to be converted to searchable PDFs first.
-      </p>
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Note: We currently support PDFs with selectable text only. Scanned documents need to be converted to searchable PDFs first.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Tip: If you have a Word document, save it directly as PDF instead of printing and scanning it.
+        </p>
+      </div>
     </div>
   );
 }

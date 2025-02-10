@@ -22,6 +22,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
 
     let text = "";
+    let totalCharacters = 0;
 
     // Extract text from each page
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -36,13 +37,27 @@ export async function extractTextFromPDF(file: File): Promise<string> {
         .join(" ")
         .trim();
       text += pageText + "\n";
+      totalCharacters += pageText.length;
     }
 
     const finalText = text.trim();
     console.log("PDF extraction completed successfully");
 
+    // Check if the document appears to be scanned
+    // A scanned document typically has very little or no extractable text
+    const averageCharsPerPage = totalCharacters / pdf.numPages;
+    if (averageCharsPerPage < 50) { // Threshold for detecting scanned documents
+      throw new Error(
+        "This appears to be a scanned document. Currently, we can only process PDFs with selectable text. " +
+        "To analyze this document, please:\n" +
+        "1. Use OCR software to convert it to searchable PDF\n" +
+        "2. Save the Word document as PDF instead of scanning\n" +
+        "3. Ensure the PDF contains selectable text"
+      );
+    }
+
     if (!finalText) {
-      throw new Error("This appears to be a scanned document. Currently, we can only process PDFs with selectable text. Please try a different PDF or convert your scanned document to text first.");
+      throw new Error("No text could be extracted from this PDF. Please ensure the document contains selectable text.");
     }
 
     return finalText;
