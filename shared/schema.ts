@@ -21,7 +21,7 @@ export const users = pgTable("users", {
 
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id).notNull(),
   fileName: text("file_name").notNull(),
   fileContent: text("file_content").notNull(),
   standard: text("standard", { enum: standardTypes }).notNull(),
@@ -31,7 +31,7 @@ export const analyses = pgTable("analyses", {
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  analysisId: integer("analysis_id").references(() => analyses.id),
+  analysisId: integer("analysis_id").references(() => analyses.id).notNull(),
   content: text("content").notNull(),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   metadata: jsonb("metadata"),
@@ -44,10 +44,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastLoggedIn: true,
 });
 
-export const insertAnalysisSchema = createInsertSchema(analyses).pick({
-  fileName: true,
-  fileContent: true,
-  standard: true,
+export const insertAnalysisSchema = createInsertSchema(analyses).omit({
+  id: true,
+  userId: true,
+  status: true,
+  createdAt: true,
 });
 
 export const insertMessageSchema = createInsertSchema(messages).pick({
