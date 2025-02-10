@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   surname: text("surname").notNull(),
   company: text("company"),
   email: text("email").notNull(),
+  lastLoggedIn: timestamp("last_logged_in"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -37,6 +38,7 @@ export const messages = pgTable("messages", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+  lastLoggedIn: true,
 });
 
 export const insertAnalysisSchema = createInsertSchema(analyses).pick({

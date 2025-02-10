@@ -39,6 +39,9 @@ export function registerRoutes(app: Express) {
         return;
       }
 
+      // Update last login timestamp
+      await storage.updateLastLogin(user.id);
+
       res.json(user);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
