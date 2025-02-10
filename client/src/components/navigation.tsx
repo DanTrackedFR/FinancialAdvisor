@@ -10,7 +10,7 @@ export function Navigation() {
         <div className="flex items-center space-x-8">
           <Link to="/">
             <img 
-              src="/Color logo - no background.png" 
+              src="/public/Color logo - no background.png" 
               alt="Tracked Logo" 
               className="h-8"
             />
