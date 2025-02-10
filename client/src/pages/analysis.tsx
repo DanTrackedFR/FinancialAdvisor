@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { AnalysisTable } from "@/components/analysis-table";
 
@@ -37,30 +37,38 @@ export default function Analysis() {
       fileName: string;
       content: string;
     }) => {
-      console.log("Starting analysis for:", fileName);
-      const response = await fetch("/api/analysis", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileName,
-          fileContent: content,
-          standard,
-        }),
-      });
+      console.log("Starting analysis for:", fileName, "with content length:", content.length);
+      try {
+        const response = await fetch("/api/analysis", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName,
+            fileContent: content,
+            standard,
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to start analysis");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to start analysis");
+        }
+
+        const data = await response.json();
+        console.log("Analysis created successfully:", data);
+        return data;
+      } catch (error) {
+        console.error("Analysis creation failed:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: (data) => {
-      console.log("Analysis created successfully:", data.id);
+      console.log("Setting analysis ID to:", data.id);
       setAnalysisId(data.id);
       setShowNewAnalysis(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
       toast({
         title: "Analysis started",
         description: "Your financial statement is being analyzed",
@@ -70,7 +78,7 @@ export default function Analysis() {
       console.error("Analysis creation failed:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to start analysis",
         variant: "destructive",
       });
     },
@@ -78,6 +86,8 @@ export default function Analysis() {
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
+      if (!analysisId) throw new Error("No active analysis");
+
       const response = await fetch(`/api/analysis/${analysisId}/messages`, {
         method: "POST",
         headers: {
@@ -98,11 +108,12 @@ export default function Analysis() {
     },
     onSuccess: () => {
       setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to send message",
         variant: "destructive",
       });
     },
@@ -168,9 +179,10 @@ export default function Analysis() {
                 disabled={isAnalyzing}
               />
               <UploadArea
-                onFileProcessed={(fileName, content) =>
-                  startAnalysis({ fileName, content })
-                }
+                onFileProcessed={(fileName, content) => {
+                  console.log("File processed, starting analysis...");
+                  startAnalysis({ fileName, content });
+                }}
                 isLoading={isAnalyzing}
               />
             </CardContent>
@@ -183,7 +195,7 @@ export default function Analysis() {
             </CardHeader>
             <CardContent>
               <AnalysisTable 
-                analyses={analyses} 
+                analyses={analyses as any[]} 
                 onNewAnalysis={() => setShowNewAnalysis(true)}
               />
             </CardContent>
