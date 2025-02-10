@@ -185,38 +185,43 @@ export default function NewAnalysis() {
           </CardContent>
         </Card>
 
-        {currentAnalysisId && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Analysis Chat</CardTitle>
-              <CardDescription>Ask questions about your analysis</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <ConversationThread
-                messages={messages}
-                isLoading={isLoadingMessages}
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis Chat</CardTitle>
+            <CardDescription>
+              {currentAnalysisId 
+                ? "Ask questions about your analysis" 
+                : "Upload a document to start the analysis. The AI will begin analyzing your document here."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <ConversationThread
+              messages={messages}
+              isLoading={isLoadingMessages}
+            />
+            <div className="flex gap-4 mt-4">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={currentAnalysisId 
+                  ? "Ask a question about the analysis..." 
+                  : "Please upload a document first to start the conversation"}
+                className="flex-1"
+                disabled={!currentAnalysisId}
               />
-              <div className="flex gap-4 mt-4">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Ask a question about the analysis..."
-                  className="flex-1"
-                />
-                <Button
-                  onClick={() => {
-                    if (message.trim()) {
-                      sendMessage(message);
-                    }
-                  }}
-                  disabled={!message.trim() || isSending}
-                >
-                  Send
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              <Button
+                onClick={() => {
+                  if (message.trim()) {
+                    sendMessage(message);
+                  }
+                }}
+                disabled={!currentAnalysisId || !message.trim() || isSending}
+              >
+                Send
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
