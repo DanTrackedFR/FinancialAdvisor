@@ -12,6 +12,21 @@ import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { AnalysisTable } from "@/components/analysis-table";
 
+interface Message {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  analysisId: number;
+  metadata?: unknown;
+}
+
+interface Analysis {
+  id: number;
+  fileName: string;
+  status: string;
+  createdAt: string;
+}
+
 export default function Analysis() {
   const [analysisId, setAnalysisId] = useState<number>();
   const [standard, setStandard] = useState<StandardType>("IFRS");
@@ -20,11 +35,11 @@ export default function Analysis() {
   const { toast } = useToast();
 
   // Fetch user's analyses
-  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery({
+  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
     queryKey: ["/api/user/analyses"],
   });
 
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
   });
@@ -52,11 +67,14 @@ export default function Analysis() {
         });
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || "Failed to start analysis");
+          const errorData = await response.json().catch(() => ({ message: "Failed to parse error response" }));
+          throw new Error(errorData.message || `Failed to start analysis: ${response.statusText}`);
         }
 
         const data = await response.json();
+        if (!data?.id) {
+          throw new Error("Invalid response from server - missing analysis ID");
+        }
         console.log("Analysis created successfully:", data);
         return data;
       } catch (error) {
@@ -71,15 +89,17 @@ export default function Analysis() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
       toast({
         title: "Analysis started",
-        description: "Your financial statement is being analyzed",
+        description: "Your financial statement is being analyzed. Please wait while we process it...",
+        duration: 5000,
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to start analysis",
+        title: "Error Starting Analysis",
+        description: error.message || "Failed to start analysis. Please try again.",
         variant: "destructive",
+        duration: 10000,
       });
     },
   });
@@ -100,8 +120,8 @@ export default function Analysis() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to send message");
+        const errorData = await response.json().catch(() => ({ message: "Failed to parse error response" }));
+        throw new Error(errorData.message || "Failed to send message");
       }
 
       return response.json();
@@ -110,11 +130,12 @@ export default function Analysis() {
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to send message",
+        title: "Error Sending Message",
+        description: error.message || "Failed to send message. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -136,7 +157,7 @@ export default function Analysis() {
               variant="ghost"
               onClick={() => setAnalysisId(undefined)}
             >
-              ← Back to Analysis
+              ← Back to Analysis List
             </Button>
           </div>
           <ConversationThread
@@ -190,12 +211,12 @@ export default function Analysis() {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Your Analysis</CardTitle>
+              <CardTitle>Your Analyses</CardTitle>
               <CardDescription>View and manage your financial analyses</CardDescription>
             </CardHeader>
             <CardContent>
               <AnalysisTable 
-                analyses={analyses as any[]} 
+                analyses={analyses} 
                 onNewAnalysis={() => setShowNewAnalysis(true)}
               />
             </CardContent>
