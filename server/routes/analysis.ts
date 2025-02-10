@@ -1,105 +1,96 @@
 import { Router } from "express";
 import { analyzeFinancialStatement } from "../services/analysis";
-import { db } from "../db";
-import { analyses, messages } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "../storage";
+import { insertAnalysisSchema, insertMessageSchema } from "@shared/schema";
 
 const router = Router();
 
 router.post("/analysis", async (req, res) => {
   try {
-    const { fileContent, fileName, standard } = req.body;
-
-    if (!fileContent || !fileName || !standard) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    console.log("Starting analysis for file:", fileName);
-
-    // Create analysis record
-    const [analysis] = await db
-      .insert(analyses)
-      .values({
-        fileName,
-        fileContent,
-        standard,
-        status: "Drafting",
-        userId: req.user?.id || null,
-      })
-      .returning();
-
-    console.log("Analysis record created:", analysis.id);
-
-    // Generate initial AI analysis
-    const initialAnalysis = await analyzeFinancialStatement(fileContent, standard);
-    console.log("Initial AI analysis generated");
-
-    // Store the AI message
-    await db.insert(messages).values({
-      analysisId: analysis.id,
-      content: initialAnalysis,
-      role: "assistant",
+    console.log("Received analysis request:", {
+      fileName: req.body.fileName,
+      contentLength: req.body.fileContent?.length,
+      standard: req.body.standard
     });
 
+    const data = insertAnalysisSchema.parse(req.body);
+    console.log("Analysis data validated");
+
+    const analysis = await storage.createAnalysis(data);
+    console.log("Analysis record created:", analysis.id);
+
+    // Start AI analysis in the background
+    try {
+      console.log("Starting AI analysis");
+      const result = await analyzeFinancialStatement(data.fileContent, data.standard);
+      console.log("AI analysis completed");
+
+      await storage.createMessage({
+        analysisId: analysis.id,
+        role: "assistant",
+        content: result,
+        metadata: { type: "initial_analysis" },
+      });
+      console.log("Analysis message stored");
+
+      await storage.updateAnalysisStatus(analysis.id, "Complete");
+      console.log("Analysis status updated to Complete");
+    } catch (error) {
+      console.error("Error in AI analysis:", error);
+      await storage.updateAnalysisStatus(analysis.id, "Drafting");
+      // Don't throw here - we still want to return the analysis object
+    }
+
     res.json(analysis);
-  } catch (error: any) {
-    console.error("Error creating analysis:", error);
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    console.error("Error in /api/analysis:", error);
+    res.status(400).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
   }
 });
 
 router.get("/analysis/:id/messages", async (req, res) => {
   try {
-    const messages = await db.query.messages.findMany({
-      where: eq(messages.analysisId, parseInt(req.params.id)),
-      orderBy: [messages.createdAt],
-    });
+    const analysisId = parseInt(req.params.id);
+    const messages = await storage.getMessages(analysisId);
     res.json(messages);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
   }
 });
 
 router.post("/analysis/:id/messages", async (req, res) => {
   try {
-    const { content } = req.body;
     const analysisId = parseInt(req.params.id);
-
-    // Store user message
-    await db.insert(messages).values({
-      analysisId,
-      content,
-      role: "user",
-    });
-
-    // Get the analysis details
-    const analysis = await db.query.analyses.findFirst({
-      where: eq(analyses.id, analysisId),
-    });
+    const analysis = await storage.getAnalysis(analysisId);
 
     if (!analysis) {
       throw new Error("Analysis not found");
     }
 
+    const data = insertMessageSchema.parse({
+      ...req.body,
+      analysisId,
+    });
+
+    const message = await storage.createMessage(data);
+
     // Generate AI response
     const response = await analyzeFinancialStatement(
-      `Previous content: ${analysis.fileContent}\n\nUser question: ${content}`,
+      `Previous content: ${analysis.fileContent}\n\nUser question: ${data.content}`,
       analysis.standard
     );
 
     // Store AI response
-    const [message] = await db
-      .insert(messages)
-      .values({
-        analysisId,
-        content: response,
-        role: "assistant",
-      })
-      .returning();
+    const aiMessage = await storage.createMessage({
+      analysisId,
+      role: "assistant",
+      content: response,
+      metadata: { type: "followup" },
+    });
 
-    res.json(message);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.json([message, aiMessage]);
+  } catch (error) {
+    res.status(400).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
   }
 });
 
