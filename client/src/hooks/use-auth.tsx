@@ -12,6 +12,7 @@ import {
 } from "firebase/auth";
 import { auth, sendVerificationEmail } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 type SignUpData = {
   email: string;
@@ -38,8 +39,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log("Auth state changed:", user ? "User logged in" : "User logged out");
+      if (user) {
+        // If we have a new sign up with stored details, create the user profile
+        const storedDetails = window.localStorage.getItem('pendingUserDetails');
+        if (storedDetails) {
+          try {
+            const details = JSON.parse(storedDetails);
+            await apiRequest('POST', '/api/users', {
+              firebaseUid: user.uid,
+              firstName: details.firstName,
+              surname: details.surname,
+              company: details.company,
+              email: user.email!,
+            });
+            window.localStorage.removeItem('pendingUserDetails');
+          } catch (error) {
+            console.error('Error creating user profile:', error);
+          }
+        }
+      }
       setUser(user);
       setIsLoading(false);
     });
@@ -48,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isSignInWithEmailLink(auth, window.location.href)) {
       let email = window.localStorage.getItem('emailForSignIn');
       if (!email) {
-        // If email is not stored, prompt user to provide their email
         email = window.prompt('Please provide your email for confirmation');
       }
 
@@ -82,7 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendEmailVerification = async (email: string) => {
     try {
       await sendVerificationEmail(email);
-      // Save the email for later use
       window.localStorage.setItem('emailForSignIn', email);
       toast({
         title: "Verification email sent",

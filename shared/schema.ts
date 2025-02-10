@@ -5,8 +5,19 @@ import { z } from "zod";
 export const standardTypes = ["IFRS", "US_GAAP", "UK_GAAP"] as const;
 export type StandardType = typeof standardTypes[number];
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  firebaseUid: text("firebase_uid").notNull().unique(),
+  firstName: text("first_name").notNull(),
+  surname: text("surname").notNull(),
+  company: text("company"),
+  email: text("email").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const analyses = pgTable("analyses", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
   fileName: text("file_name").notNull(),
   fileContent: text("file_content").notNull(),
   standard: text("standard", { enum: standardTypes }).notNull(),
@@ -22,6 +33,12 @@ export const messages = pgTable("messages", {
   metadata: jsonb("metadata"),
 });
 
+// Schema for inserting users
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertAnalysisSchema = createInsertSchema(analyses).pick({
   fileName: true,
   fileContent: true,
@@ -35,6 +52,8 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   metadata: true,
 });
 
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Analysis = typeof analyses.$inferSelect;
 export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
 export type Message = typeof messages.$inferSelect;

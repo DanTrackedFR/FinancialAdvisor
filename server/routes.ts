@@ -1,12 +1,51 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertAnalysisSchema, insertMessageSchema } from "@shared/schema";
+import { insertAnalysisSchema, insertMessageSchema, insertUserSchema } from "@shared/schema";
 import { analyzeFinancialStatement, generateFollowupResponse } from "./ai/openai";
 
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  // User routes
+  app.post("/api/users", async (req, res) => {
+    try {
+      const data = insertUserSchema.parse(req.body);
+      const existingUser = await storage.getUserByFirebaseUid(data.firebaseUid);
+
+      if (existingUser) {
+        res.status(400).json({ error: "User already exists" });
+        return;
+      }
+
+      const user = await storage.createUser(data);
+      res.json(user);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/users/profile", async (req, res) => {
+    try {
+      const firebaseUid = req.headers["firebase-uid"] as string;
+      if (!firebaseUid) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const user = await storage.getUserByFirebaseUid(firebaseUid);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Existing routes
   app.get("/api/analyses", async (req, res) => {
     try {
       const analyses = await storage.getAnalyses();

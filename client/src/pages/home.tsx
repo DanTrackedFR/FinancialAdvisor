@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -8,9 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const { user, logout } = useAuth();
+
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ["/api/users/profile"],
+    enabled: !!user,
+  });
 
   const handleSignOut = async () => {
     try {
@@ -315,10 +322,41 @@ export default function Home() {
       {user && (
         <div className="pt-16 container mx-auto px-4">
           <div className="py-8">
-            <h1 className="text-2xl font-bold mb-4">Welcome back!</h1>
-            <Button asChild>
-              <Link href="/analysis">Start Analysis</Link>
-            </Button>
+            {isLoadingProfile ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : profile ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Welcome back, {profile.firstName}!</CardTitle>
+                  <CardDescription>Your Profile Information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Name</p>
+                    <p>{profile.firstName} {profile.surname}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Email</p>
+                    <p>{profile.email}</p>
+                  </div>
+                  {profile.company && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Company</p>
+                      <p>{profile.company}</p>
+                    </div>
+                  )}
+                  <div className="pt-4">
+                    <Button asChild>
+                      <Link href="/analysis">Start Analysis</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <p>Error loading profile information</p>
+            )}
           </div>
         </div>
       )}
