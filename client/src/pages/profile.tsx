@@ -39,7 +39,7 @@ export default function Profile() {
     enabled: !!user,
   });
 
-  const { data: analyses, isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
+  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
     queryKey: ["/api/user/analyses"],
     enabled: !!user,
   });
@@ -60,8 +60,10 @@ export default function Profile() {
 
   const { mutate: updateProfile, isPending } = useMutation({
     mutationFn: async (data: ProfileFormData) => {
-      const res = await apiRequest("PATCH", "/api/users/profile", data);
-      return res.json();
+      return apiRequest("/api/users/profile", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/profile"] });
@@ -159,11 +161,7 @@ export default function Profile() {
             <CardDescription>View and manage your financial analyses</CardDescription>
           </CardHeader>
           <CardContent>
-            {analyses && analyses.length > 0 ? (
-              <AnalysisTable analyses={analyses} />
-            ) : (
-              <p className="text-muted-foreground">No analyses found. Start by uploading a financial statement.</p>
-            )}
+            <AnalysisTable analyses={analyses} />
           </CardContent>
         </Card>
       </div>

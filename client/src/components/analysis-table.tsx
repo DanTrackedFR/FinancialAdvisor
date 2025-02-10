@@ -28,7 +28,7 @@ export function AnalysisTable({ analyses }: { analyses: Analysis[] }) {
       method: "PATCH",
       body: JSON.stringify({ status: newStatus }),
     });
-    queryClient.invalidateQueries({ queryKey: ["/api/analyses"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
   };
 
   return (
@@ -42,36 +42,49 @@ export function AnalysisTable({ analyses }: { analyses: Analysis[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {analyses.map((analysis) => (
-          <TableRow key={analysis.id}>
-            <TableCell>{analysis.fileName}</TableCell>
+        {analyses.length === 0 ? (
+          <TableRow>
             <TableCell>
-              {format(new Date(analysis.createdAt), "MMM d, yyyy")}
-            </TableCell>
-            <TableCell>
-              <Select
-                value={analysis.status}
-                onValueChange={(value) => handleStatusChange(analysis.id, value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Drafting">Drafting</SelectItem>
-                  <SelectItem value="In Review">In Review</SelectItem>
-                  <SelectItem value="Complete">Complete</SelectItem>
-                </SelectContent>
-              </Select>
-            </TableCell>
-            <TableCell>
-              <Button asChild>
-                <Link to={`/analysis/${analysis.id}`}>
-                  {analysis.status === "Complete" ? "View Analysis" : "Access Analysis"}
-                </Link>
+              <Button asChild variant="default">
+                <Link to="/analysis">Start Analysis</Link>
               </Button>
             </TableCell>
+            <TableCell>-</TableCell>
+            <TableCell>-</TableCell>
+            <TableCell>-</TableCell>
           </TableRow>
-        ))}
+        ) : (
+          analyses.map((analysis) => (
+            <TableRow key={analysis.id}>
+              <TableCell>{analysis.fileName}</TableCell>
+              <TableCell>
+                {format(new Date(analysis.createdAt), "MMM d, yyyy")}
+              </TableCell>
+              <TableCell>
+                <Select
+                  value={analysis.status}
+                  onValueChange={(value) => handleStatusChange(analysis.id, value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Drafting">Drafting</SelectItem>
+                    <SelectItem value="In Review">In Review</SelectItem>
+                    <SelectItem value="Complete">Complete</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell>
+                <Button asChild>
+                  <Link to={`/analysis/${analysis.id}`}>
+                    {analysis.status === "Complete" ? "View Analysis" : "Access Analysis"}
+                  </Link>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   );
