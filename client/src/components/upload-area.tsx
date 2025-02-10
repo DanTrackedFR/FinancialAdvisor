@@ -21,7 +21,7 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
       try {
         toast({
           title: "Processing PDF",
-          description: "Please wait while we process your document. This may take longer for scanned documents...",
+          description: "Please wait while we process your document...",
           duration: 10000,
         });
 
@@ -52,44 +52,31 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
   });
 
   return (
-    <div className="space-y-4">
-      <Card
-        {...getRootProps()}
-        className={`p-8 border-2 border-dashed cursor-pointer transition-colors ${
-          isDragActive ? "border-primary bg-primary/5" : "border-border"
-        } ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
-      >
-        <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-4 text-center">
-          {isLoading ? (
-            <div className="flex flex-col items-center">
-              <Loader2 className="w-12 h-12 animate-spin text-primary" />
-              <p className="mt-2">Processing your document...</p>
-              <p className="text-sm text-muted-foreground">This may take a few moments</p>
-            </div>
-          ) : isDragActive ? (
-            <>
-              <FileIcon className="w-12 h-12 text-primary" />
-              <p>Drop the file here...</p>
-            </>
-          ) : (
-            <>
-              <Upload className="w-12 h-12 text-muted-foreground" />
-              <div>
-                <p className="text-lg font-medium">Upload Financial Statement</p>
-                <p className="text-sm text-muted-foreground">
-                  Drag and drop a PDF file here, or click to select
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-      </Card>
-      <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">
-          Tip: We support both digital PDFs and scanned documents. Processing scanned documents may take longer.
-        </p>
+    <Card
+      {...getRootProps()}
+      className={`p-4 border-2 border-dashed cursor-pointer transition-colors ${
+        isDragActive ? "border-primary bg-primary/5" : "border-border"
+      } ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+    >
+      <input {...getInputProps()} />
+      <div className="flex items-center justify-center gap-2">
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="text-sm">Processing...</span>
+          </>
+        ) : isDragActive ? (
+          <>
+            <FileIcon className="w-5 h-5 text-primary" />
+            <span className="text-sm">Drop here</span>
+          </>
+        ) : (
+          <>
+            <Upload className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm">Upload PDF</span>
+          </>
+        )}
       </div>
-    </div>
+    </Card>
   );
 }

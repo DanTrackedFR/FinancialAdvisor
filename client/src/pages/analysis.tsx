@@ -6,6 +6,7 @@ import { StandardSelector } from "@/components/standard-selector";
 import { ConversationThread } from "@/components/conversation-thread";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -37,7 +38,7 @@ export default function Analysis() {
   );
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [message, setMessage] = useState("");
-  const [showNewAnalysis, setShowNewAnalysis] = useState(false);
+  const [analysisName, setAnalysisName] = useState("");
   const { toast } = useToast();
 
   // Fetch user's analyses
@@ -67,7 +68,7 @@ export default function Analysis() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fileName,
+          fileName: analysisName || fileName, // Use analysis name if provided
           fileContent: content,
           standard,
         }),
@@ -95,7 +96,6 @@ export default function Analysis() {
     onSuccess: (data) => {
       console.log("Analysis created successfully:", data);
       setAnalysisId(data.id);
-      setShowNewAnalysis(false);
       setLocation(`/analysis/${data.id}`);
 
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
@@ -161,93 +161,90 @@ export default function Analysis() {
     );
   }
 
-  if (analysisId) {
-    console.log("Rendering analysis view for ID:", analysisId);
-    console.log("Current messages:", messages);
-
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setAnalysisId(undefined);
-                setLocation("/analysis");
-              }}
-            >
-              ← Back to Analysis List
-            </Button>
-          </div>
-          <Card>
-            <CardContent className="p-6">
-              <ConversationThread
-                messages={messages}
-                isLoading={isLoadingMessages}
-              />
-              <div className="flex gap-4 mt-4">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Ask a question about the analysis..."
-                  className="flex-1"
-                />
-                <Button
-                  onClick={() => {
-                    if (message.trim()) {
-                      sendMessage(message);
-                    }
-                  }}
-                  disabled={!message.trim()}
-                >
-                  Send
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        {showNewAnalysis ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>New Analysis</CardTitle>
-              <CardDescription>Upload a financial statement to analyze</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <StandardSelector
-                value={standard}
-                onChange={setStandard}
-                disabled={isAnalyzing}
+        <Card>
+          <CardHeader>
+            <CardTitle>New Analysis</CardTitle>
+            <CardDescription>Upload a financial statement to analyze</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Input
+                  placeholder="Enter Analysis Name"
+                  value={analysisName}
+                  onChange={(e) => setAnalysisName(e.target.value)}
+                  className="mb-4"
+                />
+                <StandardSelector
+                  value={standard}
+                  onChange={setStandard}
+                  disabled={isAnalyzing}
+                />
+              </div>
+              <div>
+                <UploadArea
+                  onFileProcessed={(fileName, content) => {
+                    console.log("File processed, starting analysis...");
+                    if (!analysisName) {
+                      setAnalysisName(fileName.replace(/\.[^/.]+$/, "")); // Use filename without extension as default name
+                    }
+                    startAnalysis({ fileName, content });
+                  }}
+                  isLoading={isAnalyzing}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Chat Interface */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis Chat</CardTitle>
+            <CardDescription>Ask questions about your analysis</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <ConversationThread
+              messages={messages}
+              isLoading={isLoadingMessages}
+            />
+            <div className="flex gap-4 mt-4">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Ask a question about the analysis..."
+                className="flex-1"
               />
-              <UploadArea
-                onFileProcessed={(fileName, content) => {
-                  console.log("File processed, starting analysis...");
-                  startAnalysis({ fileName, content });
+              <Button
+                onClick={() => {
+                  if (message.trim()) {
+                    sendMessage(message);
+                  }
                 }}
-                isLoading={isAnalyzing}
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Analyses</CardTitle>
-              <CardDescription>View and manage your financial analyses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AnalysisTable
-                analyses={analyses}
-                onNewAnalysis={() => setShowNewAnalysis(true)}
-              />
-            </CardContent>
-          </Card>
-        )}
+                disabled={!message.trim() || !analysisId}
+              >
+                Send
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Analysis List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Analyses</CardTitle>
+            <CardDescription>View and manage your financial analyses</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AnalysisTable
+              analyses={analyses}
+              onNewAnalysis={() => setAnalysisName("")}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
