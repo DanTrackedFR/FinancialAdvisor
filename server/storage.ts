@@ -16,6 +16,7 @@ export interface IStorage {
   getAnalyses(): Promise<Analysis[]>;
   updateAnalysisStatus(id: number, status: "Drafting" | "In Review" | "Complete"): Promise<void>;
   getUserAnalyses(userId: number): Promise<Analysis[]>;
+  deleteAnalysis(id: number): Promise<void>;
 
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
@@ -85,6 +86,13 @@ export class DatabaseStorage implements IStorage {
       .from(analyses)
       .where(eq(analyses.userId, userId))
       .orderBy(desc(analyses.createdAt));
+  }
+
+  async deleteAnalysis(id: number): Promise<void> {
+    // First delete all messages associated with this analysis
+    await db.delete(messages).where(eq(messages.analysisId, id));
+    // Then delete the analysis itself
+    await db.delete(analyses).where(eq(analyses.id, id));
   }
 
   // Message methods
