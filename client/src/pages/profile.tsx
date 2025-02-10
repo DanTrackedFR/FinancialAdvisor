@@ -18,6 +18,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "wouter";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -30,6 +31,7 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
@@ -61,6 +63,7 @@ export default function Profile() {
         title: "Profile updated",
         description: "Your profile has been updated successfully",
       });
+      setLocation("/"); // Redirect to User Home Page after successful update
     },
     onError: (error: Error) => {
       toast({
