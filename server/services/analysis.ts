@@ -3,7 +3,6 @@ import { StandardType } from "@shared/schema";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function analyzeFinancialStatement(content: string, standard: StandardType) {
   try {
     console.log("Starting financial statement analysis for", standard);
@@ -23,7 +22,7 @@ ${content}`;
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -48,6 +47,9 @@ ${content}`;
     console.error("Error analyzing financial statement:", error);
     if (error.response?.status === 401) {
       throw new Error("Invalid OpenAI API key");
+    }
+    if (error.response?.status === 429) {
+      throw new Error("OpenAI rate limit exceeded. Please try again in a few minutes.");
     }
     throw new Error(`Failed to analyze financial statement: ${error.message}`);
   }
