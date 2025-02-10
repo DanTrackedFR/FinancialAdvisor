@@ -1,23 +1,43 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { StandardType } from "@shared/schema";
 import { UploadArea } from "@/components/upload-area";
 import { StandardSelector } from "@/components/standard-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { ConversationThread } from "@/components/conversation-thread";
+
+interface Message {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  analysisId: number;
+  metadata?: {
+    type?: "initial_analysis" | "followup";
+  };
+}
 
 export default function NewAnalysis() {
   const [, setLocation] = useLocation();
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [analysisName, setAnalysisName] = useState("");
+  const [message, setMessage] = useState("");
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
+
+  // Fetch messages when analysisId is available
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
+    queryKey: ["/api/analysis", currentAnalysisId, "messages"],
+    enabled: !!currentAnalysisId,
+  });
 
   const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
     mutationFn: async ({
@@ -60,12 +80,10 @@ export default function NewAnalysis() {
     },
     onSuccess: (data) => {
       console.log("Analysis created successfully:", data);
+      setCurrentAnalysisId(data.id);
 
       // Invalidate the analyses query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
-
-      // Navigate to the analysis view
-      setLocation(`/analysis/${data.id}`);
 
       toast({
         title: "Analysis Started",
@@ -80,6 +98,29 @@ export default function NewAnalysis() {
         description: error.message,
         variant: "destructive",
         duration: 10000,
+      });
+    },
+  });
+
+  const { mutate: sendMessage, isPending: isSending } = useMutation({
+    mutationFn: async (content: string) => {
+      if (!currentAnalysisId) throw new Error("No active analysis");
+
+      return apiRequest("POST", `/api/analysis/${currentAnalysisId}/messages`, {
+        content,
+        role: "user",
+      });
+    },
+    onSuccess: () => {
+      setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Sending Message",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -143,6 +184,39 @@ export default function NewAnalysis() {
             </div>
           </CardContent>
         </Card>
+
+        {currentAnalysisId && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Analysis Chat</CardTitle>
+              <CardDescription>Ask questions about your analysis</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ConversationThread
+                messages={messages}
+                isLoading={isLoadingMessages}
+              />
+              <div className="flex gap-4 mt-4">
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Ask a question about the analysis..."
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => {
+                    if (message.trim()) {
+                      sendMessage(message);
+                    }
+                  }}
+                  disabled={!message.trim() || isSending}
+                >
+                  Send
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
