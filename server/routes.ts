@@ -7,6 +7,15 @@ import { analyzeFinancialStatement, generateFollowupResponse } from "./ai/openai
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  app.get("/api/analyses", async (req, res) => {
+    try {
+      const analyses = await storage.getAnalyses();
+      res.json(analyses);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/analysis", async (req, res) => {
     try {
       const data = insertAnalysisSchema.parse(req.body);
@@ -27,29 +36,37 @@ export function registerRoutes(app: Express) {
         });
 
         await storage.updateAnalysisStatus(analysis.id, "completed");
-      } catch (error) {
+      } catch (error: any) {
         await storage.updateAnalysisStatus(analysis.id, "failed");
         throw error;
       }
 
       res.json(analysis);
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   });
 
   app.get("/api/analysis/:id", async (req, res) => {
-    const analysis = await storage.getAnalysis(Number(req.params.id));
-    if (!analysis) {
-      res.status(404).json({ error: "Analysis not found" });
-      return;
+    try {
+      const analysis = await storage.getAnalysis(Number(req.params.id));
+      if (!analysis) {
+        res.status(404).json({ error: "Analysis not found" });
+        return;
+      }
+      res.json(analysis);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
-    res.json(analysis);
   });
 
   app.get("/api/analysis/:id/messages", async (req, res) => {
-    const messages = await storage.getMessages(Number(req.params.id));
-    res.json(messages);
+    try {
+      const messages = await storage.getMessages(Number(req.params.id));
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.post("/api/analysis/:id/messages", async (req, res) => {
@@ -89,7 +106,7 @@ export function registerRoutes(app: Express) {
       });
 
       res.json([message, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   });

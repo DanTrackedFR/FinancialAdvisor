@@ -6,15 +6,23 @@ import { StandardSelector } from "@/components/standard-selector";
 import { ConversationThread } from "@/components/conversation-thread";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Loader2, FileText, Plus } from "lucide-react";
+import { format } from "date-fns";
 
 export default function Analysis() {
   const [analysisId, setAnalysisId] = useState<number>();
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [message, setMessage] = useState("");
+  const [showNewAnalysis, setShowNewAnalysis] = useState(false);
   const { toast } = useToast();
+
+  // Fetch all analyses
+  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery({
+    queryKey: ["/api/analyses"],
+  });
 
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
     queryKey: ["/api/analysis", analysisId, "messages"],
@@ -38,6 +46,7 @@ export default function Analysis() {
     },
     onSuccess: (data) => {
       setAnalysisId(data.id);
+      setShowNewAnalysis(false);
       toast({
         title: "Analysis started",
         description: "Your financial statement is being analyzed",
@@ -72,26 +81,84 @@ export default function Analysis() {
     },
   });
 
+  if (isLoadingAnalyses) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto">
         {!analysisId ? (
-          <Card className="p-6 space-y-6">
-            <h1 className="text-2xl font-bold">New Analysis</h1>
-            <StandardSelector
-              value={standard}
-              onChange={setStandard}
-              disabled={isAnalyzing}
-            />
-            <UploadArea
-              onFileProcessed={(fileName, content) =>
-                startAnalysis({ fileName, content })
-              }
-              isLoading={isAnalyzing}
-            />
-          </Card>
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">Financial Statement Analysis</h1>
+              <Button onClick={() => setShowNewAnalysis(true)}>
+                <Plus className="mr-2 h-4 w-4" /> New Analysis
+              </Button>
+            </div>
+
+            {showNewAnalysis ? (
+              <Card className="p-6 space-y-6">
+                <CardHeader>
+                  <CardTitle>New Analysis</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <StandardSelector
+                    value={standard}
+                    onChange={setStandard}
+                    disabled={isAnalyzing}
+                  />
+                  <UploadArea
+                    onFileProcessed={(fileName, content) =>
+                      startAnalysis({ fileName, content })
+                    }
+                    isLoading={isAnalyzing}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {analyses.map((analysis) => (
+                  <Card
+                    key={analysis.id}
+                    className="cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setAnalysisId(analysis.id)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <h3 className="font-medium">{analysis.fileName}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(analysis.createdAt), "PPP")}
+                          </p>
+                        </div>
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="mt-4">
+                        <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                          {analysis.standard}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={() => setAnalysisId(undefined)}
+              >
+                ← Back to Analyses
+              </Button>
+            </div>
             <ConversationThread
               messages={messages}
               isLoading={isLoadingMessages || isSending}

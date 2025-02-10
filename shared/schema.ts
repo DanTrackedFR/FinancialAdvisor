@@ -11,6 +11,7 @@ export const analyses = pgTable("analyses", {
   fileContent: text("file_content").notNull(),
   standard: text("standard", { enum: standardTypes }).notNull(),
   status: text("status", { enum: ["pending", "completed", "failed"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const messages = pgTable("messages", {
