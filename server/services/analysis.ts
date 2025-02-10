@@ -18,6 +18,10 @@ Format your response as bullet points for clarity. Here's the financial statemen
 
 ${content}`;
 
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -34,10 +38,17 @@ ${content}`;
       max_tokens: 2000,
     });
 
+    if (!response.choices[0]?.message?.content) {
+      throw new Error("No valid response received from OpenAI");
+    }
+
     console.log("Analysis completed successfully");
     return response.choices[0].message.content;
   } catch (error: any) {
     console.error("Error analyzing financial statement:", error);
-    throw new Error(error.message);
+    if (error.response?.status === 401) {
+      throw new Error("Invalid OpenAI API key");
+    }
+    throw new Error(`Failed to analyze financial statement: ${error.message}`);
   }
 }

@@ -11,13 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { AnalysisTable } from "@/components/analysis-table";
+import { useLocation } from "wouter";
 
 interface Message {
   id: number;
   role: "user" | "assistant";
   content: string;
   analysisId: number;
-  metadata?: unknown;
+  metadata?: {
+    type?: "initial_analysis" | "followup";
+  };
 }
 
 interface Analysis {
@@ -28,6 +31,7 @@ interface Analysis {
 }
 
 export default function Analysis() {
+  const [, setLocation] = useLocation();
   const [analysisId, setAnalysisId] = useState<number>();
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [message, setMessage] = useState("");
@@ -77,7 +81,7 @@ export default function Analysis() {
           let errorMessage;
           try {
             const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || `Server error: ${response.status}`;
+            errorMessage = errorData.error || `Server error: ${response.status}`;
           } catch {
             errorMessage = `Failed to parse error response: ${responseText}`;
           }
@@ -107,6 +111,7 @@ export default function Analysis() {
       console.log("Setting analysis ID to:", data.id);
       setAnalysisId(data.id);
       setShowNewAnalysis(false);
+      setLocation(`/analysis/${data.id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
       toast({
         title: "Analysis started",
@@ -176,30 +181,37 @@ export default function Analysis() {
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
-              onClick={() => setAnalysisId(undefined)}
+              onClick={() => {
+                setAnalysisId(undefined);
+                setLocation("/analysis");
+              }}
             >
               ← Back to Analysis List
             </Button>
           </div>
-          <ConversationThread
-            messages={messages}
-            isLoading={isLoadingMessages || isSending}
-          />
-          <div className="flex gap-4">
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask a question about the analysis..."
-              className="flex-1"
-              disabled={isSending}
-            />
-            <Button
-              onClick={() => sendMessage(message)}
-              disabled={!message.trim() || isSending}
-            >
-              Send
-            </Button>
-          </div>
+          <Card>
+            <CardContent className="p-6">
+              <ConversationThread
+                messages={messages}
+                isLoading={isLoadingMessages || isSending}
+              />
+              <div className="flex gap-4 mt-4">
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Ask a question about the analysis..."
+                  className="flex-1"
+                  disabled={isSending}
+                />
+                <Button
+                  onClick={() => sendMessage(message)}
+                  disabled={!message.trim() || isSending}
+                >
+                  Send
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
