@@ -160,7 +160,7 @@ export default function Profile() {
                 <div className="flex justify-end">
                   <Button variant="outline" onClick={() => setIsEditing(true)}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
+                    Profile
                   </Button>
                 </div>
                 <div>
