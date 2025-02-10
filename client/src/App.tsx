@@ -9,6 +9,7 @@ import Privacy from "@/pages/privacy";
 import Cookies from "@/pages/cookies";
 import Auth from "@/pages/auth";
 import Profile from "@/pages/profile";
+import Users from "@/pages/users";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/auth" component={Auth} />
       <ProtectedRoute path="/analysis" component={Analysis} />
       <ProtectedRoute path="/profile" component={Profile} />
+      <ProtectedRoute path="/users" component={Users} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/cookies" component={Cookies} />
       <Route component={NotFound} />
