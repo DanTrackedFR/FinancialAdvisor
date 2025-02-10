@@ -1,6 +1,12 @@
 import * as pdfjs from "pdfjs-dist";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Load worker from node_modules instead of CDN
+const workerPath = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
+
+pdfjs.GlobalWorkerOptions.workerSrc = workerPath;
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   try {
@@ -18,7 +24,8 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     }
 
     return text;
-  } catch (error) {
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to extract text from PDF: ${errorMessage}`);
   }
 }
