@@ -31,8 +31,10 @@ interface Analysis {
 }
 
 export default function Analysis() {
-  const [, setLocation] = useLocation();
-  const [analysisId, setAnalysisId] = useState<number>();
+  const [location, setLocation] = useLocation();
+  const [analysisId, setAnalysisId] = useState<number>(
+    parseInt(location.split('/').pop() || '') || undefined
+  );
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [message, setMessage] = useState("");
   const [showNewAnalysis, setShowNewAnalysis] = useState(false);
@@ -43,6 +45,7 @@ export default function Analysis() {
     queryKey: ["/api/user/analyses"],
   });
 
+  // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
@@ -56,74 +59,58 @@ export default function Analysis() {
       fileName: string;
       content: string;
     }) => {
-      console.log("Starting analysis for:", fileName, "with content length:", content.length);
-      try {
-        const requestBody = {
+      console.log("Starting analysis for:", fileName);
+
+      const response = await fetch("/api/analysis", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           fileName,
           fileContent: content,
           standard,
-        };
-        console.log("Sending request with body:", { fileName, contentLength: content.length, standard });
+        }),
+      });
 
-        const response = await fetch("/api/analysis", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        console.log("Response status:", response.status);
-        const responseText = await response.text();
-        console.log("Raw response:", responseText);
-
-        if (!response.ok) {
-          let errorMessage;
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.error || `Server error: ${response.status}`;
-          } catch {
-            errorMessage = `Failed to parse error response: ${responseText}`;
-          }
-          throw new Error(errorMessage);
-        }
-
-        let data;
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage;
         try {
-          data = JSON.parse(responseText);
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || `Server error: ${response.status}`;
         } catch {
-          throw new Error("Invalid JSON response from server");
+          errorMessage = `Failed to parse error response: ${text}`;
         }
-
-        if (!data?.id) {
-          console.error("Invalid response data:", data);
-          throw new Error("Invalid response from server - missing analysis ID");
-        }
-
-        console.log("Analysis created successfully:", data);
-        return data;
-      } catch (error) {
-        console.error("Analysis creation failed:", error);
-        throw error;
+        throw new Error(errorMessage);
       }
+
+      const data = await response.json();
+      if (!data?.id) {
+        throw new Error("Invalid response from server - missing analysis ID");
+      }
+
+      return data;
     },
     onSuccess: (data) => {
-      console.log("Setting analysis ID to:", data.id);
+      console.log("Analysis created successfully:", data);
       setAnalysisId(data.id);
       setShowNewAnalysis(false);
       setLocation(`/analysis/${data.id}`);
+
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+
       toast({
-        title: "Analysis started",
-        description: "Your financial statement is being analyzed. Please wait while we process it...",
+        title: "Analysis Started",
+        description: "Your document is being analyzed. Please wait while we process it...",
         duration: 5000,
       });
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
       toast({
-        title: "Error Starting Analysis",
-        description: error.message || "Failed to start analysis. Please try again.",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
         duration: 10000,
       });
@@ -175,6 +162,9 @@ export default function Analysis() {
   }
 
   if (analysisId) {
+    console.log("Rendering analysis view for ID:", analysisId);
+    console.log("Current messages:", messages);
+
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-4">
@@ -193,7 +183,7 @@ export default function Analysis() {
             <CardContent className="p-6">
               <ConversationThread
                 messages={messages}
-                isLoading={isLoadingMessages || isSending}
+                isLoading={isLoadingMessages}
               />
               <div className="flex gap-4 mt-4">
                 <Textarea
@@ -201,11 +191,14 @@ export default function Analysis() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Ask a question about the analysis..."
                   className="flex-1"
-                  disabled={isSending}
                 />
                 <Button
-                  onClick={() => sendMessage(message)}
-                  disabled={!message.trim() || isSending}
+                  onClick={() => {
+                    if (message.trim()) {
+                      sendMessage(message);
+                    }
+                  }}
+                  disabled={!message.trim()}
                 >
                   Send
                 </Button>
@@ -248,7 +241,7 @@ export default function Analysis() {
               <CardDescription>View and manage your financial analyses</CardDescription>
             </CardHeader>
             <CardContent>
-              <AnalysisTable 
+              <AnalysisTable
                 analyses={analyses}
                 onNewAnalysis={() => setShowNewAnalysis(true)}
               />

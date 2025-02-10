@@ -21,39 +21,44 @@ router.post("/analysis", async (req, res) => {
 
     // Start AI analysis in the background
     try {
-      console.log("Starting AI analysis");
+      console.log("Starting AI analysis with OpenAI");
       const result = await analyzeFinancialStatement(data.fileContent, data.standard);
-      console.log("AI analysis completed");
+      console.log("AI analysis completed, response length:", result.length);
 
-      await storage.createMessage({
+      console.log("Creating message record...");
+      const message = await storage.createMessage({
         analysisId: analysis.id,
         role: "assistant",
         content: result,
         metadata: { type: "initial_analysis" },
       });
-      console.log("Analysis message stored");
+      console.log("Analysis message stored:", message.id);
 
       await storage.updateAnalysisStatus(analysis.id, "Complete");
       console.log("Analysis status updated to Complete");
     } catch (error) {
       console.error("Error in AI analysis:", error);
+      console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
       await storage.updateAnalysisStatus(analysis.id, "Drafting");
-      // Don't throw here - we still want to return the analysis object
     }
 
     res.json(analysis);
   } catch (error) {
     console.error("Error in /api/analysis:", error);
+    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
     res.status(400).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
   }
 });
 
 router.get("/analysis/:id/messages", async (req, res) => {
   try {
+    console.log("Fetching messages for analysis:", req.params.id);
     const analysisId = parseInt(req.params.id);
     const messages = await storage.getMessages(analysisId);
+    console.log(`Found ${messages.length} messages`);
     res.json(messages);
   } catch (error) {
+    console.error("Error fetching messages:", error);
     res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
   }
 });
@@ -61,8 +66,9 @@ router.get("/analysis/:id/messages", async (req, res) => {
 router.post("/analysis/:id/messages", async (req, res) => {
   try {
     const analysisId = parseInt(req.params.id);
-    const analysis = await storage.getAnalysis(analysisId);
+    console.log("Creating new message for analysis:", analysisId);
 
+    const analysis = await storage.getAnalysis(analysisId);
     if (!analysis) {
       throw new Error("Analysis not found");
     }
@@ -73,12 +79,15 @@ router.post("/analysis/:id/messages", async (req, res) => {
     });
 
     const message = await storage.createMessage(data);
+    console.log("User message created:", message.id);
 
     // Generate AI response
+    console.log("Generating AI response...");
     const response = await analyzeFinancialStatement(
       `Previous content: ${analysis.fileContent}\n\nUser question: ${data.content}`,
       analysis.standard
     );
+    console.log("AI response generated, length:", response.length);
 
     // Store AI response
     const aiMessage = await storage.createMessage({
@@ -87,9 +96,12 @@ router.post("/analysis/:id/messages", async (req, res) => {
       content: response,
       metadata: { type: "followup" },
     });
+    console.log("AI message stored:", aiMessage.id);
 
     res.json([message, aiMessage]);
   } catch (error) {
+    console.error("Error in message creation:", error);
+    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
     res.status(400).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
   }
 });
