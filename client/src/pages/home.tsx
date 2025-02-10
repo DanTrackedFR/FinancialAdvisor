@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { type User } from "@shared/schema";
 import {
   Card,
   CardContent,
@@ -14,7 +15,7 @@ import { Loader2 } from "lucide-react";
 export default function Home() {
   const { user, logout } = useAuth();
 
-  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+  const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
     enabled: !!user,
   });
