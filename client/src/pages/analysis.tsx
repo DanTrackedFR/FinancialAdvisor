@@ -38,15 +38,24 @@ export default function Analysis() {
       content: string;
     }) => {
       console.log("Starting analysis for:", fileName);
-      const res = await apiRequest("/api/analysis", {
+      const response = await fetch("/api/analysis", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           fileName,
           fileContent: content,
           standard,
         }),
       });
-      return res.json();
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to start analysis");
+      }
+
+      return response.json();
     },
     onSuccess: (data) => {
       console.log("Analysis created successfully:", data.id);
@@ -69,14 +78,23 @@ export default function Analysis() {
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
-      const res = await apiRequest(`/api/analysis/${analysisId}/messages`, {
+      const response = await fetch(`/api/analysis/${analysisId}/messages`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           content,
           role: "user",
         }),
       });
-      return res.json();
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to send message");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       setMessage("");
