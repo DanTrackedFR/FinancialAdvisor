@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 export function AnalysisTable({ 
   analyses,
@@ -28,6 +28,7 @@ export function AnalysisTable({
   onNewAnalysis: () => void;
 }) {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     await apiRequest(`/api/analysis/${id}/status`, {
@@ -35,6 +36,10 @@ export function AnalysisTable({
       body: JSON.stringify({ status: newStatus }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+  };
+
+  const navigateToAnalysis = (id: number) => {
+    setLocation(`/analysis/${id}`);
   };
 
   return (
@@ -59,12 +64,14 @@ export function AnalysisTable({
           </TableRow>
         ) : (
           analyses.map((analysis) => (
-            <TableRow key={analysis.id}>
-              <TableCell>{analysis.fileName}</TableCell>
-              <TableCell>
+            <TableRow key={analysis.id} className="cursor-pointer hover:bg-accent/50">
+              <TableCell onClick={() => navigateToAnalysis(analysis.id)}>
+                {analysis.fileName}
+              </TableCell>
+              <TableCell onClick={() => navigateToAnalysis(analysis.id)}>
                 {format(new Date(analysis.createdAt), "MMM d, yyyy")}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Select
                   value={analysis.status}
                   onValueChange={(value) => handleStatusChange(analysis.id, value)}
@@ -80,10 +87,8 @@ export function AnalysisTable({
                 </Select>
               </TableCell>
               <TableCell>
-                <Button asChild>
-                  <Link to={`/analysis/${analysis.id}`}>
-                    {analysis.status === "Complete" ? "View Analysis" : "Access Analysis"}
-                  </Link>
+                <Button onClick={() => navigateToAnalysis(analysis.id)}>
+                  {analysis.status === "Complete" ? "View Analysis" : "Access Analysis"}
                 </Button>
               </TableCell>
             </TableRow>

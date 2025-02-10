@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
+import { Analysis } from "@shared/schema";
 
 interface Message {
   id: number;
@@ -20,18 +21,16 @@ interface Message {
   };
 }
 
-interface Analysis {
-  id: number;
-  fileName: string;
-  status: string;
-  createdAt: string;
-}
-
-export default function Analysis() {
+export default function AnalysisPage() {
   const [location, setLocation] = useLocation();
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
   const { toast } = useToast();
+
+  // Fetch user's analyses for the list view
+  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
+    queryKey: ["/api/user/analyses"],
+  });
 
   // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
@@ -55,8 +54,15 @@ export default function Analysis() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Failed to parse error response" }));
-        throw new Error(errorData.message || "Failed to send message");
+        const text = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || `Server error: ${response.status}`;
+        } catch {
+          errorMessage = `Failed to parse error response: ${text}`;
+        }
+        throw new Error(errorMessage);
       }
 
       return response.json();
@@ -76,6 +82,14 @@ export default function Analysis() {
   });
 
   if (!analysisId) {
+    if (isLoadingAnalyses) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-8">
@@ -92,7 +106,7 @@ export default function Analysis() {
             </CardHeader>
             <CardContent>
               <AnalysisTable
-                analyses={[]}
+                analyses={analyses}
                 onNewAnalysis={() => setLocation("/new-analysis")}
               />
             </CardContent>
