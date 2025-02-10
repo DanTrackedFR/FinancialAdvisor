@@ -37,6 +37,7 @@ export default function Analysis() {
       fileName: string;
       content: string;
     }) => {
+      console.log("Starting analysis for:", fileName);
       const res = await apiRequest("/api/analysis", {
         method: "POST",
         body: JSON.stringify({
@@ -48,6 +49,7 @@ export default function Analysis() {
       return res.json();
     },
     onSuccess: (data) => {
+      console.log("Analysis created successfully:", data.id);
       setAnalysisId(data.id);
       setShowNewAnalysis(false);
       toast({
@@ -56,6 +58,7 @@ export default function Analysis() {
       });
     },
     onError: (error: any) => {
+      console.error("Analysis creation failed:", error);
       toast({
         title: "Error",
         description: error.message,

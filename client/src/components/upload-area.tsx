@@ -1,8 +1,9 @@
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { FileIcon, Upload } from "lucide-react";
+import { FileIcon, Upload, Loader2 } from "lucide-react";
 import { Card } from "./ui/card";
 import { extractTextFromPDF } from "@/lib/pdf";
+import { useToast } from "@/hooks/use-toast";
 
 interface UploadAreaProps {
   onFileProcessed: (fileName: string, content: string) => void;
@@ -10,6 +11,8 @@ interface UploadAreaProps {
 }
 
 export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
+  const { toast } = useToast();
+
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
@@ -20,9 +23,14 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
         onFileProcessed(file.name, text);
       } catch (error) {
         console.error("Error processing file:", error);
+        toast({
+          title: "Error processing PDF",
+          description: error instanceof Error ? error.message : "Failed to process PDF file",
+          variant: "destructive",
+        });
       }
     },
-    [onFileProcessed],
+    [onFileProcessed, toast],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -31,6 +39,7 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
       "application/pdf": [".pdf"],
     },
     multiple: false,
+    disabled: isLoading,
   });
 
   return (
@@ -43,7 +52,10 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4 text-center">
         {isLoading ? (
-          <div className="animate-pulse">Processing...</div>
+          <div className="flex flex-col items-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <p className="mt-2">Processing your document...</p>
+          </div>
         ) : isDragActive ? (
           <>
             <FileIcon className="w-12 h-12 text-primary" />
