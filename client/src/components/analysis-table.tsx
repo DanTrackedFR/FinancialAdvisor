@@ -45,18 +45,23 @@ export function AnalysisTable({
   const { toast } = useToast();
 
   const handleStatusChange = async (id: number, newStatus: string) => {
-    await apiRequest(`/api/analysis/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: newStatus }),
-    });
-    queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+    try {
+      await apiRequest("PATCH", `/api/analysis/${id}/status`, {
+        status: newStatus
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await apiRequest(`/api/analysis/${id}`, {
-        method: "DELETE"
-      });
+      await apiRequest("DELETE", `/api/analysis/${id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
       toast({
         title: "Analysis Deleted",
