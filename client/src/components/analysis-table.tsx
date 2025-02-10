@@ -32,6 +32,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export function AnalysisTable({ 
   analyses,
@@ -43,6 +44,7 @@ export function AnalysisTable({
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [openDialogs, setOpenDialogs] = useState<Record<number, boolean>>({});
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
@@ -67,6 +69,7 @@ export function AnalysisTable({
         title: "Analysis Deleted",
         description: "The analysis has been successfully deleted.",
       });
+      setOpenDialogs(prev => ({ ...prev, [id]: false }));
     } catch (error) {
       toast({
         title: "Error",
@@ -128,7 +131,10 @@ export function AnalysisTable({
                 <Button onClick={() => navigateToAnalysis(analysis.id)}>
                   {analysis.status === "Complete" ? "View Analysis" : "Access Analysis"}
                 </Button>
-                <AlertDialog>
+                <AlertDialog 
+                  open={openDialogs[analysis.id]} 
+                  onOpenChange={(open) => setOpenDialogs(prev => ({ ...prev, [analysis.id]: open }))}
+                >
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Trash2 className="h-4 w-4" />
@@ -144,10 +150,7 @@ export function AnalysisTable({
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDelete(analysis.id);
-                        }}
+                        onClick={() => handleDelete(analysis.id)}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Delete
