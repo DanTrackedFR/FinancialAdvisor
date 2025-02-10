@@ -8,6 +8,15 @@ export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // User routes
+  app.get("/api/users", async (_req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/users", async (req, res) => {
     try {
       const data = insertUserSchema.parse(req.body);

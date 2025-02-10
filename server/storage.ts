@@ -8,6 +8,7 @@ export interface IStorage {
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User>;
   updateLastLogin(id: number): Promise<void>;
+  getAllUsers(): Promise<User[]>; // New method
 
   // Analysis methods
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
@@ -44,6 +45,12 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ lastLoggedIn: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select()
+      .from(users)
+      .orderBy(desc(users.id));
   }
 
   // Analysis methods
