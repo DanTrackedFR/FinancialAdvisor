@@ -92,17 +92,11 @@ export default function Profile() {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <div>
               <CardTitle>Profile Information</CardTitle>
               <CardDescription>View or update your profile details</CardDescription>
             </div>
-            {!isEditing && (
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-            )}
           </CardHeader>
           <CardContent>
             {isEditing ? (
@@ -163,6 +157,12 @@ export default function Profile() {
               </Form>
             ) : (
               <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => setIsEditing(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                </div>
                 <div>
                   <h3 className="font-medium">Name</h3>
                   <p className="text-sm text-muted-foreground">
