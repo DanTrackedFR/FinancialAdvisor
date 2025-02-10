@@ -45,6 +45,29 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // New endpoint for updating user profile
+  app.patch("/api/users/profile", async (req, res) => {
+    try {
+      const firebaseUid = req.headers["firebase-uid"] as string;
+      if (!firebaseUid) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const user = await storage.getUserByFirebaseUid(firebaseUid);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      const data = insertUserSchema.partial().parse(req.body);
+      const updatedUser = await storage.updateUser(user.id, data);
+      res.json(updatedUser);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   // Existing routes
   app.get("/api/analyses", async (req, res) => {
     try {

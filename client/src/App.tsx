@@ -8,6 +8,7 @@ import Analysis from "@/pages/analysis";
 import Privacy from "@/pages/privacy";
 import Cookies from "@/pages/cookies";
 import Auth from "@/pages/auth";
+import Profile from "@/pages/profile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/auth" component={Auth} />
       <ProtectedRoute path="/analysis" component={Analysis} />
+      <ProtectedRoute path="/profile" component={Profile} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/cookies" component={Cookies} />
       <Route component={NotFound} />

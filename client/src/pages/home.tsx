@@ -49,6 +49,9 @@ export default function Home() {
                   <Button variant="ghost" asChild>
                     <Link href="/analysis">Analysis</Link>
                   </Button>
+                  <Button variant="ghost" asChild>
+                    <Link href="/profile">Edit Profile</Link>
+                  </Button>
                   <Button variant="outline" onClick={handleSignOut}>
                     Sign Out
                   </Button>
