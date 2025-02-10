@@ -10,12 +10,14 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function NewAnalysis() {
   const [, setLocation] = useLocation();
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [analysisName, setAnalysisName] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
     mutationFn: async ({
@@ -27,11 +29,15 @@ export default function NewAnalysis() {
     }) => {
       console.log("Starting analysis with name:", analysisName || fileName);
 
+      if (!user?.firebaseUid) {
+        throw new Error("You must be logged in to create an analysis");
+      }
+
       const response = await fetch("/api/analysis", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "firebase-uid": localStorage.getItem("firebase_uid") || "",
+          "firebase-uid": user.firebaseUid,
         },
         body: JSON.stringify({
           fileName: analysisName || fileName,
@@ -52,12 +58,7 @@ export default function NewAnalysis() {
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      if (!data?.id) {
-        throw new Error("Invalid response from server - missing analysis ID");
-      }
-
-      return data;
+      return response.json();
     },
     onSuccess: (data) => {
       console.log("Analysis created successfully:", data);
