@@ -145,7 +145,7 @@ export default function NewAnalysis() {
           }
           // Reset error count on successful check
           errorCount = 0;
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error checking analysis status:", error);
           errorCount++;
 
@@ -157,7 +157,9 @@ export default function NewAnalysis() {
             setShowProgress(false);
             toast({
               title: "Analysis Error",
-              description: "Error checking analysis status",
+              description: error.message?.includes("API key") 
+                ? "API configuration error. Please try again later."
+                : "Error checking analysis status",
               variant: "destructive",
               duration: 10000,
             });
