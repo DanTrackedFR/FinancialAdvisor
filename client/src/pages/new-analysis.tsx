@@ -99,24 +99,44 @@ export default function NewAnalysis() {
 
       // Start polling for messages to detect completion
       const checkAnalysis = setInterval(async () => {
-        const messages = await queryClient.fetchQuery({
-          queryKey: ["/api/analysis", data.id, "messages"],
-        });
-
-        if (messages && messages.length > 0) {
-          clearInterval(checkAnalysis);
-          setAnalysisComplete(true);
-          // Show completion toast
-          toast({
-            title: "Analysis Complete",
-            description: "Your document has been analyzed successfully! You can now start asking questions.",
-            duration: 8000,
+        try {
+          console.log("Checking for analysis completion...");
+          const messages = await queryClient.fetchQuery({
+            queryKey: ["/api/analysis", data.id, "messages"],
           });
+
+          if (messages && messages.length > 0) {
+            console.log("Analysis completion detected!");
+            clearInterval(checkAnalysis);
+            setAnalysisComplete(true);
+
+            // Show completion toast with high duration and variant
+            toast({
+              title: "✅ Analysis Complete",
+              description: "Your document has been analyzed successfully! You can now start asking questions about your financial statement.",
+              duration: 10000, // Longer duration
+              variant: "default",
+              className: "bg-green-50 border-green-200",
+            });
+          }
+        } catch (error) {
+          console.error("Error checking analysis status:", error);
+          clearInterval(checkAnalysis);
         }
       }, 2000);
 
       // Clear interval after 30 seconds to prevent infinite polling
-      setTimeout(() => clearInterval(checkAnalysis), 30000);
+      setTimeout(() => {
+        clearInterval(checkAnalysis);
+        // If analysis is still not complete after timeout, show a message
+        if (!analysisComplete) {
+          toast({
+            title: "Analysis Status",
+            description: "The analysis is taking longer than expected. Please refresh the page if you don't see results soon.",
+            duration: 8000,
+          });
+        }
+      }, 30000);
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
