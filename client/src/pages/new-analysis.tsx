@@ -85,7 +85,7 @@ export default function NewAnalysis() {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log("Analysis created successfully:", data);
       setCurrentAnalysisId(data.id);
       setShowProgress(true);
@@ -103,6 +103,8 @@ export default function NewAnalysis() {
       let progressTimer: NodeJS.Timeout | null = null;
       let statusInterval: NodeJS.Timeout | null = null;
       let initialCheckTimeout: NodeJS.Timeout | null = null;
+      let retryCount = 0;
+      const maxRetries = 3;
 
       // Progress tracking with smoother progression and bounds checking
       progressTimer = setInterval(() => {
@@ -111,12 +113,12 @@ export default function NewAnalysis() {
             if (progressTimer) clearInterval(progressTimer);
             return 100;
           }
-          if (prev >= 85) return Math.min(85 + 0.5, 90); // Cap at 90% until complete
+          if (prev >= 85) return Math.min(prev + 0.1, 90); // Very slow progress near the end
           return Math.min(85, prev + 2);
         });
       }, 1000);
 
-      // Status checking function
+      // Status checking function with retries
       const checkAnalysisStatus = async () => {
         if (analysisComplete) return true;
 
@@ -126,7 +128,6 @@ export default function NewAnalysis() {
             queryKey: ["/api/analysis", data.id, "messages"]
           });
 
-          // Try to fetch messages with error handling
           let messages;
           try {
             messages = await queryClient.fetchQuery({
@@ -135,9 +136,16 @@ export default function NewAnalysis() {
             });
           } catch (fetchError: any) {
             console.error("Failed to fetch messages:", fetchError);
-            // Check if we got HTML instead of JSON
-            if (fetchError.message?.includes("<!DOCTYPE")) {
-              throw new Error("Server returned HTML instead of JSON. The server might be restarting.");
+
+            // Handle HTML response (server restart)
+            if (fetchError.message?.includes("<!DOCTYPE") || fetchError.message?.includes("HTML")) {
+              retryCount++;
+              if (retryCount <= maxRetries) {
+                console.log(`Retry attempt ${retryCount} of ${maxRetries}`);
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                return false;
+              }
+              throw new Error("Server is not responding properly. Please try again in a few moments.");
             }
             throw fetchError;
           }
@@ -172,7 +180,7 @@ export default function NewAnalysis() {
         } catch (error: any) {
           console.error("Error checking analysis status:", error);
 
-          if (error.message?.includes("API key") || error.message?.includes("Server returned HTML")) {
+          if (error.message?.includes("API key") || error.message?.includes("Server") || retryCount >= maxRetries) {
             // Clear all intervals and timeouts
             if (progressTimer) clearInterval(progressTimer);
             if (statusInterval) clearInterval(statusInterval);
