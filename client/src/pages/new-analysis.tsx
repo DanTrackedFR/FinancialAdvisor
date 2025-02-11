@@ -100,12 +100,12 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      // Progress tracking with faster initial progress
+      // Progress tracking with smoother progression
       const progressTimer = setInterval(() => {
         setProgress((prev) => {
           if (analysisComplete) return 100;
-          if (prev >= 90) return prev; // Slower progress near the end
-          return Math.min(90, prev + 2); // Faster initial progress
+          if (prev >= 85) return prev + 0.5; // Slower progress near the end
+          return Math.min(85, prev + 2); // Faster initial progress
         });
       }, 1000);
 
@@ -114,9 +114,14 @@ export default function NewAnalysis() {
         if (analysisComplete) return true;
 
         try {
+          // Force a fresh fetch
+          await queryClient.invalidateQueries({ 
+            queryKey: ["/api/analysis", data.id, "messages"]
+          });
+
           const messages = await queryClient.fetchQuery({
             queryKey: ["/api/analysis", data.id, "messages"],
-            staleTime: 0, // Always fetch fresh data
+            staleTime: 0,
           });
 
           if (Array.isArray(messages) && messages.length > 0) {
@@ -125,6 +130,7 @@ export default function NewAnalysis() {
             clearInterval(progressTimer);
             setProgress(100);
 
+            // Small delay before hiding progress
             setTimeout(() => {
               setShowProgress(false);
             }, 1000);
@@ -194,7 +200,7 @@ export default function NewAnalysis() {
               }
             }, 2000);
 
-            // Cleanup function for the component
+            // Cleanup function
             return () => {
               clearInterval(statusInterval);
               clearInterval(progressTimer);
