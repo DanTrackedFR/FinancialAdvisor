@@ -99,11 +99,21 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      // Slower progress increment (1% every second, up to 85%)
+      // Progressive increment logic:
+      // 0-50%: First 20 seconds (2.5% per second)
+      // 50-85%: Next 40 seconds (0.875% per second)
+      let startTime = Date.now();
       const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const seconds = elapsed / 1000;
+
         setProgress((prev) => {
-          if (prev < 85) {
-            return prev + 1;
+          if (seconds <= 20) {
+            // First 20 seconds: 0-50%
+            return Math.min(50, seconds * 2.5);
+          } else if (seconds <= 60) {
+            // Next 40 seconds: 50-85%
+            return Math.min(85, 50 + (seconds - 20) * 0.875);
           }
           return prev;
         });
