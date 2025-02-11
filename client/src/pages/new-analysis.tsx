@@ -45,9 +45,23 @@ export default function NewAnalysis() {
   const [progress, setProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
 
+  // Query for messages with proper configuration
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: !!currentAnalysisId,
+    refetchInterval: analysisState === "processing" || analysisState === "retrying" ? 2000 : false,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 8000),
+    onError: (error) => {
+      console.error("Error fetching messages:", error);
+      if (analysisState === "processing" || analysisState === "retrying") {
+        toast({
+          title: "Error",
+          description: "Failed to fetch messages. Retrying...",
+          variant: "destructive",
+        });
+      }
+    },
   });
 
   const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
@@ -80,11 +94,7 @@ export default function NewAnalysis() {
         let errorMessage;
         try {
           const errorData = JSON.parse(text);
-          if (errorData.error && errorData.error.includes("rate limit exceeded")) {
-            errorMessage = "The analysis service is currently busy. Please wait a few minutes and try again.";
-          } else {
-            errorMessage = errorData.error || `Server error: ${response.status}`;
-          }
+          errorMessage = errorData.error || `Server error: ${response.status}`;
         } catch {
           errorMessage = `Failed to parse error response: ${text}`;
         }
@@ -111,7 +121,6 @@ export default function NewAnalysis() {
       let timers: {
         progress?: NodeJS.Timeout;
         status?: NodeJS.Timeout;
-        initial?: NodeJS.Timeout;
       } = {};
 
       const cleanup = () => {
@@ -119,59 +128,32 @@ export default function NewAnalysis() {
         timers = {};
       };
 
-      const resetState = () => {
-        cleanup();
-        setProgress(0);
-        setShowProgress(false);
-        setAnalysisState("error");
-      };
-
-      // Progress tracking with bounds checking
-      const startProgressTracking = () => {
-        timers.progress = setInterval(() => {
-          setProgress(prev => {
-            if (analysisState === "complete") {
-              cleanup();
-              return 100;
-            }
-            if (analysisState === "error") {
-              return prev;
-            }
-            if (prev >= 85) {
-              return Math.min(prev + 0.1, 85);
-            }
-            return Math.min(85, prev + 2);
-          });
-        }, 1000);
-      };
-
-      let retryCount = 0;
-      const maxRetries = 3;
-      const maxBackoff = 8000;
-
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-      // Status checking function with exponential backoff
-      const checkAnalysisStatus = async (): Promise<boolean> => {
-        if (analysisState === "complete") return true;
-
-        try {
-          await queryClient.invalidateQueries({ 
-            queryKey: ["/api/analysis", data.id, "messages"]
-          });
-
-          const response = await fetch(`/api/analysis/${data.id}/messages`);
-          const contentType = response.headers.get("content-type");
-
-          // Validate response type
-          if (!contentType?.includes("application/json")) {
-            throw new Error("Server returned non-JSON response");
+      // Progress tracking
+      timers.progress = setInterval(() => {
+        setProgress(prev => {
+          if (analysisState === "complete") {
+            cleanup();
+            return 100;
           }
+          if (analysisState === "error") {
+            return prev;
+          }
+          if (prev >= 85) {
+            return Math.min(prev + 0.1, 85);
+          }
+          return Math.min(85, prev + 2);
+        });
+      }, 1000);
 
-          const messages = await response.json();
+      // Check for completion
+      timers.status = setInterval(async () => {
+        try {
+          await queryClient.invalidateQueries({
+            queryKey: ["/api/analysis", data.id, "messages"],
+          });
 
-          if (Array.isArray(messages) && messages.length > 0) {
-            console.log("Analysis completion detected!");
+          // If we have messages, analysis is complete
+          if (messages && messages.length > 0) {
             setAnalysisState("complete");
             cleanup();
             setProgress(100);
@@ -182,70 +164,14 @@ export default function NewAnalysis() {
 
             toast({
               title: "✅ Analysis Complete",
-              description: "Your document has been analyzed successfully! You can now start asking questions about your financial statement.",
+              description: "Your document has been analyzed successfully! You can now start asking questions.",
               duration: 10000,
               variant: "default",
               className: "bg-green-50 border-green-200",
             });
-
-            return true;
-          }
-          return false;
-        } catch (error: any) {
-          console.error("Error checking analysis status:", error);
-
-          if (error.message?.includes("non-JSON") || error.message?.includes("Failed to fetch")) {
-            if (retryCount < maxRetries) {
-              retryCount++;
-              setAnalysisState("retrying");
-              const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), maxBackoff);
-
-              toast({
-                title: "Retrying Analysis",
-                description: `Server communication issue. Retrying in ${backoffDelay/1000} seconds...`,
-                duration: backoffDelay,
-              });
-
-              await delay(backoffDelay);
-              return false;
-            }
-          }
-
-          resetState();
-          toast({
-            title: "Analysis Error",
-            description: "Server is not responding properly. Please try again in a few moments.",
-            variant: "destructive",
-            duration: 10000,
-          });
-
-          throw error;
-        }
-      };
-
-      startProgressTracking();
-
-      // Initial check after delay
-      timers.initial = setTimeout(async () => {
-        try {
-          const isComplete = await checkAnalysisStatus();
-          if (!isComplete) {
-            // Start periodic checking
-            timers.status = setInterval(async () => {
-              try {
-                const isComplete = await checkAnalysisStatus();
-                if (isComplete) {
-                  cleanup();
-                }
-              } catch (error) {
-                console.error("Status check failed:", error);
-                resetState();
-              }
-            }, 2000);
           }
         } catch (error) {
-          console.error("Initial status check failed:", error);
-          resetState();
+          console.error("Status check failed:", error);
         }
       }, 2000);
 
@@ -308,9 +234,7 @@ export default function NewAnalysis() {
       } else if (!e.shiftKey) {
         e.preventDefault();
         if (message.trim() && !isSending) {
-          const currentMessage = message;
-          setMessage("");
-          sendMessage(currentMessage);
+          sendMessage(message);
         }
       }
     }
@@ -396,7 +320,7 @@ export default function NewAnalysis() {
           </CardHeader>
           <CardContent className="p-6">
             <ConversationThread
-              messages={messages}
+              messages={messages || []}
               isLoading={isLoadingMessages}
             />
             <div className="flex gap-4 mt-4">
@@ -408,7 +332,7 @@ export default function NewAnalysis() {
                   ? "Ask a question about the analysis... (Press Enter to send, Alt+Enter for new line)"
                   : "Please upload a document first to start the conversation"}
                 className="flex-1"
-                disabled={!currentAnalysisId}
+                disabled={!currentAnalysisId || analysisState !== "complete"}
               />
               <Button
                 onClick={() => {
@@ -416,7 +340,7 @@ export default function NewAnalysis() {
                     sendMessage(message);
                   }
                 }}
-                disabled={!currentAnalysisId || !message.trim() || isSending}
+                disabled={!currentAnalysisId || !message.trim() || isSending || analysisState !== "complete"}
               >
                 Send
               </Button>

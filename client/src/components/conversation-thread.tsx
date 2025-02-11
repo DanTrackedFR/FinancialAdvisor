@@ -2,6 +2,7 @@ import { Avatar } from "./ui/avatar";
 import { Card } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { Bot, User } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface MessageMetadata {
   type?: "initial_analysis" | "followup";
@@ -28,8 +29,18 @@ export function ConversationThread({
   messages,
   isLoading,
 }: ConversationThreadProps) {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    if (scrollAreaRef.current) {
+      const scrollArea = scrollAreaRef.current;
+      scrollArea.scrollTop = scrollArea.scrollHeight;
+    }
+  }, [messages]);
+
   return (
-    <ScrollArea className="h-[600px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[600px] pr-4">
       <div className="space-y-4">
         {messages.map((message) => (
           <Card
