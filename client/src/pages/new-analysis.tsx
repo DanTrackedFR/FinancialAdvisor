@@ -45,22 +45,40 @@ export default function NewAnalysis() {
   const [progress, setProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
 
-  // Query for messages with proper configuration
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
+  // Configure messages query with proper refresh interval
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: !!currentAnalysisId,
     refetchInterval: analysisState === "processing" || analysisState === "retrying" ? 2000 : false,
+    staleTime: 0,
+    cacheTime: 0,
     retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 8000),
-    onError: (error) => {
-      console.error("Error fetching messages:", error);
-      if (analysisState === "processing" || analysisState === "retrying") {
+    onSuccess: (data) => {
+      console.log("Messages fetched successfully:", data);
+      if (Array.isArray(data) && data.length > 0 && analysisState === "processing") {
+        setAnalysisState("complete");
+        setProgress(100);
+        setTimeout(() => {
+          setShowProgress(false);
+        }, 1000);
+
         toast({
-          title: "Error",
-          description: "Failed to fetch messages. Retrying...",
-          variant: "destructive",
+          title: "✅ Analysis Complete",
+          description: "Your document has been analyzed successfully! You can now start asking questions.",
+          duration: 10000,
+          variant: "default",
+          className: "bg-green-50 border-green-200",
         });
       }
+    },
+    onError: (error) => {
+      console.error("Error fetching messages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch messages. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
     },
   });
 
@@ -118,25 +136,12 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      let timers: {
-        progress?: NodeJS.Timeout;
-        status?: NodeJS.Timeout;
-      } = {};
-
-      const cleanup = () => {
-        Object.values(timers).forEach(timer => timer && clearTimeout(timer));
-        timers = {};
-      };
-
       // Progress tracking
-      timers.progress = setInterval(() => {
-        setProgress(prev => {
+      const progressTimer = setInterval(() => {
+        setProgress((prev) => {
           if (analysisState === "complete") {
-            cleanup();
+            clearInterval(progressTimer);
             return 100;
-          }
-          if (analysisState === "error") {
-            return prev;
           }
           if (prev >= 85) {
             return Math.min(prev + 0.1, 85);
@@ -145,37 +150,9 @@ export default function NewAnalysis() {
         });
       }, 1000);
 
-      // Check for completion
-      timers.status = setInterval(async () => {
-        try {
-          await queryClient.invalidateQueries({
-            queryKey: ["/api/analysis", data.id, "messages"],
-          });
-
-          // If we have messages, analysis is complete
-          if (messages && messages.length > 0) {
-            setAnalysisState("complete");
-            cleanup();
-            setProgress(100);
-
-            setTimeout(() => {
-              setShowProgress(false);
-            }, 1000);
-
-            toast({
-              title: "✅ Analysis Complete",
-              description: "Your document has been analyzed successfully! You can now start asking questions.",
-              duration: 10000,
-              variant: "default",
-              className: "bg-green-50 border-green-200",
-            });
-          }
-        } catch (error) {
-          console.error("Status check failed:", error);
-        }
-      }, 2000);
-
-      return cleanup;
+      return () => {
+        clearInterval(progressTimer);
+      };
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
@@ -299,9 +276,9 @@ export default function NewAnalysis() {
             {showProgress && (
               <div className="space-y-2">
                 <div className="text-sm font-medium">
-                  {analysisState === "retrying" ? "Retrying analysis..." : 
-                   analysisState === "error" ? "Analysis failed" :
-                   `Analyzing document... ${Math.round(progress)}%`}
+                  {analysisState === "retrying" ? "Retrying analysis..." :
+                    analysisState === "error" ? "Analysis failed" :
+                      `Analyzing document... ${Math.round(progress)}%`}
                 </div>
                 <Progress value={progress} className="w-full" />
               </div>
