@@ -100,12 +100,19 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      // Progress tracking with smoother progression
-      const progressTimer = setInterval(() => {
+      let progressTimer: NodeJS.Timeout | null = null;
+      let statusInterval: NodeJS.Timeout | null = null;
+      let initialCheckTimeout: NodeJS.Timeout | null = null;
+
+      // Progress tracking with smoother progression and bounds checking
+      progressTimer = setInterval(() => {
         setProgress((prev) => {
-          if (analysisComplete) return 100;
-          if (prev >= 85) return prev + 0.5; // Slower progress near the end
-          return Math.min(85, prev + 2); // Faster initial progress
+          if (analysisComplete) {
+            if (progressTimer) clearInterval(progressTimer);
+            return 100;
+          }
+          if (prev >= 85) return Math.min(85 + 0.5, 90); // Cap at 90% until complete
+          return Math.min(85, prev + 2);
         });
       }, 1000);
 
@@ -127,7 +134,11 @@ export default function NewAnalysis() {
           if (Array.isArray(messages) && messages.length > 0) {
             console.log("Analysis completion detected!");
             setAnalysisComplete(true);
-            clearInterval(progressTimer);
+
+            // Clear all intervals and timeouts
+            if (progressTimer) clearInterval(progressTimer);
+            if (statusInterval) clearInterval(statusInterval);
+
             setProgress(100);
 
             // Small delay before hiding progress
@@ -150,10 +161,15 @@ export default function NewAnalysis() {
           console.error("Error checking analysis status:", error);
 
           if (error.message?.includes("API key")) {
-            clearInterval(progressTimer);
+            // Clear all intervals and timeouts
+            if (progressTimer) clearInterval(progressTimer);
+            if (statusInterval) clearInterval(statusInterval);
+            if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
+
             setProgress(0);
             setShowProgress(false);
             setAnalysisComplete(false);
+
             toast({
               title: "Analysis Error",
               description: "API configuration error. Please try again later.",
@@ -170,19 +186,19 @@ export default function NewAnalysis() {
       const maxStatusChecks = 150; // 5 minutes with 2-second intervals
 
       // Initial check after 2 seconds
-      const initialCheckTimeout = setTimeout(async () => {
+      initialCheckTimeout = setTimeout(async () => {
         try {
           const isComplete = await checkAnalysisStatus();
           if (!isComplete) {
             // Start periodic checking
-            const statusInterval = setInterval(async () => {
+            statusInterval = setInterval(async () => {
               try {
                 statusCheckCount++;
                 const isComplete = await checkAnalysisStatus();
                 if (isComplete || statusCheckCount >= maxStatusChecks) {
-                  clearInterval(statusInterval);
+                  if (statusInterval) clearInterval(statusInterval);
                   if (statusCheckCount >= maxStatusChecks && !isComplete) {
-                    clearInterval(progressTimer);
+                    if (progressTimer) clearInterval(progressTimer);
                     setProgress(0);
                     setShowProgress(false);
                     setAnalysisComplete(false);
@@ -195,22 +211,22 @@ export default function NewAnalysis() {
                   }
                 }
               } catch (error) {
-                clearInterval(statusInterval);
+                if (statusInterval) clearInterval(statusInterval);
                 console.error("Status check failed:", error);
               }
             }, 2000);
-
-            // Cleanup function
-            return () => {
-              clearInterval(statusInterval);
-              clearInterval(progressTimer);
-              clearTimeout(initialCheckTimeout);
-            };
           }
         } catch (error) {
           console.error("Initial status check failed:", error);
         }
       }, 2000);
+
+      // Cleanup function
+      return () => {
+        if (progressTimer) clearInterval(progressTimer);
+        if (statusInterval) clearInterval(statusInterval);
+        if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
+      };
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
