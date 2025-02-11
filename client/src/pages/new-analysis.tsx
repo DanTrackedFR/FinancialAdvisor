@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { StandardType } from "@shared/schema";
@@ -32,6 +32,7 @@ export default function NewAnalysis() {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const [analysisComplete, setAnalysisComplete] = useState(false);
 
   // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
@@ -89,11 +90,33 @@ export default function NewAnalysis() {
       // Invalidate the analyses query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
+      // Show initial analysis started toast
       toast({
         title: "Analysis Started",
         description: "Your document is being analyzed. Please wait while we process it...",
         duration: 5000,
       });
+
+      // Start polling for messages to detect completion
+      const checkAnalysis = setInterval(async () => {
+        const messages = await queryClient.fetchQuery({
+          queryKey: ["/api/analysis", data.id, "messages"],
+        });
+
+        if (messages && messages.length > 0) {
+          clearInterval(checkAnalysis);
+          setAnalysisComplete(true);
+          // Show completion toast
+          toast({
+            title: "Analysis Complete",
+            description: "Your document has been analyzed successfully! You can now start asking questions.",
+            duration: 8000,
+          });
+        }
+      }, 2000);
+
+      // Clear interval after 30 seconds to prevent infinite polling
+      setTimeout(() => clearInterval(checkAnalysis), 30000);
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
@@ -128,6 +151,16 @@ export default function NewAnalysis() {
       });
     },
   });
+
+  // Handle keyboard events for the chat
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      if (message.trim() && !isSending) {
+        sendMessage(message);
+      }
+    }
+  };
 
   if (isAuthLoading) {
     return (
@@ -207,8 +240,9 @@ export default function NewAnalysis() {
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
                 placeholder={currentAnalysisId
-                  ? "Ask a question about the analysis..."
+                  ? "Ask a question about the analysis... (Press Enter to send, Alt+Enter for new line)"
                   : "Please upload a document first to start the conversation"}
                 className="flex-1"
                 disabled={!currentAnalysisId}
