@@ -99,35 +99,26 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      let startTime = Date.now();
-      let progressInterval: NodeJS.Timeout;
-      progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const seconds = elapsed / 1000;
-
+      // Separate progress tracking from status checking
+      const progressTimer = setInterval(() => {
         setProgress((prev) => {
-          if (seconds <= 20) {
-            return Math.min(50, seconds * 2.5);
-          } else if (seconds <= 60) {
-            return Math.min(85, 50 + (seconds - 20) * 0.875);
-          }
-          return prev;
+          if (prev >= 95) return prev; // Don't go past 95% until completion confirmed
+          return Math.min(95, prev + 2); // Slower, more gradual progress
         });
       }, 1000);
 
-      let checkAnalysis: NodeJS.Timeout;
-      let errorCount = 0;
-      checkAnalysis = setInterval(async () => {
+      // Separate status checking
+      const checkStatus = async () => {
         try {
-          console.log("Checking for analysis completion...");
-          const messages = await queryClient.fetchQuery({
-            queryKey: ["/api/analysis", data.id, "messages"],
-          });
+          const response = await fetch(`/api/analysis/${data.id}/messages`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const messages = await response.json();
 
           if (Array.isArray(messages) && messages.length > 0) {
             console.log("Analysis completion detected!");
-            clearInterval(checkAnalysis);
-            clearInterval(progressInterval);
+            clearInterval(progressTimer);
             setProgress(100);
             setAnalysisComplete(true);
 
@@ -142,28 +133,62 @@ export default function NewAnalysis() {
               variant: "default",
               className: "bg-green-50 border-green-200",
             });
-          }
-          // Reset error count on successful check
-          errorCount = 0;
-        } catch (error: any) {
-          console.error("Error checking analysis status:", error);
-          errorCount++;
 
-          // Only show error and stop progress if we've had multiple consecutive failures
-          if (errorCount >= 3) {
-            clearInterval(checkAnalysis);
-            clearInterval(progressInterval);
-            setProgress(0);
-            setShowProgress(false);
-            toast({
-              title: "Analysis Error",
-              description: error.message?.includes("API key") 
-                ? "API configuration error. Please try again later."
-                : "Error checking analysis status",
-              variant: "destructive",
-              duration: 10000,
-            });
+            return true; // Analysis is complete
           }
+          return false; // Analysis is still in progress
+        } catch (error: any) {
+          console.error("Status check error:", error);
+          // Don't immediately fail on network errors
+          if (error.message?.includes("API key")) {
+            throw new Error("API configuration error");
+          }
+          return false; // Continue checking on transient errors
+        }
+      };
+
+      // Initial check after 2 seconds
+      setTimeout(async () => {
+        try {
+          const isComplete = await checkStatus();
+          if (!isComplete) {
+            // Start periodic checking if not complete
+            const statusInterval = setInterval(async () => {
+              try {
+                const isComplete = await checkStatus();
+                if (isComplete) {
+                  clearInterval(statusInterval);
+                }
+              } catch (error: any) {
+                console.error("Periodic status check failed:", error);
+                clearInterval(statusInterval);
+                clearInterval(progressTimer);
+                setProgress(0);
+                setShowProgress(false);
+                toast({
+                  title: "Analysis Error",
+                  description: error.message === "API configuration error"
+                    ? "API configuration error. Please try again later."
+                    : "Failed to check analysis status. Please try again.",
+                  variant: "destructive",
+                  duration: 10000,
+                });
+              }
+            }, 2000);
+          }
+        } catch (error: any) {
+          console.error("Initial status check failed:", error);
+          clearInterval(progressTimer);
+          setProgress(0);
+          setShowProgress(false);
+          toast({
+            title: "Analysis Error",
+            description: error.message === "API configuration error"
+              ? "API configuration error. Please try again later."
+              : "Failed to check analysis status. Please try again.",
+            variant: "destructive",
+            duration: 10000,
+          });
         }
       }, 2000);
     },
