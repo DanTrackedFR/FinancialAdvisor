@@ -126,10 +126,21 @@ export default function NewAnalysis() {
             queryKey: ["/api/analysis", data.id, "messages"]
           });
 
-          const messages = await queryClient.fetchQuery({
-            queryKey: ["/api/analysis", data.id, "messages"],
-            staleTime: 0,
-          });
+          // Try to fetch messages with error handling
+          let messages;
+          try {
+            messages = await queryClient.fetchQuery({
+              queryKey: ["/api/analysis", data.id, "messages"],
+              staleTime: 0,
+            });
+          } catch (fetchError: any) {
+            console.error("Failed to fetch messages:", fetchError);
+            // Check if we got HTML instead of JSON
+            if (fetchError.message?.includes("<!DOCTYPE")) {
+              throw new Error("Server returned HTML instead of JSON. The server might be restarting.");
+            }
+            throw fetchError;
+          }
 
           if (Array.isArray(messages) && messages.length > 0) {
             console.log("Analysis completion detected!");
@@ -138,6 +149,7 @@ export default function NewAnalysis() {
             // Clear all intervals and timeouts
             if (progressTimer) clearInterval(progressTimer);
             if (statusInterval) clearInterval(statusInterval);
+            if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
 
             setProgress(100);
 
@@ -160,7 +172,7 @@ export default function NewAnalysis() {
         } catch (error: any) {
           console.error("Error checking analysis status:", error);
 
-          if (error.message?.includes("API key")) {
+          if (error.message?.includes("API key") || error.message?.includes("Server returned HTML")) {
             // Clear all intervals and timeouts
             if (progressTimer) clearInterval(progressTimer);
             if (statusInterval) clearInterval(statusInterval);
@@ -172,7 +184,9 @@ export default function NewAnalysis() {
 
             toast({
               title: "Analysis Error",
-              description: "API configuration error. Please try again later.",
+              description: error.message.includes("API key") 
+                ? "API configuration error. Please try again later."
+                : "Server error. Please try again in a few moments.",
               variant: "destructive",
               duration: 10000,
             });
