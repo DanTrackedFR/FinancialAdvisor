@@ -154,10 +154,32 @@ export default function NewAnalysis() {
 
   // Handle keyboard events for the chat
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.altKey && !e.shiftKey) {
-      e.preventDefault();
-      if (message.trim() && !isSending) {
-        sendMessage(message);
+    if (e.key === 'Enter') {
+      if (e.altKey) {
+        // For Alt+Enter, insert a newline
+        const textarea = e.currentTarget;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+
+        setMessage(
+          value.substring(0, start) + '\n' + value.substring(end)
+        );
+
+        // Set cursor position after the newline
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 1;
+        }, 0);
+
+        e.preventDefault();
+      } else if (!e.shiftKey) {
+        // For just Enter, send the message
+        e.preventDefault();
+        if (message.trim() && !isSending) {
+          const currentMessage = message;
+          setMessage(""); // Clear immediately for better UX
+          sendMessage(currentMessage);
+        }
       }
     }
   };
