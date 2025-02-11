@@ -7,6 +7,7 @@ import { StandardSelector } from "@/components/standard-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -33,8 +34,9 @@ export default function NewAnalysis() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showProgress, setShowProgress] = useState(false);
 
-  // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: !!currentAnalysisId,
@@ -86,18 +88,21 @@ export default function NewAnalysis() {
     onSuccess: (data) => {
       console.log("Analysis created successfully:", data);
       setCurrentAnalysisId(data.id);
+      setShowProgress(true);
+      setProgress(0);
 
-      // Invalidate the analyses query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
-      // Show initial analysis started toast
       toast({
         title: "Analysis Started",
         description: "Your document is being analyzed. Please wait while we process it...",
         duration: 5000,
       });
 
-      // Start polling for messages to detect completion
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => Math.min(prev + 2, 90)); 
+      }, 500);
+
       const checkAnalysis = setInterval(async () => {
         try {
           console.log("Checking for analysis completion...");
@@ -108,13 +113,18 @@ export default function NewAnalysis() {
           if (messages && messages.length > 0) {
             console.log("Analysis completion detected!");
             clearInterval(checkAnalysis);
+            clearInterval(progressInterval);
+            setProgress(100);
             setAnalysisComplete(true);
 
-            // Show completion toast with high duration and variant
+            setTimeout(() => {
+              setShowProgress(false);
+            }, 1000);
+
             toast({
               title: "✅ Analysis Complete",
               description: "Your document has been analyzed successfully! You can now start asking questions about your financial statement.",
-              duration: 10000, // Longer duration
+              duration: 10000,
               variant: "default",
               className: "bg-green-50 border-green-200",
             });
@@ -122,14 +132,15 @@ export default function NewAnalysis() {
         } catch (error) {
           console.error("Error checking analysis status:", error);
           clearInterval(checkAnalysis);
+          clearInterval(progressInterval);
         }
       }, 2000);
 
-      // Clear interval after 30 seconds to prevent infinite polling
       setTimeout(() => {
         clearInterval(checkAnalysis);
-        // If analysis is still not complete after timeout, show a message
+        clearInterval(progressInterval);
         if (!analysisComplete) {
+          setShowProgress(false);
           toast({
             title: "Analysis Status",
             description: "The analysis is taking longer than expected. Please refresh the page if you don't see results soon.",
@@ -140,6 +151,7 @@ export default function NewAnalysis() {
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
+      setShowProgress(false);
       toast({
         title: "Analysis Error",
         description: error.message,
@@ -172,11 +184,9 @@ export default function NewAnalysis() {
     },
   });
 
-  // Handle keyboard events for the chat
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       if (e.altKey) {
-        // For Alt+Enter, insert a newline
         const textarea = e.currentTarget;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
@@ -186,18 +196,16 @@ export default function NewAnalysis() {
           value.substring(0, start) + '\n' + value.substring(end)
         );
 
-        // Set cursor position after the newline
         setTimeout(() => {
           textarea.selectionStart = textarea.selectionEnd = start + 1;
         }, 0);
 
         e.preventDefault();
       } else if (!e.shiftKey) {
-        // For just Enter, send the message
         e.preventDefault();
         if (message.trim() && !isSending) {
           const currentMessage = message;
-          setMessage(""); // Clear immediately for better UX
+          setMessage(""); 
           sendMessage(currentMessage);
         }
       }
@@ -253,7 +261,7 @@ export default function NewAnalysis() {
                   onFileProcessed={(fileName, content) => {
                     console.log("File processed, starting analysis...");
                     if (!analysisName) {
-                      setAnalysisName(fileName.replace(/\.[^/.]+$/, "")); // Use filename without extension as default name
+                      setAnalysisName(fileName.replace(/\.[^/.]+$/, ""));
                     }
                     startAnalysis({ fileName, content });
                   }}
@@ -261,6 +269,14 @@ export default function NewAnalysis() {
                 />
               </div>
             </div>
+            {showProgress && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">
+                  Analyzing document... {progress}%
+                </div>
+                <Progress value={progress} className="w-full" />
+              </div>
+            )}
           </CardContent>
         </Card>
 
