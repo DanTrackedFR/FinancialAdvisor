@@ -99,9 +99,15 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
+      // Slower progress increment (1% every second, up to 85%)
       const progressInterval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 2, 90)); 
-      }, 500);
+        setProgress((prev) => {
+          if (prev < 85) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 1000);
 
       const checkAnalysis = setInterval(async () => {
         try {
@@ -131,27 +137,28 @@ export default function NewAnalysis() {
           }
         } catch (error) {
           console.error("Error checking analysis status:", error);
-          clearInterval(checkAnalysis);
-          clearInterval(progressInterval);
         }
       }, 2000);
 
+      // Extended timeout (60 seconds) and only clear if not complete
       setTimeout(() => {
-        clearInterval(checkAnalysis);
-        clearInterval(progressInterval);
         if (!analysisComplete) {
-          setShowProgress(false);
+          clearInterval(checkAnalysis);
+          clearInterval(progressInterval);
+          // Keep the progress bar but show it's stalled
+          setProgress((prev) => prev);
           toast({
-            title: "Analysis Status",
-            description: "The analysis is taking longer than expected. Please refresh the page if you don't see results soon.",
+            title: "Analysis Taking Longer Than Expected",
+            description: "The analysis is still running but taking longer than usual. You can continue waiting or refresh the page to try again.",
             duration: 8000,
           });
         }
-      }, 30000);
+      }, 60000);
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
       setShowProgress(false);
+      setProgress(0);
       toast({
         title: "Analysis Error",
         description: error.message,
@@ -205,7 +212,7 @@ export default function NewAnalysis() {
         e.preventDefault();
         if (message.trim() && !isSending) {
           const currentMessage = message;
-          setMessage(""); 
+          setMessage("");
           sendMessage(currentMessage);
         }
       }
