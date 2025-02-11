@@ -45,22 +45,19 @@ export default function NewAnalysis() {
   const [progress, setProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
 
-  // Configure messages query with proper refresh interval
+  // Query for fetching messages
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: !!currentAnalysisId,
-    refetchInterval: analysisState === "processing" || analysisState === "retrying" ? 2000 : false,
-    staleTime: 0,
-    cacheTime: 0,
-    retry: 3,
+    refetchInterval: analysisState === "processing" ? 2000 : false,
+    networkMode: "always",
     onSuccess: (data) => {
-      console.log("Messages fetched successfully:", data);
+      console.log("Messages received:", data);
       if (Array.isArray(data) && data.length > 0 && analysisState === "processing") {
+        console.log("Analysis complete, messages found");
         setAnalysisState("complete");
         setProgress(100);
-        setTimeout(() => {
-          setShowProgress(false);
-        }, 1000);
+        setShowProgress(false);
 
         toast({
           title: "✅ Analysis Complete",
@@ -73,23 +70,11 @@ export default function NewAnalysis() {
     },
     onError: (error) => {
       console.error("Error fetching messages:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch messages. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      });
     },
   });
 
   const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
-    mutationFn: async ({
-      fileName,
-      content,
-    }: {
-      fileName: string;
-      content: string;
-    }) => {
+    mutationFn: async ({ fileName, content }: { fileName: string; content: string }) => {
       if (!user) {
         throw new Error("You must be logged in to create an analysis");
       }
@@ -128,6 +113,7 @@ export default function NewAnalysis() {
       setProgress(0);
       setAnalysisState("processing");
 
+      // Invalidate analyses list
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
       toast({
@@ -150,9 +136,7 @@ export default function NewAnalysis() {
         });
       }, 1000);
 
-      return () => {
-        clearInterval(progressTimer);
-      };
+      return () => clearInterval(progressTimer);
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
@@ -172,10 +156,12 @@ export default function NewAnalysis() {
     mutationFn: async (content: string) => {
       if (!currentAnalysisId) throw new Error("No active analysis");
 
-      return apiRequest("POST", `/api/analysis/${currentAnalysisId}/messages`, {
+      const response = await apiRequest("POST", `/api/analysis/${currentAnalysisId}/messages`, {
         content,
         role: "user",
       });
+
+      return response;
     },
     onSuccess: () => {
       setMessage("");
@@ -297,7 +283,7 @@ export default function NewAnalysis() {
           </CardHeader>
           <CardContent className="p-6">
             <ConversationThread
-              messages={messages || []}
+              messages={messages}
               isLoading={isLoadingMessages}
             />
             <div className="flex gap-4 mt-4">
