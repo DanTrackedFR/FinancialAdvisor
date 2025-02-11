@@ -69,7 +69,11 @@ export default function NewAnalysis() {
         let errorMessage;
         try {
           const errorData = JSON.parse(text);
-          errorMessage = errorData.error || `Server error: ${response.status}`;
+          if (errorData.error && errorData.error.includes("rate limit exceeded")) {
+            errorMessage = "The analysis service is currently busy. Please wait a few minutes and try again.";
+          } else {
+            errorMessage = errorData.error || `Server error: ${response.status}`;
+          }
         } catch {
           errorMessage = `Failed to parse error response: ${text}`;
         }
@@ -94,7 +98,7 @@ export default function NewAnalysis() {
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
       toast({
-        title: "Error",
+        title: "Analysis Error",
         description: error.message,
         variant: "destructive",
         duration: 10000,
@@ -189,8 +193,8 @@ export default function NewAnalysis() {
           <CardHeader>
             <CardTitle>Analysis Chat</CardTitle>
             <CardDescription>
-              {currentAnalysisId 
-                ? "Ask questions about your analysis" 
+              {currentAnalysisId
+                ? "Ask questions about your analysis"
                 : "Upload a document to start the analysis. The AI will begin analyzing your document here."}
             </CardDescription>
           </CardHeader>
@@ -203,8 +207,8 @@ export default function NewAnalysis() {
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={currentAnalysisId 
-                  ? "Ask a question about the analysis..." 
+                placeholder={currentAnalysisId
+                  ? "Ask a question about the analysis..."
                   : "Please upload a document first to start the conversation"}
                 className="flex-1"
                 disabled={!currentAnalysisId}
