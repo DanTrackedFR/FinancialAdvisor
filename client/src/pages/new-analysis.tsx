@@ -15,14 +15,20 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 
+interface MessageMetadata {
+  type?: "initial_analysis" | "followup";
+  summary?: string;
+  reviewPoints?: string[];
+  improvements?: string[];
+  performance?: string;
+}
+
 interface Message {
   id: number;
   role: "user" | "assistant";
   content: string;
   analysisId: number;
-  metadata?: {
-    type?: "initial_analysis" | "followup";
-  };
+  metadata?: MessageMetadata;
 }
 
 type AnalysisState = "idle" | "uploading" | "processing" | "retrying" | "error" | "complete";
