@@ -116,6 +116,7 @@ export default function NewAnalysis() {
       }, 1000);
 
       let checkAnalysis: NodeJS.Timeout;
+      let errorCount = 0;
       checkAnalysis = setInterval(async () => {
         try {
           console.log("Checking for analysis completion...");
@@ -142,18 +143,25 @@ export default function NewAnalysis() {
               className: "bg-green-50 border-green-200",
             });
           }
+          // Reset error count on successful check
+          errorCount = 0;
         } catch (error) {
           console.error("Error checking analysis status:", error);
-          clearInterval(checkAnalysis);
-          clearInterval(progressInterval);
-          setProgress(0);
-          setShowProgress(false);
-          toast({
-            title: "Analysis Error",
-            description: "Error checking analysis status",
-            variant: "destructive",
-            duration: 10000,
-          });
+          errorCount++;
+
+          // Only show error and stop progress if we've had multiple consecutive failures
+          if (errorCount >= 3) {
+            clearInterval(checkAnalysis);
+            clearInterval(progressInterval);
+            setProgress(0);
+            setShowProgress(false);
+            toast({
+              title: "Analysis Error",
+              description: "Error checking analysis status",
+              variant: "destructive",
+              duration: 10000,
+            });
+          }
         }
       }, 2000);
     },
