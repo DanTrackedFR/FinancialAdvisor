@@ -103,7 +103,8 @@ export default function NewAnalysis() {
       // 0-50%: First 20 seconds (2.5% per second)
       // 50-85%: Next 40 seconds (0.875% per second)
       let startTime = Date.now();
-      const progressInterval = setInterval(() => {
+      let progressInterval: NodeJS.Timeout;
+      progressInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const seconds = elapsed / 1000;
 
@@ -119,7 +120,8 @@ export default function NewAnalysis() {
         });
       }, 1000);
 
-      const checkAnalysis = setInterval(async () => {
+      let checkAnalysis: NodeJS.Timeout;
+      checkAnalysis = setInterval(async () => {
         try {
           console.log("Checking for analysis completion...");
           const messages = await queryClient.fetchQuery({
@@ -147,6 +149,17 @@ export default function NewAnalysis() {
           }
         } catch (error) {
           console.error("Error checking analysis status:", error);
+          clearInterval(checkAnalysis);
+          clearInterval(progressInterval);
+          setProgress(0);
+          setShowProgress(false);
+          toast({
+            title: "Analysis Error",
+            description: "Error checking analysis status",
+            variant: "destructive",
+            duration: 10000,
+          });
+
         }
       }, 2000);
     },
