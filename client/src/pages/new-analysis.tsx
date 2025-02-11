@@ -99,9 +99,6 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      // Progressive increment logic:
-      // 0-50%: First 20 seconds (2.5% per second)
-      // 50-85%: Next 40 seconds (0.875% per second)
       let startTime = Date.now();
       let progressInterval: NodeJS.Timeout;
       progressInterval = setInterval(() => {
@@ -110,10 +107,8 @@ export default function NewAnalysis() {
 
         setProgress((prev) => {
           if (seconds <= 20) {
-            // First 20 seconds: 0-50%
             return Math.min(50, seconds * 2.5);
           } else if (seconds <= 60) {
-            // Next 40 seconds: 50-85%
             return Math.min(85, 50 + (seconds - 20) * 0.875);
           }
           return prev;
@@ -128,7 +123,7 @@ export default function NewAnalysis() {
             queryKey: ["/api/analysis", data.id, "messages"],
           });
 
-          if (messages && messages.length > 0) {
+          if (Array.isArray(messages) && messages.length > 0) {
             console.log("Analysis completion detected!");
             clearInterval(checkAnalysis);
             clearInterval(progressInterval);
@@ -159,7 +154,6 @@ export default function NewAnalysis() {
             variant: "destructive",
             duration: 10000,
           });
-
         }
       }, 2000);
     },
