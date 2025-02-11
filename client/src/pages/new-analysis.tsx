@@ -149,21 +149,6 @@ export default function NewAnalysis() {
           console.error("Error checking analysis status:", error);
         }
       }, 2000);
-
-      // Extended timeout (60 seconds) and only clear if not complete
-      setTimeout(() => {
-        if (!analysisComplete) {
-          clearInterval(checkAnalysis);
-          clearInterval(progressInterval);
-          // Keep the progress bar but show it's stalled
-          setProgress((prev) => prev);
-          toast({
-            title: "Analysis Taking Longer Than Expected",
-            description: "The analysis is still running but taking longer than usual. You can continue waiting or refresh the page to try again.",
-            duration: 8000,
-          });
-        }
-      }, 60000);
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
@@ -289,7 +274,7 @@ export default function NewAnalysis() {
             {showProgress && (
               <div className="space-y-2">
                 <div className="text-sm font-medium">
-                  Analyzing document... {progress}%
+                  Analyzing document... {Math.round(progress)}%
                 </div>
                 <Progress value={progress} className="w-full" />
               </div>
