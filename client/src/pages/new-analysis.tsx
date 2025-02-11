@@ -106,24 +106,34 @@ export default function NewAnalysis() {
       let retryCount = 0;
       const maxRetries = 3;
 
+      const cleanupTimers = () => {
+        if (progressTimer) clearInterval(progressTimer);
+        if (statusInterval) clearInterval(statusInterval);
+        if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
+        progressTimer = null;
+        statusInterval = null;
+        initialCheckTimeout = null;
+      };
+
       // Progress tracking with smoother progression and bounds checking
       progressTimer = setInterval(() => {
         setProgress((prev) => {
           if (analysisComplete) {
-            if (progressTimer) clearInterval(progressTimer);
+            cleanupTimers();
             return 100;
           }
-          if (prev >= 85) return Math.min(prev + 0.1, 90); // Very slow progress near the end
+          if (prev >= 85) return Math.min(prev + 0.1, 85); // Very slow progress near end, cap at 85%
           return Math.min(85, prev + 2);
         });
       }, 1000);
 
-      // Status checking function with retries
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+      // Status checking function with exponential backoff
       const checkAnalysisStatus = async () => {
         if (analysisComplete) return true;
 
         try {
-          // Force a fresh fetch
           await queryClient.invalidateQueries({ 
             queryKey: ["/api/analysis", data.id, "messages"]
           });
@@ -142,7 +152,8 @@ export default function NewAnalysis() {
               retryCount++;
               if (retryCount <= maxRetries) {
                 console.log(`Retry attempt ${retryCount} of ${maxRetries}`);
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+                const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Exponential backoff
+                await delay(backoffDelay);
                 return false;
               }
               throw new Error("Server is not responding properly. Please try again in a few moments.");
@@ -153,12 +164,7 @@ export default function NewAnalysis() {
           if (Array.isArray(messages) && messages.length > 0) {
             console.log("Analysis completion detected!");
             setAnalysisComplete(true);
-
-            // Clear all intervals and timeouts
-            if (progressTimer) clearInterval(progressTimer);
-            if (statusInterval) clearInterval(statusInterval);
-            if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
-
+            cleanupTimers();
             setProgress(100);
 
             // Small delay before hiding progress
@@ -181,11 +187,7 @@ export default function NewAnalysis() {
           console.error("Error checking analysis status:", error);
 
           if (error.message?.includes("API key") || error.message?.includes("Server") || retryCount >= maxRetries) {
-            // Clear all intervals and timeouts
-            if (progressTimer) clearInterval(progressTimer);
-            if (statusInterval) clearInterval(statusInterval);
-            if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
-
+            cleanupTimers();
             setProgress(0);
             setShowProgress(false);
             setAnalysisComplete(false);
@@ -218,9 +220,8 @@ export default function NewAnalysis() {
                 statusCheckCount++;
                 const isComplete = await checkAnalysisStatus();
                 if (isComplete || statusCheckCount >= maxStatusChecks) {
-                  if (statusInterval) clearInterval(statusInterval);
+                  cleanupTimers();
                   if (statusCheckCount >= maxStatusChecks && !isComplete) {
-                    if (progressTimer) clearInterval(progressTimer);
                     setProgress(0);
                     setShowProgress(false);
                     setAnalysisComplete(false);
@@ -233,7 +234,7 @@ export default function NewAnalysis() {
                   }
                 }
               } catch (error) {
-                if (statusInterval) clearInterval(statusInterval);
+                cleanupTimers();
                 console.error("Status check failed:", error);
               }
             }, 2000);
@@ -245,9 +246,7 @@ export default function NewAnalysis() {
 
       // Cleanup function
       return () => {
-        if (progressTimer) clearInterval(progressTimer);
-        if (statusInterval) clearInterval(statusInterval);
-        if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
+        cleanupTimers();
       };
     },
     onError: (error: Error) => {
