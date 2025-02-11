@@ -25,6 +25,8 @@ interface Message {
   };
 }
 
+type AnalysisState = "idle" | "uploading" | "processing" | "retrying" | "error" | "complete";
+
 export default function NewAnalysis() {
   const [, setLocation] = useLocation();
   const [standard, setStandard] = useState<StandardType>("IFRS");
@@ -33,7 +35,7 @@ export default function NewAnalysis() {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [analysisState, setAnalysisState] = useState<AnalysisState>("idle");
   const [progress, setProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
 
@@ -90,7 +92,7 @@ export default function NewAnalysis() {
       setCurrentAnalysisId(data.id);
       setShowProgress(true);
       setProgress(0);
-      setAnalysisComplete(false);
+      setAnalysisState("processing");
 
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
@@ -100,74 +102,74 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      let progressTimer: NodeJS.Timeout | null = null;
-      let statusInterval: NodeJS.Timeout | null = null;
-      let initialCheckTimeout: NodeJS.Timeout | null = null;
-      let retryCount = 0;
-      const maxRetries = 3;
+      let timers: {
+        progress?: NodeJS.Timeout;
+        status?: NodeJS.Timeout;
+        initial?: NodeJS.Timeout;
+      } = {};
 
-      const cleanupTimers = () => {
-        if (progressTimer) clearInterval(progressTimer);
-        if (statusInterval) clearInterval(statusInterval);
-        if (initialCheckTimeout) clearTimeout(initialCheckTimeout);
-        progressTimer = null;
-        statusInterval = null;
-        initialCheckTimeout = null;
+      const cleanup = () => {
+        Object.values(timers).forEach(timer => timer && clearTimeout(timer));
+        timers = {};
       };
 
-      // Progress tracking with smoother progression and bounds checking
-      progressTimer = setInterval(() => {
-        setProgress((prev) => {
-          if (analysisComplete) {
-            cleanupTimers();
-            return 100;
-          }
-          if (prev >= 85) return Math.min(prev + 0.1, 85); // Very slow progress near end, cap at 85%
-          return Math.min(85, prev + 2);
-        });
-      }, 1000);
+      const resetState = () => {
+        cleanup();
+        setProgress(0);
+        setShowProgress(false);
+        setAnalysisState("error");
+      };
+
+      // Progress tracking with bounds checking
+      const startProgressTracking = () => {
+        timers.progress = setInterval(() => {
+          setProgress(prev => {
+            if (analysisState === "complete") {
+              cleanup();
+              return 100;
+            }
+            if (analysisState === "error") {
+              return prev;
+            }
+            if (prev >= 85) {
+              return Math.min(prev + 0.1, 85);
+            }
+            return Math.min(85, prev + 2);
+          });
+        }, 1000);
+      };
+
+      let retryCount = 0;
+      const maxRetries = 3;
+      const maxBackoff = 8000;
 
       const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
       // Status checking function with exponential backoff
-      const checkAnalysisStatus = async () => {
-        if (analysisComplete) return true;
+      const checkAnalysisStatus = async (): Promise<boolean> => {
+        if (analysisState === "complete") return true;
 
         try {
           await queryClient.invalidateQueries({ 
             queryKey: ["/api/analysis", data.id, "messages"]
           });
 
-          let messages;
-          try {
-            messages = await queryClient.fetchQuery({
-              queryKey: ["/api/analysis", data.id, "messages"],
-              staleTime: 0,
-            });
-          } catch (fetchError: any) {
-            console.error("Failed to fetch messages:", fetchError);
+          const response = await fetch(`/api/analysis/${data.id}/messages`);
+          const contentType = response.headers.get("content-type");
 
-            // Handle HTML response (server restart)
-            if (fetchError.message?.includes("<!DOCTYPE") || fetchError.message?.includes("HTML")) {
-              retryCount++;
-              if (retryCount <= maxRetries) {
-                console.log(`Retry attempt ${retryCount} of ${maxRetries}`);
-                const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Exponential backoff
-                await delay(backoffDelay);
-                return false;
-              }
-              throw new Error("Server is not responding properly. Please try again in a few moments.");
-            }
-            throw fetchError;
+          // Validate response type
+          if (!contentType?.includes("application/json")) {
+            throw new Error("Server returned non-JSON response");
           }
+
+          const messages = await response.json();
 
           if (Array.isArray(messages) && messages.length > 0) {
             console.log("Analysis completion detected!");
-            setAnalysisComplete(true);
-            cleanupTimers();
+            setAnalysisState("complete");
+            cleanup();
             setProgress(100);
 
-            // Small delay before hiding progress
             setTimeout(() => {
               setShowProgress(false);
             }, 1000);
@@ -186,74 +188,68 @@ export default function NewAnalysis() {
         } catch (error: any) {
           console.error("Error checking analysis status:", error);
 
-          if (error.message?.includes("API key") || error.message?.includes("Server") || retryCount >= maxRetries) {
-            cleanupTimers();
-            setProgress(0);
-            setShowProgress(false);
-            setAnalysisComplete(false);
+          if (error.message?.includes("non-JSON") || error.message?.includes("Failed to fetch")) {
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setAnalysisState("retrying");
+              const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), maxBackoff);
 
-            toast({
-              title: "Analysis Error",
-              description: error.message.includes("API key") 
-                ? "API configuration error. Please try again later."
-                : "Server error. Please try again in a few moments.",
-              variant: "destructive",
-              duration: 10000,
-            });
-            throw error;
+              toast({
+                title: "Retrying Analysis",
+                description: `Server communication issue. Retrying in ${backoffDelay/1000} seconds...`,
+                duration: backoffDelay,
+              });
+
+              await delay(backoffDelay);
+              return false;
+            }
           }
-          return false;
+
+          resetState();
+          toast({
+            title: "Analysis Error",
+            description: "Server is not responding properly. Please try again in a few moments.",
+            variant: "destructive",
+            duration: 10000,
+          });
+
+          throw error;
         }
       };
 
-      let statusCheckCount = 0;
-      const maxStatusChecks = 150; // 5 minutes with 2-second intervals
+      startProgressTracking();
 
-      // Initial check after 2 seconds
-      initialCheckTimeout = setTimeout(async () => {
+      // Initial check after delay
+      timers.initial = setTimeout(async () => {
         try {
           const isComplete = await checkAnalysisStatus();
           if (!isComplete) {
             // Start periodic checking
-            statusInterval = setInterval(async () => {
+            timers.status = setInterval(async () => {
               try {
-                statusCheckCount++;
                 const isComplete = await checkAnalysisStatus();
-                if (isComplete || statusCheckCount >= maxStatusChecks) {
-                  cleanupTimers();
-                  if (statusCheckCount >= maxStatusChecks && !isComplete) {
-                    setProgress(0);
-                    setShowProgress(false);
-                    setAnalysisComplete(false);
-                    toast({
-                      title: "Analysis Timeout",
-                      description: "The analysis is taking longer than expected. Please try again.",
-                      variant: "destructive",
-                      duration: 10000,
-                    });
-                  }
+                if (isComplete) {
+                  cleanup();
                 }
               } catch (error) {
-                cleanupTimers();
                 console.error("Status check failed:", error);
+                resetState();
               }
             }, 2000);
           }
         } catch (error) {
           console.error("Initial status check failed:", error);
+          resetState();
         }
       }, 2000);
 
-      // Cleanup function
-      return () => {
-        cleanupTimers();
-      };
+      return cleanup;
     },
     onError: (error: Error) => {
       console.error("Analysis creation failed:", error);
       setShowProgress(false);
       setProgress(0);
-      setAnalysisComplete(false);
+      setAnalysisState("error");
       toast({
         title: "Analysis Error",
         description: error.message,
@@ -361,7 +357,6 @@ export default function NewAnalysis() {
               <div>
                 <UploadArea
                   onFileProcessed={(fileName, content) => {
-                    console.log("File processed, starting analysis...");
                     if (!analysisName) {
                       setAnalysisName(fileName.replace(/\.[^/.]+$/, ""));
                     }
@@ -374,7 +369,9 @@ export default function NewAnalysis() {
             {showProgress && (
               <div className="space-y-2">
                 <div className="text-sm font-medium">
-                  Analyzing document... {Math.round(progress)}%
+                  {analysisState === "retrying" ? "Retrying analysis..." : 
+                   analysisState === "error" ? "Analysis failed" :
+                   `Analyzing document... ${Math.round(progress)}%`}
                 </div>
                 <Progress value={progress} className="w-full" />
               </div>
