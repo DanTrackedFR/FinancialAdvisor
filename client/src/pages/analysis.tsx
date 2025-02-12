@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useState, React } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, Edit2, Check, X } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
+import { UploadArea } from "@/components/upload-area";
 import { Analysis } from "@shared/schema";
+import { Progress } from "@/components/ui/progress";
 
 interface Message {
   id: number;
@@ -25,6 +28,10 @@ export default function AnalysisPage() {
   const [location, setLocation] = useLocation();
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
   // Fetch user's analyses for the list view
@@ -32,10 +39,85 @@ export default function AnalysisPage() {
     queryKey: ["/api/user/analyses"],
   });
 
+  // Fetch current analysis when analysisId is available
+  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
+    queryKey: ["/api/analysis", analysisId],
+    enabled: !!analysisId,
+  });
+
+  // Initialize edited title when analysis data is loaded
+  React.useEffect(() => {
+    if (currentAnalysis) {
+      setEditedTitle(currentAnalysis.fileName);
+    }
+  }, [currentAnalysis]);
+
   // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
+  });
+
+  const { mutate: updateTitle } = useMutation({
+    mutationFn: async (newTitle: string) => {
+      const response = await fetch(`/api/analysis/${analysisId}/title`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update title");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+      setIsEditingTitle(false);
+      toast({
+        title: "Title Updated",
+        description: "Analysis title has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update title. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { mutate: updateContent } = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await fetch(`/api/analysis/${analysisId}/content`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update content");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
+      toast({
+        title: "Content Updated",
+        description: "Analysis content has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update content. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
@@ -81,6 +163,31 @@ export default function AnalysisPage() {
     },
   });
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.altKey) {
+        // Alt+Enter: Insert a new line
+        const cursorPosition = e.currentTarget.selectionStart;
+        const textBeforeCursor = message.slice(0, cursorPosition);
+        const textAfterCursor = message.slice(cursorPosition);
+        setMessage(textBeforeCursor + '\n' + textAfterCursor);
+        // Prevent default to avoid sending
+        e.preventDefault();
+      } else if (!e.shiftKey) {
+        // Regular Enter (not Shift+Enter): Send message
+        e.preventDefault();
+        handleSendMessage();
+      }
+    }
+  };
+
+  const handleSendMessage = () => {
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !isSending) {
+      sendMessage(trimmedMessage);
+    }
+  };
+
   if (!analysisId) {
     if (isLoadingAnalyses) {
       return (
@@ -116,7 +223,7 @@ export default function AnalysisPage() {
     );
   }
 
-  if (isLoadingMessages) {
+  if (isLoadingMessages || isLoadingAnalysis) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -136,36 +243,115 @@ export default function AnalysisPage() {
           </Button>
         </div>
 
+        {/* Title and Upload Section */}
         <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    className="max-w-sm"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => updateTitle(editedTitle)}
+                    disabled={!editedTitle.trim()}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditingTitle(false);
+                      setEditedTitle(currentAnalysis?.fileName || "");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <CardTitle>{currentAnalysis?.fileName}</CardTitle>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setIsEditingTitle(true)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <CardDescription>
+              Upload additional documents or update content
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <UploadArea
+              onContentExtracted={(content) => updateContent(content)}
+              onProgress={setUploadProgress}
+              onAnalyzing={setIsAnalyzing}
+            />
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <Progress value={uploadProgress} className="w-full" />
+            )}
+            {isAnalyzing && (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Analyzing document...</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Chat Section */}
+        <Card className="min-h-[calc(100vh-16rem)]">
           <CardHeader>
             <CardTitle>Analysis Chat</CardTitle>
             <CardDescription>Ask questions about your analysis</CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
             <ConversationThread
               messages={messages}
               isLoading={isLoadingMessages}
             />
-            <div className="flex gap-4 mt-4">
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ask a question about the analysis..."
-                className="flex-1"
-              />
-              <Button
-                onClick={() => {
-                  if (message.trim()) {
-                    sendMessage(message);
-                  }
-                }}
-                disabled={!message.trim() || !analysisId || isSending}
-              >
-                Send
-              </Button>
-            </div>
           </CardContent>
         </Card>
+
+        {/* Chat Input */}
+        <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex gap-4">
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ask a question about the analysis..."
+                  className="flex-1"
+                  disabled={isSending}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || !analysisId || isSending}
+                  className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isSending ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </div>
+                  ) : (
+                    'Send'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

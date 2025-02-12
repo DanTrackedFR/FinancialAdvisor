@@ -22,6 +22,10 @@ export interface IStorage {
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
   getMessages(analysisId: number): Promise<Message[]>;
+  
+  // New methods
+  updateAnalysisTitle(id: number, title: string): Promise<void>;
+  updateAnalysisContent(id: number, content: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -131,6 +135,19 @@ export class DatabaseStorage implements IStorage {
     return db.select()
       .from(messages)
       .where(eq(messages.analysisId, analysisId));
+  }
+  
+  // Add the new methods implementation
+  async updateAnalysisTitle(id: number, title: string): Promise<void> {
+    await db.update(analyses)
+      .set({ fileName: title })
+      .where(eq(analyses.id, id));
+  }
+
+  async updateAnalysisContent(id: number, content: string): Promise<void> {
+    await db.update(analyses)
+      .set({ fileContent: content })
+      .where(eq(analyses.id, id));
   }
 }
 

@@ -6,96 +6,76 @@ import { insertAnalysisSchema } from "@shared/schema";
 
 const router = Router();
 
-// Add this new route before other routes
-router.post("/chat/init", async (req, res) => {
+// Add these new routes before other routes
+router.patch("/analysis/:id/title", async (req, res) => {
   try {
-    const firebaseUid = req.headers["firebase-uid"] as string;
-    if (!firebaseUid) {
-      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
+    const analysisId = parseInt(req.params.id);
+    const { title } = req.body;
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      res.status(400).json({ error: "Valid title is required" });
       return;
     }
 
-    const user = await storage.getUserByFirebaseUid(firebaseUid);
-    if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-
-    const analysis = await storage.getOrCreateGeneralChat(user.id);
-    res.json({ analysisId: analysis.id });
+    await storage.updateAnalysisTitle(analysisId, title.trim());
+    res.json({ success: true });
   } catch (error) {
+    console.error("Error updating analysis title:", error);
     res.status(500).json({
-      error: error instanceof Error ? error.message : "An unknown error occurred"
+      error: error instanceof Error ? error.message : "Failed to update analysis title"
     });
   }
 });
 
-// General chat endpoint
-router.post("/chat", async (req, res) => {
+router.patch("/analysis/:id/content", async (req, res) => {
   try {
-    const firebaseUid = req.headers["firebase-uid"] as string;
-    if (!firebaseUid) {
-      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
+    const analysisId = parseInt(req.params.id);
+    const { content } = req.body;
+
+    if (typeof content !== 'string') {
+      res.status(400).json({ error: "Valid content is required" });
       return;
     }
 
-    const user = await storage.getUserByFirebaseUid(firebaseUid);
-    if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
+    await storage.updateAnalysisContent(analysisId, content);
 
-    const { message } = req.body;
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      res.status(400).json({ error: "Valid message is required" });
-      return;
-    }
-
-    // Get or create general chat analysis
-    const analysis = await storage.getOrCreateGeneralChat(user.id);
-
-    // Create user message
-    const userMessage = await storage.createMessage({
-      analysisId: analysis.id,
-      role: "user",
-      content: message,
-    });
-
-    try {
-      const aiResponse = await analyzeFinancialStatement(message, "IFRS");
-
-      if (!aiResponse) {
-        throw new Error("Empty response from AI service");
+    // If content is provided, trigger AI analysis
+    if (content.trim()) {
+      const analysis = await storage.getAnalysis(analysisId);
+      if (!analysis) {
+        throw new Error("Analysis not found");
       }
 
-      const assistantMessage = await storage.createMessage({
-        analysisId: analysis.id,
-        role: "assistant",
-        content: aiResponse,
-        metadata: { type: "chat" },
-      });
+      // Start AI analysis
+      try {
+        console.log("Starting AI analysis with new content");
+        const result = await analyzeFinancialStatement(content, analysis.standard);
+        console.log("AI analysis completed, response length:", result.length);
 
-      res.json([userMessage, assistantMessage]);
-    } catch (error) {
-      const errorMessage = "I apologize, but I encountered an error processing your request. Please try again.";
+        await storage.createMessage({
+          analysisId,
+          role: "assistant",
+          content: result,
+          metadata: { type: "content_update" },
+        });
 
-      const assistantMessage = await storage.createMessage({
-        analysisId: analysis.id,
-        role: "assistant",
-        content: errorMessage,
-        metadata: { type: "chat" },
-      });
-
-      res.json([userMessage, assistantMessage]);
+        await storage.updateAnalysisStatus(analysisId, "Complete");
+      } catch (error) {
+        console.error("Error in AI analysis:", error);
+        await storage.updateAnalysisStatus(analysisId, "Drafting");
+      }
     }
+
+    res.json({ success: true });
   } catch (error) {
+    console.error("Error updating analysis content:", error);
     res.status(500).json({
-      error: error instanceof Error ? error.message : "An unknown error occurred"
+      error: error instanceof Error ? error.message : "Failed to update analysis content"
     });
   }
 });
 
-// Existing routes remain unchanged
+
 router.post("/analysis", async (req, res) => {
   try {
     console.log("Received analysis request:", {
