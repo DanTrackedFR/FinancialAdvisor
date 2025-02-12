@@ -69,15 +69,7 @@ export default function NewAnalysis() {
       });
 
       if (!response.ok) {
-        const text = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || `Server error: ${response.status}`;
-        } catch {
-          errorMessage = `Failed to parse error response: ${text}`;
-        }
-        throw new Error(errorMessage);
+        throw new Error("Failed to send message");
       }
 
       return response.json();
@@ -125,7 +117,7 @@ export default function NewAnalysis() {
         <Card>
           <CardHeader>
             <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>Please log in to create a new analysis.</CardDescription>
+            <CardDescription>Please log in to use the chat.</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -137,7 +129,7 @@ export default function NewAnalysis() {
       <div className="max-w-6xl mx-auto space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Chat</CardTitle>
+            <CardTitle>Financial AI Chat</CardTitle>
             <CardDescription>
               Chat with our AI about financial topics
             </CardDescription>

@@ -26,34 +26,31 @@ router.post("/chat", async (req, res) => {
       return;
     }
 
-    // Create a new analysis for the chat if none exists
-    let analysis = await storage.getOrCreateGeneralChat(user.id);
+    // Get or create general chat analysis
+    const analysis = await storage.getOrCreateGeneralChat(user.id);
 
+    // Create user message
     const userMessage = await storage.createMessage({
       analysisId: analysis.id,
       role: "user",
       content: message,
     });
 
-    // Generate AI response
-    console.log("Generating AI response for general chat...");
-    const response = await analyzeFinancialStatement(
-      message,
-      "IFRS" // Default standard for general chat
-    );
-
-    // Store AI response
+    // Generate and store AI response
+    const aiResponse = await analyzeFinancialStatement(message, "IFRS");
     const aiMessage = await storage.createMessage({
       analysisId: analysis.id,
       role: "assistant",
-      content: response,
+      content: aiResponse,
       metadata: { type: "chat" },
     });
 
     res.json([userMessage, aiMessage]);
   } catch (error) {
     console.error("Error in chat:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : "An unknown error occurred" 
+    });
   }
 });
 

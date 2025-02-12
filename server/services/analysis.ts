@@ -9,19 +9,17 @@ export async function analyzeFinancialStatement(content: string, standard: Stand
       throw new Error("OpenAI API key is not configured");
     }
 
-    console.log("Attempting analysis with OpenAI...");
-
     try {
       const response = await openAiAnalysis(content, standard);
-      if (!response) {
-        return "I'm here to help with your financial questions. What would you like to know?";
-      }
+
+      // Handle different response types
       if (typeof response === 'string') {
         return response;
       }
-      return `${response.summary}\n\n${response.performance}`;
+
+      return response.summary || "I'm here to help with your financial questions. What would you like to know?";
     } catch (error) {
-      console.log("OpenAI error, falling back to basic response:", error);
+      console.error("OpenAI error:", error);
       return "I'm here to help with financial analysis. What would you like to know?";
     }
 
@@ -33,7 +31,7 @@ export async function analyzeFinancialStatement(content: string, standard: Stand
         throw new Error("Configuration error. Please try again later.");
       }
       if (error.message.includes("quota") || error.message.includes("rate limit")) {
-        return "I'm currently experiencing high demand and cannot provide a detailed analysis at the moment. Please try again in a few minutes.";
+        return "I'm currently experiencing high demand. Please try again in a few minutes.";
       }
       throw new Error(`Analysis error: ${error.message}`);
     }
