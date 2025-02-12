@@ -27,7 +27,7 @@ export default function NewAnalysis() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  // Query for fetching messages
+  // Query for fetching messages with optimistic updates
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: true,
@@ -55,23 +55,48 @@ export default function NewAnalysis() {
 
       return response.json();
     },
+    onMutate: async (newMessage) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
+
+      // Create optimistic message
+      const optimisticMessage = {
+        id: Date.now(),
+        role: "user" as const,
+        content: newMessage,
+        analysisId: currentAnalysisId || -1,
+      };
+
+      // Add optimistic message to messages
+      queryClient.setQueryData<Message[]>(["/api/analysis", currentAnalysisId, "messages"], 
+        (old = []) => [...old, optimisticMessage]
+      );
+
+      return { optimisticMessage };
+    },
     onSuccess: (data) => {
       setMessage("");
-      // If this was first message of general chat, set the analysis ID
       if (Array.isArray(data) && data.length > 0) {
         setCurrentAnalysisId(data[0].analysisId);
-        // Invalidate queries to refresh messages
         queryClient.invalidateQueries({ queryKey: ["/api/analysis", data[0].analysisId, "messages"] });
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
+      // Remove the optimistic message on error
+      if (context?.optimisticMessage) {
+        queryClient.setQueryData<Message[]>(
+          ["/api/analysis", currentAnalysisId, "messages"],
+          (old = []) => old.filter(msg => msg.id !== context.optimisticMessage.id)
+        );
+      }
+
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
-    },
+    }
   });
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

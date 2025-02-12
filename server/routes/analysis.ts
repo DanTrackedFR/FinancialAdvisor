@@ -41,13 +41,23 @@ router.post("/chat", async (req, res) => {
     res.json([userMessage]);
 
     // Generate AI response asynchronously
-    const aiResponse = await analyzeFinancialStatement(message, "IFRS");
-    await storage.createMessage({
-      analysisId: analysis.id,
-      role: "assistant",
-      content: aiResponse,
-      metadata: { type: "chat" },
-    });
+    try {
+      const aiResponse = await analyzeFinancialStatement(message, "IFRS");
+      await storage.createMessage({
+        analysisId: analysis.id,
+        role: "assistant",
+        content: aiResponse,
+        metadata: { type: "chat" },
+      });
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      await storage.createMessage({
+        analysisId: analysis.id,
+        role: "assistant",
+        content: "I apologize, but I encountered an error processing your request. Please try again.",
+        metadata: { type: "chat" },
+      });
+    }
   } catch (error) {
     console.error("Error in chat:", error);
     res.status(500).json({ 

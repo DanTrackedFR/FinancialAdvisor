@@ -31,8 +31,8 @@ export function ConversationThread({
 }: ConversationThreadProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
     if (scrollAreaRef.current) {
       const scrollArea = scrollAreaRef.current;
       scrollArea.scrollTop = scrollArea.scrollHeight;
@@ -60,44 +60,7 @@ export function ConversationThread({
                 )}
               </Avatar>
               <div className="flex-1">
-                {message.metadata?.type === "initial_analysis" ? (
-                  <div className="space-y-4">
-                    {message.metadata.summary && (
-                      <div>
-                        <h3 className="font-medium">Summary</h3>
-                        <p>{message.metadata.summary}</p>
-                      </div>
-                    )}
-                    {message.metadata.reviewPoints && message.metadata.reviewPoints.length > 0 && (
-                      <div>
-                        <h3 className="font-medium">Review Points</h3>
-                        <ul className="list-disc pl-4">
-                          {message.metadata.reviewPoints.map((point, i) => (
-                            <li key={i}>{point}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {message.metadata.improvements && message.metadata.improvements.length > 0 && (
-                      <div>
-                        <h3 className="font-medium">Suggested Improvements</h3>
-                        <ul className="list-disc pl-4">
-                          {message.metadata.improvements.map((improvement, i) => (
-                            <li key={i}>{improvement}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {message.metadata.performance && (
-                      <div>
-                        <h3 className="font-medium">Performance Commentary</h3>
-                        <p>{message.metadata.performance}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                )}
+                <p className="whitespace-pre-wrap">{message.content}</p>
               </div>
             </div>
           </Card>
