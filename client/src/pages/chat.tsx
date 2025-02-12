@@ -27,7 +27,7 @@ export default function ChatPage() {
         throw new Error("You must be logged in to chat");
       }
 
-      console.log("Sending message:", content); // Debug log
+      console.log("Sending message:", content);
 
       const response = await fetch('/api/chat', {
         method: "POST",
@@ -44,18 +44,18 @@ export default function ChatPage() {
       }
 
       const data = await response.json();
-      console.log("Received response:", data); // Debug log
+      console.log("Received response:", data);
       return data;
     },
     onSuccess: (data) => {
       setMessage("");
       if (Array.isArray(data)) {
-        console.log("Setting messages:", data); // Debug log
+        console.log("Setting messages:", data);
         setMessages(prevMessages => [...prevMessages, ...data]);
       }
     },
     onError: (error: Error) => {
-      console.error("Chat error:", error); // Debug log
+      console.error("Chat error:", error);
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -96,30 +96,29 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-1 container mx-auto px-4 overflow-hidden">
-        <div className="h-full max-w-6xl mx-auto py-8">
-          <Card className="h-full flex flex-col">
+    <div className="flex flex-col min-h-screen">
+      {/* Main content area with padding bottom to prevent input overlap */}
+      <div className="flex-1 container mx-auto px-4 pb-24">
+        <div className="max-w-6xl mx-auto py-8">
+          <Card className="min-h-[calc(100vh-16rem)]">
             <CardHeader>
               <CardTitle>Finance AI Chat</CardTitle>
               <CardDescription>
                 Chat with our AI about any financial topic
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-6">
-              <div className="h-full flex flex-col">
-                <div className="flex-1 overflow-y-auto">
-                  <ConversationThread
-                    messages={messages}
-                    isLoading={isSending}
-                  />
-                </div>
-              </div>
+            <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
+              <ConversationThread
+                messages={messages}
+                isLoading={isSending}
+              />
             </CardContent>
           </Card>
         </div>
       </div>
-      <div className="border-t bg-background py-4">
+
+      {/* Fixed input area at the bottom */}
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4">
