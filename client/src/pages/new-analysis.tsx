@@ -31,7 +31,7 @@ export default function NewAnalysis() {
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: true,
-    refetchInterval: 1000,
+    refetchInterval: 3000, // Poll every 3 seconds for new messages
   });
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
@@ -50,16 +50,15 @@ export default function NewAnalysis() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send message");
       }
 
       return response.json();
     },
     onMutate: async (newMessage) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
 
-      // Create optimistic message
       const optimisticMessage = {
         id: Date.now(),
         role: "user" as const,
@@ -67,7 +66,6 @@ export default function NewAnalysis() {
         analysisId: currentAnalysisId || -1,
       };
 
-      // Add optimistic message to messages
       queryClient.setQueryData<Message[]>(["/api/analysis", currentAnalysisId, "messages"], 
         (old = []) => [...old, optimisticMessage]
       );
@@ -78,11 +76,11 @@ export default function NewAnalysis() {
       setMessage("");
       if (Array.isArray(data) && data.length > 0) {
         setCurrentAnalysisId(data[0].analysisId);
+        // Force refetch to get the AI response
         queryClient.invalidateQueries({ queryKey: ["/api/analysis", data[0].analysisId, "messages"] });
       }
     },
     onError: (error: Error, _, context) => {
-      // Remove the optimistic message on error
       if (context?.optimisticMessage) {
         queryClient.setQueryData<Message[]>(
           ["/api/analysis", currentAnalysisId, "messages"],
@@ -151,6 +149,7 @@ export default function NewAnalysis() {
                 onKeyDown={handleKeyPress}
                 placeholder="Type your message... (Press Enter to send)"
                 className="flex-1"
+                disabled={isSending}
               />
               <Button
                 onClick={() => {
