@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -20,6 +20,21 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
+
+  // Pre-initialize the general chat
+  useEffect(() => {
+    if (user) {
+      fetch('/api/chat/init', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'firebase-uid': user.uid
+        }
+      }).catch(error => {
+        console.error('Failed to initialize chat:', error);
+      });
+    }
+  }, [user]);
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
@@ -152,7 +167,7 @@ export default function ChatPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Type your message... (Press Enter to send)"
+                placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
                 className="flex-1"
                 disabled={isSending}
               />

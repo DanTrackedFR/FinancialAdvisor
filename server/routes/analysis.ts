@@ -6,6 +6,30 @@ import { insertAnalysisSchema } from "@shared/schema";
 
 const router = Router();
 
+// Add this new route before other routes
+router.post("/chat/init", async (req, res) => {
+  try {
+    const firebaseUid = req.headers["firebase-uid"] as string;
+    if (!firebaseUid) {
+      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
+      return;
+    }
+
+    const user = await storage.getUserByFirebaseUid(firebaseUid);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const analysis = await storage.getOrCreateGeneralChat(user.id);
+    res.json({ analysisId: analysis.id });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "An unknown error occurred"
+    });
+  }
+});
+
 // General chat endpoint
 router.post("/chat", async (req, res) => {
   try {
