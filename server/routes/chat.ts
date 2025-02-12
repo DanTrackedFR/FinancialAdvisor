@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage";
+import { analyzeFinancialStatement } from "../services/analysis";
+import { StandardType } from "@shared/schema";
 
 const router = Router();
 
@@ -55,11 +57,15 @@ router.post("/chat", async (req, res) => {
       analysisId: -1, // General chat has no analysis ID
     };
 
-    // Create AI response
+    // Get AI response using our analysis service
+    console.log("Getting AI response for chat message:", message);
+    const aiResponse = await analyzeFinancialStatement(message, "IFRS" as StandardType);
+
+    // Create AI response message
     const aiMessage = {
       id: Date.now() + 1,
       role: "assistant" as const,
-      content: `I received your message: "${message}". This is a placeholder response as the AI integration is not yet implemented.`,
+      content: aiResponse,
       analysisId: -1,
     };
 
