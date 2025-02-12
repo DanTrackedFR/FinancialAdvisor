@@ -75,6 +75,18 @@ export default function AnalysisPage() {
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId && !!user,
+    queryFn: async () => {
+      if (!analysisId || !user) throw new Error("Missing required data");
+      const response = await fetch(`/api/analysis/${analysisId}/messages`, {
+        headers: {
+          "firebase-uid": user.uid,
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch messages");
+      }
+      return response.json();
+    },
   });
 
   const { mutate: updateContent } = useMutation({
