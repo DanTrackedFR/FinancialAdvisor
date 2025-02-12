@@ -27,6 +27,8 @@ export default function ChatPage() {
         throw new Error("You must be logged in to chat");
       }
 
+      console.log("Sending message:", content); // Debug log
+
       const response = await fetch('/api/chat', {
         method: "POST",
         headers: {
@@ -41,15 +43,19 @@ export default function ChatPage() {
         throw new Error(errorData.error || "Failed to send message");
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log("Received response:", data); // Debug log
+      return data;
     },
     onSuccess: (data) => {
       setMessage("");
       if (Array.isArray(data)) {
+        console.log("Setting messages:", data); // Debug log
         setMessages(prevMessages => [...prevMessages, ...data]);
       }
     },
     onError: (error: Error) => {
+      console.error("Chat error:", error); // Debug log
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -90,21 +96,33 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Finance AI Chat</CardTitle>
-            <CardDescription>
-              Chat with our AI about any financial topic
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ConversationThread
-              messages={messages}
-              isLoading={isSending}
-            />
-            <div className="flex gap-4 mt-4">
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 container mx-auto px-4 overflow-hidden">
+        <div className="h-full max-w-6xl mx-auto py-8">
+          <Card className="h-full flex flex-col">
+            <CardHeader>
+              <CardTitle>Finance AI Chat</CardTitle>
+              <CardDescription>
+                Chat with our AI about any financial topic
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-6">
+              <div className="h-full flex flex-col">
+                <div className="flex-1 overflow-y-auto">
+                  <ConversationThread
+                    messages={messages}
+                    isLoading={isSending}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      <div className="border-t bg-background py-4">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex gap-4">
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -131,8 +149,8 @@ export default function ChatPage() {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
