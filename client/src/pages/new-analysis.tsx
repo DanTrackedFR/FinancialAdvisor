@@ -1,13 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { StandardType } from "@shared/schema";
-import { UploadArea } from "@/components/upload-area";
-import { StandardSelector } from "@/components/standard-selector";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -27,15 +22,10 @@ interface Message {
 
 export default function NewAnalysis() {
   const [, setLocation] = useLocation();
-  const [standard, setStandard] = useState<StandardType>("IFRS");
-  const [analysisName, setAnalysisName] = useState("");
   const [message, setMessage] = useState("");
   const [currentAnalysisId, setCurrentAnalysisId] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [analysisState, setAnalysisState] = useState<"idle" | "uploading" | "processing" | "complete">("idle");
-  const [progress, setProgress] = useState(0);
-  const [showProgress, setShowProgress] = useState(false);
 
   // Query for fetching messages
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
@@ -50,22 +40,13 @@ export default function NewAnalysis() {
         throw new Error("You must be logged in to chat");
       }
 
-      const endpoint = currentAnalysisId
-        ? `/api/analysis/${currentAnalysisId}/messages`
-        : '/api/chat';
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/chat', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "firebase-uid": user.uid
         },
-        body: JSON.stringify(currentAnalysisId ? {
-          content,
-          role: "user",
-        } : {
-          message: content,
-        }),
+        body: JSON.stringify({ message: content }),
       });
 
       if (!response.ok) {
@@ -77,14 +58,13 @@ export default function NewAnalysis() {
     onSuccess: (data) => {
       setMessage("");
       // If this was first message of general chat, set the analysis ID
-      if (!currentAnalysisId && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         setCurrentAnalysisId(data[0].analysisId);
+        // Invalidate queries to refresh messages
+        queryClient.invalidateQueries({ queryKey: ["/api/analysis", data[0].analysisId, "messages"] });
       }
-      // Invalidate queries to refresh messages
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
     },
     onError: (error: Error) => {
-      console.error("Chat error:", error);
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",

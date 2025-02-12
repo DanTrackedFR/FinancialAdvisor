@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { analyzeFinancialStatement } from "../services/analysis";
 import { storage } from "../storage";
-import { insertAnalysisSchema, insertMessageSchema } from "@shared/schema";
+import { insertMessageSchema } from "@shared/schema";
+import { insertAnalysisSchema } from "@shared/schema";
 
 const router = Router();
 
@@ -29,23 +30,24 @@ router.post("/chat", async (req, res) => {
     // Get or create general chat analysis
     const analysis = await storage.getOrCreateGeneralChat(user.id);
 
-    // Create user message
+    // Create user message first and send immediate response
     const userMessage = await storage.createMessage({
       analysisId: analysis.id,
       role: "user",
       content: message,
     });
 
-    // Generate and store AI response
+    // Send immediate response with user message
+    res.json([userMessage]);
+
+    // Generate AI response asynchronously
     const aiResponse = await analyzeFinancialStatement(message, "IFRS");
-    const aiMessage = await storage.createMessage({
+    await storage.createMessage({
       analysisId: analysis.id,
       role: "assistant",
       content: aiResponse,
       metadata: { type: "chat" },
     });
-
-    res.json([userMessage, aiMessage]);
   } catch (error) {
     console.error("Error in chat:", error);
     res.status(500).json({ 
