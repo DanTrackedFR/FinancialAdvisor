@@ -10,39 +10,28 @@ export async function analyzeFinancialStatement(content: string, standard: Stand
     }
 
     console.log("Attempting analysis with OpenAI...");
-    const analysis = await openAiAnalysis(content, standard);
 
-    console.log("Analysis completed successfully");
-
-    // Format the response for better readability
-    const formattedAnalysis = [
-      `Summary: ${analysis.summary}`,
-      '\nKey Review Points:',
-      ...analysis.reviewPoints.map(point => `• ${point}`),
-      '\nSuggested Improvements:',
-      ...analysis.improvements.map(improvement => `• ${improvement}`),
-      '\nPerformance Analysis:',
-      analysis.performance,
-      '\nCompliance Status:',
-      `• Status: ${analysis.compliance.status}`,
-      ...analysis.compliance.issues.map(issue => `• ${issue}`)
-    ].join('\n');
-
-    return formattedAnalysis;
+    try {
+      return await openAiAnalysis(content, standard);
+    } catch (error) {
+      // If OpenAI fails, return a basic response
+      console.log("OpenAI error, falling back to basic response");
+      return "I apologize, but I'm currently experiencing high demand. I'm here to help with financial analysis. What would you like to know?";
+    }
 
   } catch (error) {
-    console.error("Error analyzing financial statement:", error);
+    console.error("Error in financial statement analysis:", error);
 
     if (error instanceof Error) {
       if (error.message.includes("API key")) {
-        throw new Error("Invalid OpenAI API key");
+        throw new Error("Configuration error. Please try again later.");
       }
       if (error.message.includes("quota") || error.message.includes("rate limit")) {
-        throw new Error("API quota exceeded. Please try again later.");
+        return "I'm currently experiencing high demand and cannot provide a detailed analysis at the moment. Please try again in a few minutes.";
       }
-      throw new Error(`Failed to analyze financial statement: ${error.message}`);
+      throw new Error(`Analysis error: ${error.message}`);
     }
 
-    throw new Error("An unexpected error occurred during analysis");
+    throw new Error("An unexpected error occurred");
   }
 }

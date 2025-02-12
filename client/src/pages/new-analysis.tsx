@@ -50,27 +50,6 @@ export default function NewAnalysis() {
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
     enabled: !!currentAnalysisId,
     refetchInterval: analysisState === "processing" ? 2000 : false,
-    networkMode: "always",
-    onSuccess: (data) => {
-      console.log("Messages received:", data);
-      if (Array.isArray(data) && data.length > 0 && analysisState === "processing") {
-        console.log("Analysis complete, messages found");
-        setAnalysisState("complete");
-        setProgress(100);
-        setShowProgress(false);
-
-        toast({
-          title: "✅ Analysis Complete",
-          description: "Your document has been analyzed successfully! You can now start asking questions.",
-          duration: 10000,
-          variant: "default",
-          className: "bg-green-50 border-green-200",
-        });
-      }
-    },
-    onError: (error) => {
-      console.error("Error fetching messages:", error);
-    },
   });
 
   const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
@@ -202,6 +181,8 @@ export default function NewAnalysis() {
       });
     },
     onError: (error: Error) => {
+      console.error("Chat error:", error);
+      setMessage("");  // Clear the message on error
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -212,27 +193,10 @@ export default function NewAnalysis() {
   });
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter') {
-      if (e.altKey) {
-        const textarea = e.currentTarget;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-
-        setMessage(
-          value.substring(0, start) + '\n' + value.substring(end)
-        );
-
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 1;
-        }, 0);
-
-        e.preventDefault();
-      } else if (!e.shiftKey) {
-        e.preventDefault();
-        if (message.trim() && !isSending) {
-          sendMessage(message);
-        }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (message.trim() && !isSending) {
+        sendMessage(message);
       }
     }
   };
@@ -308,33 +272,40 @@ export default function NewAnalysis() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Analysis Chat</CardTitle>
+            <CardTitle>Chat</CardTitle>
             <CardDescription>
-              Chat with AI about financial analysis or upload a document for detailed review
+              Chat with our AI about financial topics
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <ConversationThread
               messages={messages}
-              isLoading={isLoadingMessages}
+              isLoading={isLoadingMessages || isSending}
             />
             <div className="flex gap-4 mt-4">
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
+                placeholder="Type your message... (Press Enter to send)"
                 className="flex-1"
               />
               <Button
                 onClick={() => {
-                  if (message.trim()) {
+                  if (message.trim() && !isSending) {
                     sendMessage(message);
                   }
                 }}
                 disabled={!message.trim() || isSending}
               >
-                Send
+                {isSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send'
+                )}
               </Button>
             </div>
           </CardContent>
