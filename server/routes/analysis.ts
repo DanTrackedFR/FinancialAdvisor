@@ -7,6 +7,26 @@ import { insertAnalysisSchema } from "@shared/schema";
 const router = Router();
 
 // Add these new routes before other routes
+router.patch("/analysis/:id/status", async (req, res) => {
+  try {
+    const analysisId = parseInt(req.params.id);
+    const { status } = req.body;
+
+    if (!status || !["Drafting", "In Review", "Complete"].includes(status)) {
+      res.status(400).json({ error: "Valid status is required" });
+      return;
+    }
+
+    await storage.updateAnalysisStatus(analysisId, status);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating analysis status:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to update analysis status"
+    });
+  }
+});
+
 router.patch("/analysis/:id/title", async (req, res) => {
   try {
     const analysisId = parseInt(req.params.id);
@@ -74,7 +94,6 @@ router.patch("/analysis/:id/content", async (req, res) => {
     });
   }
 });
-
 
 router.post("/analysis", async (req, res) => {
   try {
