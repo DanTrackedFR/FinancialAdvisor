@@ -27,41 +27,73 @@ router.post("/chat", async (req, res) => {
       return;
     }
 
+    console.log("Starting chat process for user:", user.id, "message length:", message.length);
+
     // Get or create general chat analysis
     const analysis = await storage.getOrCreateGeneralChat(user.id);
+    console.log("Using analysis:", analysis.id);
 
-    // Create user message first and send immediate response
+    // Create user message
     const userMessage = await storage.createMessage({
       analysisId: analysis.id,
       role: "user",
       content: message,
     });
+    console.log("Created user message:", userMessage.id);
 
     // Send immediate response with user message
     res.json([userMessage]);
 
     // Generate AI response asynchronously
     try {
+      console.log("Generating AI response...");
+      console.log("OpenAI API Key configured:", !!process.env.OPENAI_API_KEY);
+
+      // Validate message content
+      if (!message.trim()) {
+        throw new Error("Empty message content");
+      }
+
       const aiResponse = await analyzeFinancialStatement(message, "IFRS");
-      await storage.createMessage({
+      console.log("AI response received, length:", aiResponse?.length || 0);
+
+      if (!aiResponse) {
+        throw new Error("Empty response from AI service");
+      }
+
+      const assistantMessage = await storage.createMessage({
         analysisId: analysis.id,
         role: "assistant",
         content: aiResponse,
         metadata: { type: "chat" },
       });
+      console.log("Created assistant message:", assistantMessage.id);
     } catch (error) {
       console.error("Error generating AI response:", error);
+      console.error("Error type:", error.constructor.name);
+      console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+
+      let errorMessage = "I apologize, but I encountered an error processing your request.";
+      if (error instanceof Error) {
+        if (error.message.includes("API key")) {
+          errorMessage = "There was an authentication issue with the AI service. Please try again later.";
+        } else if (error.message.includes("timeout")) {
+          errorMessage = "The request took too long to process. Please try again.";
+        }
+      }
+
       await storage.createMessage({
         analysisId: analysis.id,
         role: "assistant",
-        content: "I apologize, but I encountered an error processing your request. Please try again.",
+        content: errorMessage,
         metadata: { type: "chat" },
       });
     }
   } catch (error) {
     console.error("Error in chat:", error);
-    res.status(500).json({ 
-      error: error instanceof Error ? error.message : "An unknown error occurred" 
+    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "An unknown error occurred"
     });
   }
 });
