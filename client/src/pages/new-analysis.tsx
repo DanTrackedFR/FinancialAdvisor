@@ -76,8 +76,9 @@ export default function NewAnalysis() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Invalidate the analysis query to refresh the list
+      // Invalidate both analysis queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
       // Show success message
       toast({
