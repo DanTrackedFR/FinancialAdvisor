@@ -41,17 +41,36 @@ export default function ChatPage() {
         throw new Error(errorData.error || "Failed to send message");
       }
 
-      const data = await response.json();
-      return data;
+      return response.json();
+    },
+    onMutate: async (newMessage) => {
+      // Optimistically add user message
+      const optimisticUserMessage = {
+        id: Date.now(),
+        role: "user" as const,
+        content: newMessage,
+        analysisId: -1,
+      };
+      setMessages(prev => [...prev, optimisticUserMessage]);
+      setMessage(""); // Clear input immediately
+      return { optimisticUserMessage };
     },
     onSuccess: (data) => {
-      setMessage("");
-      if (Array.isArray(data)) {
-        setMessages(prevMessages => [...prevMessages, ...data]);
+      if (Array.isArray(data) && data.length > 0) {
+        setMessages(prevMessages => 
+          // Replace optimistic message with real messages
+          [...prevMessages.slice(0, -1), ...data]
+        );
       }
     },
-    onError: (error: Error) => {
-      console.error("Chat error:", error);
+    onError: (error: Error, _, context) => {
+      if (context?.optimisticUserMessage) {
+        // Remove optimistic message on error
+        setMessages(prev => 
+          prev.filter(msg => msg.id !== context.optimisticUserMessage.id)
+        );
+      }
+      setMessage(context?.optimisticUserMessage.content || ""); // Restore message in input
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -69,12 +88,11 @@ export default function ChatPage() {
   };
 
   const handleSendMessage = () => {
-    if (message.trim() && !isSending) {
-      sendMessage(message);
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !isSending) {
+      sendMessage(trimmedMessage);
     }
   };
-
-  const isButtonDisabled = !message.trim() || isSending;
 
   if (isAuthLoading) {
     return (
@@ -134,8 +152,8 @@ export default function ChatPage() {
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={isButtonDisabled}
-                className={isButtonDisabled ? "opacity-50" : ""}
+                variant="default"
+                disabled={!message.trim() || isSending}
               >
                 {isSending ? (
                   <div className="flex items-center">
