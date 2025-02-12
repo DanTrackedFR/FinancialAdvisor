@@ -41,14 +41,15 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  // Fetch user's analyses for the list view
-  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
-    queryKey: ["/api/user/analyses"],
-  });
-
-  // Fetch current analysis when analysisId is available
+  // Fetch current analysis data
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
+    enabled: !!analysisId,
+  });
+
+  // Fetch messages when analysisId is available
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
+    queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
   });
 
@@ -58,12 +59,6 @@ export default function AnalysisPage() {
       setEditedTitle(currentAnalysis.fileName);
     }
   }, [currentAnalysis]);
-
-  // Fetch messages when analysisId is available
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
-    queryKey: ["/api/analysis", analysisId, "messages"],
-    enabled: !!analysisId,
-  });
 
   const { mutate: updateTitle } = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -227,14 +222,6 @@ export default function AnalysisPage() {
   };
 
   if (!analysisId) {
-    if (isLoadingAnalyses) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
-    }
-
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-8">
@@ -251,7 +238,7 @@ export default function AnalysisPage() {
             </CardHeader>
             <CardContent>
               <AnalysisTable
-                analyses={analyses}
+                analyses={[]}
                 onNewAnalysis={() => setLocation("/new-analysis")}
               />
             </CardContent>
@@ -265,6 +252,24 @@ export default function AnalysisPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!currentAnalysis) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis Not Found</CardTitle>
+            <CardDescription>The requested analysis could not be found.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => setLocation("/analysis")}>
+              Return to Analysis List
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -306,7 +311,7 @@ export default function AnalysisPage() {
                       variant="ghost"
                       onClick={() => {
                         setIsEditingTitle(false);
-                        setEditedTitle(currentAnalysis?.fileName || "");
+                        setEditedTitle(currentAnalysis.fileName);
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -314,7 +319,7 @@ export default function AnalysisPage() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 flex-1">
-                    <h1 className="text-2xl font-bold flex-1">{currentAnalysis?.fileName}</h1>
+                    <h1 className="text-2xl font-bold flex-1">{currentAnalysis.fileName}</h1>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -330,7 +335,7 @@ export default function AnalysisPage() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Status:</span>
                 <Select
-                  value={currentAnalysis?.status}
+                  value={currentAnalysis.status}
                   onValueChange={(value) => updateStatus(value)}
                 >
                   <SelectTrigger className="w-[200px]">
