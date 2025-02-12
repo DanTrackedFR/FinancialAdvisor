@@ -12,6 +12,7 @@ import { AnalysisTable } from "@/components/analysis-table";
 import { UploadArea } from "@/components/upload-area";
 import { Analysis } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Message {
   id: number;
@@ -30,30 +31,43 @@ export default function AnalysisPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch current analysis data
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
-    enabled: !!analysisId,
-    retry: 1
+    enabled: !!analysisId && !!user,
+    retry: 1,
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to load analysis. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error loading analysis:", error);
+    }
   });
 
   // Fetch user's analyses for the list view
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
     queryKey: ["/api/user/analyses"],
+    enabled: !!user,
   });
 
   // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
-    enabled: !!analysisId,
+    enabled: !!analysisId && !!user,
   });
 
   const { mutate: updateContent } = useMutation({
     mutationFn: async (content: string) => {
       const response = await fetch(`/api/analysis/${analysisId}/content`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "firebase-uid": user?.uid || "",
+        },
         body: JSON.stringify({ content }),
       });
 
@@ -75,49 +89,6 @@ export default function AnalysisPage() {
         title: "Error",
         description: "Failed to update content. Please try again.",
         variant: "destructive",
-      });
-    },
-  });
-
-  const { mutate: sendMessage, isPending: isSending } = useMutation({
-    mutationFn: async (content: string) => {
-      if (!analysisId) throw new Error("No active analysis");
-
-      const response = await fetch(`/api/analysis/${analysisId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          role: "user",
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || `Server error: ${response.status}`;
-        } catch {
-          errorMessage = `Failed to parse error response: ${text}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      setMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error Sending Message",
-        description: error.message || "Failed to send message. Please try again.",
-        variant: "destructive",
-        duration: 5000,
       });
     },
   });
@@ -205,7 +176,7 @@ export default function AnalysisPage() {
         {/* Title and Upload Section */}
         <Card>
           <CardHeader>
-            <CardTitle>{currentAnalysis?.fileName || "Loading..."}</CardTitle>
+            <CardTitle>{isLoadingAnalysis ? "Loading..." : (currentAnalysis?.fileName || "Untitled Analysis")}</CardTitle>
             <CardDescription>
               Upload additional documents or update content
             </CardDescription>
