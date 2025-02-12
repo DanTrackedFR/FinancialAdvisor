@@ -11,7 +11,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
 
   // Analysis methods
-  createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
+  createAnalysis(analysis: InsertAnalysis & { userId: number }): Promise<Analysis>;
   getAnalysis(id: number): Promise<Analysis | undefined>;
   getAnalyses(): Promise<Analysis[]>;
   updateAnalysisStatus(id: number, status: "Drafting" | "In Review" | "Complete"): Promise<void>;
@@ -22,14 +22,14 @@ export interface IStorage {
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
   getMessages(analysisId: number): Promise<Message[]>;
-  
-  // New methods
+
+  // Title and content update methods
   updateAnalysisTitle(id: number, title: string): Promise<void>;
   updateAnalysisContent(id: number, content: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User methods
+  // User methods remain unchanged
   async createUser(user: InsertUser): Promise<User> {
     const [result] = await db.insert(users).values(user).returning();
     return result;
@@ -61,7 +61,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Analysis methods
-  async createAnalysis(analysis: InsertAnalysis): Promise<Analysis> {
+  async createAnalysis(analysis: InsertAnalysis & { userId: number }): Promise<Analysis> {
     const [result] = await db.insert(analyses).values(analysis).returning();
     return result;
   }
@@ -120,7 +120,7 @@ export class DatabaseStorage implements IStorage {
       fileContent: "",
       standard: "IFRS",
       status: "Complete"
-    }).returning();
+    } as InsertAnalysis & { userId: number }).returning();
 
     return newChat;
   }
@@ -136,8 +136,8 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(eq(messages.analysisId, analysisId));
   }
-  
-  // Add the new methods implementation
+
+  // Title and content update methods
   async updateAnalysisTitle(id: number, title: string): Promise<void> {
     await db.update(analyses)
       .set({ fileName: title })

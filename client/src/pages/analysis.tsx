@@ -1,4 +1,4 @@
-import { useState, React } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default function AnalysisPage() {
   });
 
   // Initialize edited title when analysis data is loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentAnalysis) {
       setEditedTitle(currentAnalysis.fileName);
     }
