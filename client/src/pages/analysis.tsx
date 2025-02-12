@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -38,15 +38,24 @@ export default function AnalysisPage() {
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId && !!user,
     retry: 1,
+    onSuccess: (data) => {
+      console.log("Successfully loaded analysis data:", data);
+    },
     onError: (error: Error) => {
+      console.error("Error loading analysis:", error);
       toast({
         title: "Error",
         description: "Failed to load analysis. Please try again.",
         variant: "destructive",
       });
-      console.error("Error loading analysis:", error);
     }
   });
+
+  useEffect(() => {
+    if (currentAnalysis) {
+      console.log("Current analysis state:", currentAnalysis);
+    }
+  }, [currentAnalysis]);
 
   // Fetch user's analyses for the list view
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
@@ -221,7 +230,16 @@ export default function AnalysisPage() {
         {/* Title and Upload Section */}
         <Card>
           <CardHeader>
-            <CardTitle>{isLoadingAnalysis ? "Loading..." : (currentAnalysis?.fileName || "Untitled Analysis")}</CardTitle>
+            <CardTitle>
+              {isLoadingAnalysis ? (
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </div>
+              ) : (
+                currentAnalysis?.fileName || "Untitled Analysis"
+              )}
+            </CardTitle>
             <CardDescription>
               Upload additional documents or update content
             </CardDescription>
