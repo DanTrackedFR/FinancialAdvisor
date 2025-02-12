@@ -152,7 +152,7 @@ export default function ChatPage() {
               />
               <Button
                 onClick={handleSendMessage}
-                variant="default"
+                className="bg-primary hover:bg-primary/90"
                 disabled={!message.trim() || isSending}
               >
                 {isSending ? (
