@@ -12,11 +12,17 @@ export async function analyzeFinancialStatement(content: string, standard: Stand
     console.log("Attempting analysis with OpenAI...");
 
     try {
-      return await openAiAnalysis(content, standard);
+      const response = await openAiAnalysis(content, standard);
+      if (!response) {
+        return "I'm here to help with your financial questions. What would you like to know?";
+      }
+      if (typeof response === 'string') {
+        return response;
+      }
+      return `${response.summary}\n\n${response.performance}`;
     } catch (error) {
-      // If OpenAI fails, return a basic response
-      console.log("OpenAI error, falling back to basic response");
-      return "I apologize, but I'm currently experiencing high demand. I'm here to help with financial analysis. What would you like to know?";
+      console.log("OpenAI error, falling back to basic response:", error);
+      return "I'm here to help with financial analysis. What would you like to know?";
     }
 
   } catch (error) {

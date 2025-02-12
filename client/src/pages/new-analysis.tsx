@@ -10,28 +10,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
-
-interface MessageMetadata {
-  type?: "initial_analysis" | "followup";
-  summary?: string;
-  reviewPoints?: string[];
-  improvements?: string[];
-  performance?: string;
-}
 
 interface Message {
   id: number;
   role: "user" | "assistant";
   content: string;
   analysisId: number;
-  metadata?: MessageMetadata;
+  metadata?: {
+    type?: "initial_analysis" | "followup" | "chat";
+  };
 }
-
-type AnalysisState = "idle" | "uploading" | "processing" | "retrying" | "error" | "complete";
 
 export default function NewAnalysis() {
   const [, setLocation] = useLocation();
@@ -41,94 +33,15 @@ export default function NewAnalysis() {
   const [currentAnalysisId, setCurrentAnalysisId] = useState<number | null>(null);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [analysisState, setAnalysisState] = useState<AnalysisState>("idle");
+  const [analysisState, setAnalysisState] = useState<"idle" | "uploading" | "processing" | "complete">("idle");
   const [progress, setProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
 
   // Query for fetching messages
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", currentAnalysisId, "messages"],
-    enabled: !!currentAnalysisId,
-    refetchInterval: analysisState === "processing" ? 2000 : false,
-  });
-
-  const { mutate: startAnalysis, isPending: isAnalyzing } = useMutation({
-    mutationFn: async ({ fileName, content }: { fileName: string; content: string }) => {
-      if (!user) {
-        throw new Error("You must be logged in to create an analysis");
-      }
-
-      const response = await fetch("/api/analysis", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "firebase-uid": user.uid
-        },
-        body: JSON.stringify({
-          fileName: analysisName || fileName,
-          fileContent: content,
-          standard,
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        let errorMessage;
-        try {
-          const errorData = JSON.parse(text);
-          errorMessage = errorData.error || `Server error: ${response.status}`;
-        } catch {
-          errorMessage = `Failed to parse error response: ${text}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      return response.json();
-    },
-    onSuccess: async (data) => {
-      console.log("Analysis created successfully:", data);
-      setCurrentAnalysisId(data.id);
-      setShowProgress(true);
-      setProgress(0);
-      setAnalysisState("processing");
-
-      // Invalidate analyses list
-      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
-
-      toast({
-        title: "Analysis Started",
-        description: "Your document is being analyzed. Please wait while we process it...",
-        duration: 5000,
-      });
-
-      // Progress tracking
-      const progressTimer = setInterval(() => {
-        setProgress((prev) => {
-          if (analysisState === "complete") {
-            clearInterval(progressTimer);
-            return 100;
-          }
-          if (prev >= 85) {
-            return Math.min(prev + 0.1, 85);
-          }
-          return Math.min(85, prev + 2);
-        });
-      }, 1000);
-
-      return () => clearInterval(progressTimer);
-    },
-    onError: (error: Error) => {
-      console.error("Analysis creation failed:", error);
-      setShowProgress(false);
-      setProgress(0);
-      setAnalysisState("error");
-      toast({
-        title: "Analysis Error",
-        description: error.message,
-        variant: "destructive",
-        duration: 10000,
-      });
-    },
+    enabled: true,
+    refetchInterval: 1000,
   });
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
@@ -176,13 +89,10 @@ export default function NewAnalysis() {
         setCurrentAnalysisId(data[0].analysisId);
       }
       // Invalidate queries to refresh messages
-      queryClient.invalidateQueries({
-        queryKey: ["/api/analysis", currentAnalysisId, "messages"]
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
     },
     onError: (error: Error) => {
       console.error("Chat error:", error);
-      setMessage("");  // Clear the message on error
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -227,51 +137,6 @@ export default function NewAnalysis() {
       <div className="max-w-6xl mx-auto space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>New Analysis</CardTitle>
-            <CardDescription>Upload a financial statement to analyze or start chatting</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Input
-                  placeholder="Enter Analysis Name"
-                  value={analysisName}
-                  onChange={(e) => setAnalysisName(e.target.value)}
-                  className="mb-4"
-                />
-                <StandardSelector
-                  value={standard}
-                  onChange={setStandard}
-                  disabled={isAnalyzing}
-                />
-              </div>
-              <div>
-                <UploadArea
-                  onFileProcessed={(fileName, content) => {
-                    if (!analysisName) {
-                      setAnalysisName(fileName.replace(/\.[^/.]+$/, ""));
-                    }
-                    startAnalysis({ fileName, content });
-                  }}
-                  isLoading={isAnalyzing}
-                />
-              </div>
-            </div>
-            {showProgress && (
-              <div className="space-y-2">
-                <div className="text-sm font-medium">
-                  {analysisState === "retrying" ? "Retrying analysis..." :
-                    analysisState === "error" ? "Analysis failed" :
-                      `Analyzing document... ${Math.round(progress)}%`}
-                </div>
-                <Progress value={progress} className="w-full" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Chat</CardTitle>
             <CardDescription>
               Chat with our AI about financial topics
@@ -299,10 +164,10 @@ export default function NewAnalysis() {
                 disabled={!message.trim() || isSending}
               >
                 {isSending ? (
-                  <>
+                  <div className="flex items-center">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Sending...
-                  </>
+                  </div>
                 ) : (
                   'Send'
                 )}
