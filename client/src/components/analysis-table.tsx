@@ -42,7 +42,7 @@ export function AnalysisTable({
   onNewAnalysis: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [openDialogs, setOpenDialogs] = useState<Record<number, boolean>>({});
 
@@ -80,7 +80,7 @@ export function AnalysisTable({
   };
 
   const navigateToAnalysis = (id: number) => {
-    setLocation(`/analysis/${id}`);
+    navigate(`/analysis/${id}`);
   };
 
   return (

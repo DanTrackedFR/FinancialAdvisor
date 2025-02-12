@@ -24,7 +24,7 @@ interface Message {
 }
 
 export default function AnalysisPage() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -32,7 +32,7 @@ export default function AnalysisPage() {
   const { toast } = useToast();
 
   // Fetch current analysis data
-  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery({
+  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId,
     retry: 1
@@ -161,7 +161,7 @@ export default function AnalysisPage() {
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Your Analyses</h1>
-            <Button onClick={() => setLocation("/new-analysis")}>
+            <Button onClick={() => navigate("/new-analysis")}>
               New Analysis
             </Button>
           </div>
@@ -173,7 +173,7 @@ export default function AnalysisPage() {
             <CardContent>
               <AnalysisTable
                 analyses={analyses}
-                onNewAnalysis={() => setLocation("/new-analysis")}
+                onNewAnalysis={() => navigate("/new-analysis")}
               />
             </CardContent>
           </Card>
@@ -196,7 +196,7 @@ export default function AnalysisPage() {
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => setLocation("/analysis")}
+            onClick={() => navigate("/analysis")}
           >
             ← Back to Analysis List
           </Button>
@@ -205,7 +205,7 @@ export default function AnalysisPage() {
         {/* Title and Upload Section */}
         <Card>
           <CardHeader>
-            <CardTitle>{currentAnalysis?.fileName}</CardTitle>
+            <CardTitle>{currentAnalysis?.fileName || "Loading..."}</CardTitle>
             <CardDescription>
               Upload additional documents or update content
             </CardDescription>
