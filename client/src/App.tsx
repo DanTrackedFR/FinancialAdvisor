@@ -11,6 +11,7 @@ import Cookies from "@/pages/cookies";
 import Auth from "@/pages/auth";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
+import Chat from "@/pages/chat";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
@@ -32,6 +33,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/auth" component={Auth} />
+        <ProtectedRoute path="/chat" component={Chat} />
         <ProtectedRoute path="/analysis" component={Analysis} />
         <ProtectedRoute path="/analysis/:id" component={Analysis} />
         <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
