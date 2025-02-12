@@ -3,12 +3,14 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 import analysisRoutes from "./routes/analysis";
+import chatRoutes from "./routes/chat";
 
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
-  // Register analysis routes
+  // Register routes
   app.use("/api", analysisRoutes);
+  app.use("/api", chatRoutes);
 
   // User routes
   app.get("/api/users", async (_req, res) => {
