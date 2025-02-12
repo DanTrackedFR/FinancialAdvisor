@@ -22,7 +22,7 @@ export async function analyzeFinancialStatement(
     Focus on accurate, practical information that helps users understand their financial data.`;
 
     console.log("Calling OpenAI analysis...");
-    const response = await openai.chat.completions.create({
+    const requestPayload = {
       model: "gpt-4o",
       messages: [
         {
@@ -37,17 +37,23 @@ export async function analyzeFinancialStatement(
       temperature: 0.7,
       max_tokens: 1000,
       response_format: { type: "text" }
-    });
+    };
+    console.log("OpenAI request payload:", JSON.stringify(requestPayload, null, 2));
+
+    const response = await openai.chat.completions.create(requestPayload);
 
     console.log("OpenAI response received");
+    console.log("Response status:", response.id ? "Success" : "No ID");
+    console.log("Response choices:", response.choices?.length || 0);
 
     if (!response.choices[0]?.message?.content) {
       console.error("No content in OpenAI response");
       throw new Error("No response received from OpenAI");
     }
 
-    console.log("OpenAI response received:", response.choices[0].message.content ? "Response present" : "No response");
-    return response.choices[0].message.content;
+    const content = response.choices[0].message.content;
+    console.log("OpenAI response content length:", content.length);
+    return content;
   } catch (error) {
     console.error("OpenAI Analysis Error:", error);
     if (error instanceof Error) {
