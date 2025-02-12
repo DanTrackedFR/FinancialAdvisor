@@ -8,6 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { StandardSelector } from "@/components/standard-selector";
+import { UploadArea } from "@/components/upload-area";
+import { queryClient } from "@/lib/queryClient";
+import type { StandardType } from "@shared/schema";
 
 interface Message {
   id: number;
@@ -19,8 +25,14 @@ interface Message {
 export default function NewAnalysis() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [analysisName, setAnalysisName] = useState("");
+  const [fileContent, setFileContent] = useState("");
+  const [standard, setStandard] = useState<StandardType>("IFRS");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Pre-initialize the general chat
   useEffect(() => {
@@ -36,6 +48,49 @@ export default function NewAnalysis() {
       });
     }
   }, [user]);
+
+  const { mutate: createAnalysis, isPending: isCreatingAnalysis } = useMutation({
+    mutationFn: async () => {
+      if (!analysisName || !fileContent) {
+        throw new Error("Please provide both a name and upload a document");
+      }
+
+      const response = await fetch('/api/analysis', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user?.uid || "",
+        },
+        body: JSON.stringify({
+          fileName: analysisName,
+          fileContent,
+          standard,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create analysis");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
+      toast({
+        title: "Analysis Created",
+        description: "Your analysis has been created successfully.",
+      });
+      setLocation("/analysis");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Creating Analysis",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
@@ -132,7 +187,7 @@ export default function NewAnalysis() {
         <Card>
           <CardHeader>
             <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>Please log in to use the chat.</CardDescription>
+            <CardDescription>Please log in to use this feature.</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -143,6 +198,63 @@ export default function NewAnalysis() {
     <div className="flex flex-col min-h-screen">
       <div className="flex-1 container mx-auto px-4 pb-24">
         <div className="max-w-6xl mx-auto py-8">
+          {/* Analysis Creation Card */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>New Financial Analysis</CardTitle>
+              <CardDescription>
+                Upload a document and provide details for analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4">
+                <div>
+                  <Input
+                    placeholder="Analysis Name"
+                    value={analysisName}
+                    onChange={(e) => setAnalysisName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <StandardSelector
+                    value={standard}
+                    onChange={(value) => setStandard(value)}
+                  />
+                </div>
+                <div>
+                  <UploadArea
+                    onContentExtracted={(content) => setFileContent(content)}
+                    onProgress={setUploadProgress}
+                    onAnalyzing={setIsAnalyzing}
+                  />
+                </div>
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <Progress value={uploadProgress} className="w-full" />
+                )}
+                {isAnalyzing && (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing document...</span>
+                  </div>
+                )}
+                <Button
+                  onClick={() => createAnalysis()}
+                  disabled={!analysisName || !fileContent || isCreatingAnalysis}
+                >
+                  {isCreatingAnalysis ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Analysis...
+                    </div>
+                  ) : (
+                    'Create Analysis'
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Chat Card */}
           <Card className="min-h-[calc(100vh-16rem)]">
             <CardHeader>
               <CardTitle>Finance AI Chat</CardTitle>
