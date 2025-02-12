@@ -22,25 +22,15 @@ export async function analyzeFinancialStatement(
     Focus on accurate, practical information that helps users understand their financial data.`;
 
     console.log("Calling OpenAI analysis...");
-    const requestPayload = {
+    const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
-        {
-          role: "user",
-          content: inputContent
-        }
+        { role: "system" as const, content: systemPrompt },
+        { role: "user" as const, content: inputContent }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
-      response_format: { type: "text" }
-    };
-    console.log("OpenAI request payload:", JSON.stringify(requestPayload, null, 2));
-
-    const response = await openai.chat.completions.create(requestPayload);
+      max_tokens: 1000
+    });
 
     console.log("OpenAI response received");
     console.log("Response status:", response.id ? "Success" : "No ID");
