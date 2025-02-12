@@ -30,7 +30,7 @@ import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -45,19 +45,27 @@ export function AnalysisTable({
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [openDialogs, setOpenDialogs] = useState<Record<number, boolean>>({});
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
+      setUpdatingStatus(id);
       await apiRequest("PATCH", `/api/analysis/${id}/status`, {
         status: newStatus
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+      toast({
+        title: "Status Updated",
+        description: "Analysis status has been updated successfully.",
+      });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update status. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -110,19 +118,25 @@ export function AnalysisTable({
                 {format(new Date(analysis.createdAt), "MMM d, yyyy")}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
-                <Select
-                  value={analysis.status}
-                  onValueChange={(value) => handleStatusChange(analysis.id, value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Drafting">Drafting</SelectItem>
-                    <SelectItem value="In Review">In Review</SelectItem>
-                    <SelectItem value="Complete">Complete</SelectItem>
-                  </SelectContent>
-                </Select>
+                {updatingStatus === analysis.id ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : (
+                  <Select
+                    value={analysis.status}
+                    onValueChange={(value) => handleStatusChange(analysis.id, value)}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Drafting">Drafting</SelectItem>
+                      <SelectItem value="In Review">In Review</SelectItem>
+                      <SelectItem value="Complete">Complete</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </TableCell>
               <TableCell className="text-right space-x-2">
                 <Button onClick={() => navigateToAnalysis(analysis.id)}>

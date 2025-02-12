@@ -13,6 +13,13 @@ import { UploadArea } from "@/components/upload-area";
 import { Analysis } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Message {
   id: number;
@@ -25,7 +32,8 @@ interface Message {
 }
 
 export default function AnalysisPage() {
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
+  const location = window.location.pathname;
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -97,6 +105,42 @@ export default function AnalysisPage() {
       toast({
         title: "Error",
         description: "Failed to update content. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { mutate: updateStatus } = useMutation({
+    mutationFn: async (newStatus: string) => {
+      if (!analysisId || !user) throw new Error("Missing required data");
+
+      const response = await fetch(`/api/analysis/${analysisId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user.uid,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+      toast({
+        title: "Status Updated",
+        description: "Analysis status has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update status. Please try again.",
         variant: "destructive",
       });
     },
@@ -227,22 +271,38 @@ export default function AnalysisPage() {
           </Button>
         </div>
 
-        {/* Title and Upload Section */}
         <Card>
-          <CardHeader>
-            <CardTitle>
-              {isLoadingAnalysis ? (
-                <div className="flex items-center">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </div>
-              ) : (
-                currentAnalysis?.fileName || "Untitled Analysis"
-              )}
-            </CardTitle>
-            <CardDescription>
-              Upload additional documents or update content
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="space-y-1">
+              <CardTitle>
+                {isLoadingAnalysis ? (
+                  <div className="flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </div>
+                ) : (
+                  currentAnalysis?.fileName || "Untitled Analysis"
+                )}
+              </CardTitle>
+              <CardDescription>
+                Upload additional documents or update content
+              </CardDescription>
+            </div>
+            {currentAnalysis && (
+              <Select
+                value={currentAnalysis.status}
+                onValueChange={(value) => updateStatus(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Drafting">Drafting</SelectItem>
+                  <SelectItem value="In Review">In Review</SelectItem>
+                  <SelectItem value="Complete">Complete</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <UploadArea

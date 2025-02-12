@@ -95,6 +95,25 @@ router.patch("/analysis/:id/content", async (req, res) => {
   }
 });
 
+router.patch("/analysis/:id/status", async (req, res) => {
+  try {
+    const analysisId = parseInt(req.params.id);
+    const { status } = req.body;
+
+    if (!status || typeof status !== 'string') {
+      res.status(400).json({ error: "Valid status is required" });
+      return;
+    }
+
+    await storage.updateAnalysisStatus(analysisId, status);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error updating analysis status:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to update analysis status"
+    });
+  }
+});
 
 router.post("/analysis", async (req, res) => {
   try {
