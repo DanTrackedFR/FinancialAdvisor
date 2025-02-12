@@ -98,10 +98,21 @@ export default function NewAnalysis() {
   });
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (message.trim() && !isSending) {
-        sendMessage(message);
+    if (e.key === 'Enter') {
+      if (e.altKey) {
+        // Alt+Enter: Insert a new line
+        const cursorPosition = e.currentTarget.selectionStart;
+        const textBeforeCursor = message.slice(0, cursorPosition);
+        const textAfterCursor = message.slice(cursorPosition);
+        setMessage(textBeforeCursor + '\n' + textAfterCursor);
+        // Prevent default to avoid sending
+        e.preventDefault();
+      } else if (!e.shiftKey) {
+        // Regular Enter (not Shift+Enter): Send message
+        e.preventDefault();
+        if (message.trim() && !isSending) {
+          sendMessage(message);
+        }
       }
     }
   };
@@ -147,7 +158,7 @@ export default function NewAnalysis() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Type your message... (Press Enter to send)"
+                placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
                 className="flex-1"
                 disabled={isSending}
               />
@@ -158,6 +169,7 @@ export default function NewAnalysis() {
                   }
                 }}
                 disabled={!message.trim() || isSending}
+                className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isSending ? (
                   <div className="flex items-center">
