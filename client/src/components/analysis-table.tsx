@@ -96,12 +96,9 @@ export function AnalysisTable({
       <TableBody>
         {analyses.length === 0 ? (
           <TableRow>
-            <TableCell>
-              <Button onClick={onNewAnalysis}>New Analysis</Button>
+            <TableCell colSpan={4} className="text-center text-muted-foreground">
+              No analyses found. Create your first analysis to get started.
             </TableCell>
-            <TableCell>-</TableCell>
-            <TableCell>-</TableCell>
-            <TableCell>-</TableCell>
           </TableRow>
         ) : (
           analyses.map((analysis) => (
