@@ -40,6 +40,12 @@ export default function AnalysisPage() {
     enabled: !!analysisId,
     retry: 1,
     staleTime: 0,
+    onSuccess: (data) => {
+      console.log("Analysis data received:", data);
+      if (data?.fileName) {
+        setEditedTitle(data.fileName);
+      }
+    },
     onError: (error: Error) => {
       console.error("Error fetching analysis:", error);
       toast({
@@ -55,13 +61,6 @@ export default function AnalysisPage() {
     queryKey: ["/api/user/analyses"],
   });
 
-  // Third - initialize edited title when analysis data is loaded
-  useEffect(() => {
-    if (currentAnalysis?.fileName) {
-      console.log("Setting edited title from analysis:", currentAnalysis.fileName);
-      setEditedTitle(currentAnalysis.fileName);
-    }
-  }, [currentAnalysis?.fileName]);
 
   // Fourth - fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
@@ -285,7 +284,9 @@ export default function AnalysisPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <CardTitle>{isLoadingAnalysis ? "Loading..." : currentAnalysis?.fileName || "Untitled Analysis"}</CardTitle>
+                  <CardTitle>
+                    {isLoadingAnalysis ? "Loading..." : currentAnalysis?.fileName || "Untitled Analysis"}
+                  </CardTitle>
                   <Button
                     size="icon"
                     variant="ghost"
