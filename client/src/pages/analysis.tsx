@@ -3,11 +3,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Loader2, Edit2, Check, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
 import { UploadArea } from "@/components/upload-area";
@@ -28,8 +27,6 @@ export default function AnalysisPage() {
   const [location] = useLocation();
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
@@ -38,64 +35,18 @@ export default function AnalysisPage() {
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery({
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId,
-    retry: 1,
-    select: (data: Analysis) => data,
-    onSuccess: (data) => {
-      console.log("Analysis data loaded:", data);
-      setEditedTitle(data.fileName);
-    },
-    onError: (error: Error) => {
-      console.error("Error loading analysis:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load analysis. Please try again.",
-        variant: "destructive",
-      });
-    }
+    retry: 1
   });
 
-  // Second query - fetch user's analyses for the list view
+  // Fetch user's analyses for the list view
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
     queryKey: ["/api/user/analyses"],
   });
 
-
-  // Fourth - fetch messages when analysisId is available
+  // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
-  });
-
-  const { mutate: updateTitle } = useMutation({
-    mutationFn: async (newTitle: string) => {
-      const response = await fetch(`/api/analysis/${analysisId}/title`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update title");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
-      setIsEditingTitle(false);
-      toast({
-        title: "Title Updated",
-        description: "Analysis title has been updated successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update title. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   const { mutate: updateContent } = useMutation({
@@ -254,50 +205,7 @@ export default function AnalysisPage() {
         {/* Title and Upload Section */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              {isEditingTitle ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    className="max-w-sm"
-                  />
-                  <Button
-                    size="icon"
-                    onClick={() => updateTitle(editedTitle)}
-                    disabled={!editedTitle.trim()}
-                  >
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setIsEditingTitle(false);
-                      setEditedTitle(currentAnalysis?.fileName || "");
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <CardTitle>
-                    {isLoadingAnalysis 
-                      ? "Loading..." 
-                      : currentAnalysis?.fileName}
-                  </CardTitle>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setIsEditingTitle(true)}
-                    disabled={isLoadingAnalysis}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
+            <CardTitle>{currentAnalysis?.fileName}</CardTitle>
             <CardDescription>
               Upload additional documents or update content
             </CardDescription>
