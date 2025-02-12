@@ -6,63 +6,7 @@ import { insertAnalysisSchema } from "@shared/schema";
 
 const router = Router();
 
-// Add the GET single analysis route at the start of the file
-router.get("/analysis/:id", async (req, res) => {
-  try {
-    const analysisId = parseInt(req.params.id);
-    const firebaseUid = req.headers["firebase-uid"] as string;
-
-    if (!firebaseUid) {
-      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
-      return;
-    }
-
-    const user = await storage.getUserByFirebaseUid(firebaseUid);
-    if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
-    }
-
-    const analysis = await storage.getAnalysis(analysisId);
-    if (!analysis) {
-      res.status(404).json({ error: "Analysis not found" });
-      return;
-    }
-
-    // Verify ownership
-    if (analysis.userId !== user.id) {
-      res.status(403).json({ error: "Unauthorized - Analysis belongs to another user" });
-      return;
-    }
-
-    res.json(analysis);
-  } catch (error) {
-    console.error("Error fetching analysis:", error);
-    res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
-  }
-});
-
 // Add these new routes before other routes
-router.patch("/analysis/:id/status", async (req, res) => {
-  try {
-    const analysisId = parseInt(req.params.id);
-    const { status } = req.body;
-
-    if (!status || !["Drafting", "In Review", "Complete"].includes(status)) {
-      res.status(400).json({ error: "Valid status is required" });
-      return;
-    }
-
-    await storage.updateAnalysisStatus(analysisId, status);
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error updating analysis status:", error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : "Failed to update analysis status"
-    });
-  }
-});
-
 router.patch("/analysis/:id/title", async (req, res) => {
   try {
     const analysisId = parseInt(req.params.id);
@@ -130,6 +74,7 @@ router.patch("/analysis/:id/content", async (req, res) => {
     });
   }
 });
+
 
 router.post("/analysis", async (req, res) => {
   try {

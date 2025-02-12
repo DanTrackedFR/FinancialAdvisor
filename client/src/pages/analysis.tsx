@@ -4,13 +4,6 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -46,15 +39,9 @@ export default function AnalysisPage() {
     queryKey: ["/api/user/analyses"],
   });
 
-  // Fetch current analysis data
+  // Fetch current analysis when analysisId is available
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
-    enabled: !!analysisId,
-  });
-
-  // Fetch messages when analysisId is available
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
-    queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
   });
 
@@ -64,6 +51,12 @@ export default function AnalysisPage() {
       setEditedTitle(currentAnalysis.fileName);
     }
   }, [currentAnalysis]);
+
+  // Fetch messages when analysisId is available
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
+    queryKey: ["/api/analysis", analysisId, "messages"],
+    enabled: !!analysisId,
+  });
 
   const { mutate: updateTitle } = useMutation({
     mutationFn: async (newTitle: string) => {
@@ -92,37 +85,6 @@ export default function AnalysisPage() {
       toast({
         title: "Error",
         description: "Failed to update title. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const { mutate: updateStatus } = useMutation({
-    mutationFn: async (newStatus: string) => {
-      const response = await fetch(`/api/analysis/${analysisId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update status");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
-      toast({
-        title: "Status Updated",
-        description: "Analysis status has been updated successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update status. Please try again.",
         variant: "destructive",
       });
     },
@@ -269,28 +231,10 @@ export default function AnalysisPage() {
     );
   }
 
-  if (!currentAnalysis) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Analysis Not Found</CardTitle>
-            <CardDescription>The requested analysis could not be found.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => setLocation("/analysis")}>
-              Return to Analysis List
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => setLocation("/analysis")}
@@ -299,78 +243,50 @@ export default function AnalysisPage() {
           </Button>
         </div>
 
-        {/* Title and Status Section */}
-        <Card className="border-t-4 border-t-primary">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              {/* Title */}
-              <div className="flex items-center justify-between">
-                {isEditingTitle ? (
-                  <div className="flex items-center gap-2 flex-1">
-                    <Input
-                      value={editedTitle}
-                      onChange={(e) => setEditedTitle(e.target.value)}
-                      className="max-w-xl text-xl font-bold"
-                    />
-                    <Button
-                      size="icon"
-                      onClick={() => updateTitle(editedTitle)}
-                      disabled={!editedTitle.trim()}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setIsEditingTitle(false);
-                        setEditedTitle(currentAnalysis.fileName);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 flex-1">
-                    <h1 className="text-2xl font-bold flex-1">{currentAnalysis.fileName}</h1>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setIsEditingTitle(true)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Status */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Status:</span>
-                <Select
-                  value={currentAnalysis.status}
-                  onValueChange={(value) => updateStatus(value)}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Drafting">Drafting</SelectItem>
-                    <SelectItem value="In Review">In Review</SelectItem>
-                    <SelectItem value="Complete">Complete</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Upload Section */}
+        {/* Title and Upload Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Document Upload</CardTitle>
+            <div className="flex items-center justify-between">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    className="max-w-sm"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => updateTitle(editedTitle)}
+                    disabled={!editedTitle.trim()}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setIsEditingTitle(false);
+                      setEditedTitle(currentAnalysis?.fileName || "");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <CardTitle>{currentAnalysis?.fileName}</CardTitle>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setIsEditingTitle(true)}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
             <CardDescription>
-              Upload additional documents to enhance the analysis
+              Upload additional documents or update content
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
