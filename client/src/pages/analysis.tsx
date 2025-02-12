@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ interface Message {
 }
 
 export default function AnalysisPage() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -34,20 +34,18 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  // First query - fetch current analysis
-  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
+  // Fetch current analysis data
+  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery({
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId,
     retry: 1,
-    staleTime: 0,
+    select: (data: Analysis) => data,
     onSuccess: (data) => {
-      console.log("Analysis data received:", data);
-      if (data?.fileName) {
-        setEditedTitle(data.fileName);
-      }
+      console.log("Analysis data loaded:", data);
+      setEditedTitle(data.fileName);
     },
     onError: (error: Error) => {
-      console.error("Error fetching analysis:", error);
+      console.error("Error loading analysis:", error);
       toast({
         title: "Error",
         description: "Failed to load analysis. Please try again.",
@@ -285,7 +283,9 @@ export default function AnalysisPage() {
               ) : (
                 <div className="flex items-center gap-2">
                   <CardTitle>
-                    {isLoadingAnalysis ? "Loading..." : currentAnalysis?.fileName || "Untitled Analysis"}
+                    {isLoadingAnalysis 
+                      ? "Loading..." 
+                      : currentAnalysis?.fileName}
                   </CardTitle>
                   <Button
                     size="icon"
