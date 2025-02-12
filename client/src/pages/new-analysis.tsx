@@ -76,18 +76,28 @@ export default function NewAnalysis() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Invalidate the analysis query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
+
+      // Show success message
       toast({
         title: "Analysis Created",
         description: "Your analysis has been created successfully.",
+        duration: 5000,
       });
-      setLocation("/analysis");
+
+      // Reset form fields
+      setAnalysisName("");
+      setFileContent("");
+      setUploadProgress(0);
+      setIsAnalyzing(false);
     },
     onError: (error: Error) => {
       toast({
         title: "Error Creating Analysis",
         description: error.message,
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
