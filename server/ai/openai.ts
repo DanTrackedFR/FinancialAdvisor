@@ -41,6 +41,8 @@ export async function analyzeFinancialStatement(
   ${content}`;
 
   try {
+    console.log("Initiating OpenAI request with model: gpt-4o");
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -56,15 +58,34 @@ export async function analyzeFinancialStatement(
       response_format: { type: "json_object" },
     });
 
+    console.log("OpenAI response received:", response.choices[0].message?.content ? "Content present" : "No content");
+
     if (!response.choices[0].message.content) {
+      console.error("No response content received from OpenAI");
       throw new Error("No response received from OpenAI");
     }
 
-    const analysis = JSON.parse(response.choices[0].message.content);
-    return analysis;
+    try {
+      const analysis = JSON.parse(response.choices[0].message.content);
+      console.log("Successfully parsed OpenAI response");
+      return analysis;
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", parseError);
+      console.error("Raw response:", response.choices[0].message.content);
+      throw new Error("Failed to parse AI response");
+    }
   } catch (error) {
     console.error("OpenAI Analysis Error:", error);
+    console.error("Error details:", error instanceof Error ? {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    } : "Unknown error type");
+
     if (error instanceof Error) {
+      if (error.message.includes("Incorrect API key")) {
+        throw new Error("Authentication failed with AI service");
+      }
       throw new Error(`Failed to analyze financial statement: ${error.message}`);
     }
     throw new Error("An unknown error occurred during financial analysis");
@@ -76,6 +97,8 @@ export async function generateFollowupResponse(
   standard: StandardType,
 ): Promise<string> {
   try {
+    console.log("Generating followup response for standard:", standard);
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -94,12 +117,20 @@ export async function generateFollowupResponse(
 
     const content = response.choices[0].message.content;
     if (!content) {
+      console.error("No content in OpenAI followup response");
       throw new Error("No response received from OpenAI");
     }
 
+    console.log("Successfully generated followup response");
     return content;
   } catch (error) {
     console.error("OpenAI Followup Error:", error);
+    console.error("Error details:", error instanceof Error ? {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    } : "Unknown error type");
+
     if (error instanceof Error) {
       throw new Error(`Failed to generate response: ${error.message}`);
     }
