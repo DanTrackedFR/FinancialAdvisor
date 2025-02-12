@@ -154,18 +154,52 @@ export default function NewAnalysis() {
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
-      if (!currentAnalysisId) throw new Error("No active analysis");
+      if (!user) {
+        throw new Error("You must be logged in to chat");
+      }
 
-      const response = await apiRequest("POST", `/api/analysis/${currentAnalysisId}/messages`, {
-        content,
-        role: "user",
+      const endpoint = currentAnalysisId
+        ? `/api/analysis/${currentAnalysisId}/messages`
+        : '/api/chat';
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user.uid
+        },
+        body: JSON.stringify(currentAnalysisId ? {
+          content,
+          role: "user",
+        } : {
+          message: content,
+        }),
       });
 
-      return response;
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || `Server error: ${response.status}`;
+        } catch {
+          errorMessage = `Failed to parse error response: ${text}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
+      // If this was first message of general chat, set the analysis ID
+      if (!currentAnalysisId && Array.isArray(data) && data.length > 0) {
+        setCurrentAnalysisId(data[0].analysisId);
+      }
+      // Invalidate queries to refresh messages
+      queryClient.invalidateQueries({
+        queryKey: ["/api/analysis", currentAnalysisId, "messages"]
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -230,7 +264,7 @@ export default function NewAnalysis() {
         <Card>
           <CardHeader>
             <CardTitle>New Analysis</CardTitle>
-            <CardDescription>Upload a financial statement to analyze</CardDescription>
+            <CardDescription>Upload a financial statement to analyze or start chatting</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -276,9 +310,7 @@ export default function NewAnalysis() {
           <CardHeader>
             <CardTitle>Analysis Chat</CardTitle>
             <CardDescription>
-              {currentAnalysisId
-                ? "Ask questions about your analysis"
-                : "Upload a document to start the analysis. The AI will begin analyzing your document here."}
+              Chat with AI about financial analysis or upload a document for detailed review
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -291,11 +323,8 @@ export default function NewAnalysis() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={currentAnalysisId
-                  ? "Ask a question about the analysis... (Press Enter to send, Alt+Enter for new line)"
-                  : "Please upload a document first to start the conversation"}
+                placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
                 className="flex-1"
-                disabled={!currentAnalysisId || analysisState !== "complete"}
               />
               <Button
                 onClick={() => {
@@ -303,7 +332,7 @@ export default function NewAnalysis() {
                     sendMessage(message);
                   }
                 }}
-                disabled={!currentAnalysisId || !message.trim() || isSending || analysisState !== "complete"}
+                disabled={!message.trim() || isSending}
               >
                 Send
               </Button>

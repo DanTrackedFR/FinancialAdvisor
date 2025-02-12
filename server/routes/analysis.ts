@@ -5,6 +5,59 @@ import { insertAnalysisSchema, insertMessageSchema } from "@shared/schema";
 
 const router = Router();
 
+// General chat endpoint
+router.post("/chat", async (req, res) => {
+  try {
+    const firebaseUid = req.headers["firebase-uid"] as string;
+    if (!firebaseUid) {
+      res.status(401).json({ error: "Unauthorized - Missing firebase-uid header" });
+      return;
+    }
+
+    const user = await storage.getUserByFirebaseUid(firebaseUid);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const { message } = req.body;
+    if (!message) {
+      res.status(400).json({ error: "Message is required" });
+      return;
+    }
+
+    // Create a new analysis for the chat if none exists
+    let analysis = await storage.getOrCreateGeneralChat(user.id);
+
+    const userMessage = await storage.createMessage({
+      analysisId: analysis.id,
+      role: "user",
+      content: message,
+    });
+
+    // Generate AI response
+    console.log("Generating AI response for general chat...");
+    const response = await analyzeFinancialStatement(
+      message,
+      "IFRS" // Default standard for general chat
+    );
+
+    // Store AI response
+    const aiMessage = await storage.createMessage({
+      analysisId: analysis.id,
+      role: "assistant",
+      content: response,
+      metadata: { type: "chat" },
+    });
+
+    res.json([userMessage, aiMessage]);
+  } catch (error) {
+    console.error("Error in chat:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error occurred" });
+  }
+});
+
+// Existing routes remain unchanged
 router.post("/analysis", async (req, res) => {
   try {
     console.log("Received analysis request:", {

@@ -17,6 +17,7 @@ export interface IStorage {
   updateAnalysisStatus(id: number, status: "Drafting" | "In Review" | "Complete"): Promise<void>;
   getUserAnalyses(userId: number): Promise<Analysis[]>;
   deleteAnalysis(id: number): Promise<void>;
+  getOrCreateGeneralChat(userId: number): Promise<Analysis>;
 
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
@@ -93,6 +94,31 @@ export class DatabaseStorage implements IStorage {
     await db.delete(messages).where(eq(messages.analysisId, id));
     // Then delete the analysis itself
     await db.delete(analyses).where(eq(analyses.id, id));
+  }
+
+  async getOrCreateGeneralChat(userId: number): Promise<Analysis> {
+    // Try to find existing general chat
+    const [existingChat] = await db
+      .select()
+      .from(analyses)
+      .where(eq(analyses.userId, userId))
+      .orderBy(desc(analyses.id))
+      .limit(1);
+
+    if (existingChat) {
+      return existingChat;
+    }
+
+    // Create new general chat
+    const [newChat] = await db.insert(analyses).values({
+      userId,
+      fileName: "General Chat",
+      fileContent: "",
+      standard: "IFRS",
+      status: "Complete"
+    }).returning();
+
+    return newChat;
   }
 
   // Message methods

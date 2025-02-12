@@ -5,7 +5,7 @@ import { Bot, User } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface MessageMetadata {
-  type?: "initial_analysis" | "followup";
+  type?: "initial_analysis" | "followup" | "chat";
   summary?: string;
   reviewPoints?: string[];
   improvements?: string[];
@@ -60,7 +60,7 @@ export function ConversationThread({
                 )}
               </Avatar>
               <div className="flex-1">
-                {message.metadata && message.metadata.type === "initial_analysis" ? (
+                {message.metadata?.type === "initial_analysis" ? (
                   <div className="space-y-4">
                     {message.metadata.summary && (
                       <div>
