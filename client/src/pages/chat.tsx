@@ -44,7 +44,6 @@ export default function ChatPage() {
       return response.json();
     },
     onMutate: async (newMessage) => {
-      // Optimistically add user message
       const optimisticUserMessage = {
         id: Date.now(),
         role: "user" as const,
@@ -52,25 +51,23 @@ export default function ChatPage() {
         analysisId: -1,
       };
       setMessages(prev => [...prev, optimisticUserMessage]);
-      setMessage(""); // Clear input immediately
+      setMessage("");
       return { optimisticUserMessage };
     },
     onSuccess: (data) => {
       if (Array.isArray(data) && data.length > 0) {
         setMessages(prevMessages => 
-          // Replace optimistic message with real messages
           [...prevMessages.slice(0, -1), ...data]
         );
       }
     },
     onError: (error: Error, _, context) => {
       if (context?.optimisticUserMessage) {
-        // Remove optimistic message on error
         setMessages(prev => 
           prev.filter(msg => msg.id !== context.optimisticUserMessage.id)
         );
       }
-      setMessage(context?.optimisticUserMessage.content || ""); // Restore message in input
+      setMessage(context?.optimisticUserMessage.content || "");
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -117,7 +114,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Main content area with padding bottom to prevent input overlap */}
       <div className="flex-1 container mx-auto px-4 pb-24">
         <div className="max-w-6xl mx-auto py-8">
           <Card className="min-h-[calc(100vh-16rem)]">
@@ -137,7 +133,6 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Fixed input area at the bottom */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
@@ -152,8 +147,8 @@ export default function ChatPage() {
               />
               <Button
                 onClick={handleSendMessage}
-                className="bg-primary hover:bg-primary/90"
                 disabled={!message.trim() || isSending}
+                className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isSending ? (
                   <div className="flex items-center">
