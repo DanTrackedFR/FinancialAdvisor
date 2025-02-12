@@ -35,12 +35,12 @@ export default function AnalysisPage() {
   const { toast } = useToast();
 
   // First query - fetch current analysis
-  const { data: currentAnalysis, isLoading: isLoadingAnalysis, onError } = useQuery<Analysis>({
+  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId,
     retry: 1,
     staleTime: 0,
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error fetching analysis:", error);
       toast({
         title: "Error",
@@ -285,11 +285,12 @@ export default function AnalysisPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <CardTitle>{currentAnalysis?.fileName || "Loading..."}</CardTitle>
+                  <CardTitle>{isLoadingAnalysis ? "Loading..." : currentAnalysis?.fileName || "Untitled Analysis"}</CardTitle>
                   <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => setIsEditingTitle(true)}
+                    disabled={isLoadingAnalysis}
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>
