@@ -22,8 +22,8 @@ router.post("/chat", async (req, res) => {
     }
 
     const { message } = req.body;
-    if (!message) {
-      res.status(400).json({ error: "Message is required" });
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      res.status(400).json({ error: "Valid message is required" });
       return;
     }
 
