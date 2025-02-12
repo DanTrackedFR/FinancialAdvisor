@@ -41,6 +41,11 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
+  // Fetch user's analyses for the list view
+  const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
+    queryKey: ["/api/user/analyses"],
+  });
+
   // Fetch current analysis data
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
@@ -222,6 +227,14 @@ export default function AnalysisPage() {
   };
 
   if (!analysisId) {
+    if (isLoadingAnalyses) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-8">
@@ -238,7 +251,7 @@ export default function AnalysisPage() {
             </CardHeader>
             <CardContent>
               <AnalysisTable
-                analyses={[]}
+                analyses={analyses}
                 onNewAnalysis={() => setLocation("/new-analysis")}
               />
             </CardContent>
