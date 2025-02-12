@@ -93,6 +93,51 @@ export default function AnalysisPage() {
     },
   });
 
+  const { mutate: sendMessage, isPending: isSending } = useMutation({
+    mutationFn: async (content: string) => {
+      if (!analysisId) throw new Error("No active analysis");
+      if (!user) throw new Error("You must be logged in to send messages");
+
+      const response = await fetch(`/api/analysis/${analysisId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user.uid,
+        },
+        body: JSON.stringify({
+          content,
+          role: "user",
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || `Server error: ${response.status}`;
+        } catch {
+          errorMessage = `Failed to parse error response: ${text}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Sending Message",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    },
+  });
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       if (e.altKey) {
