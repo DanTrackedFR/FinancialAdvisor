@@ -209,8 +209,12 @@ router.post("/analysis/:id/messages", async (req, res) => {
 
     // Generate AI response
     console.log("Generating AI response...");
+    const context = analysis.fileContent
+      ? `Previous content: ${analysis.fileContent}\n\nUser question: ${data.content}`
+      : `You are analyzing a financial statement under ${analysis.standard} standards. User question: ${data.content}`;
+
     const response = await analyzeFinancialStatement(
-      `Previous content: ${analysis.fileContent}\n\nUser question: ${data.content}`,
+      context,
       analysis.standard
     );
     console.log("AI response generated, length:", response.length);
