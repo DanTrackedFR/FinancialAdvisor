@@ -6,6 +6,26 @@ import { insertAnalysisSchema } from "@shared/schema";
 
 const router = Router();
 
+// Add this new route before other routes
+router.get("/analysis/:id", async (req, res) => {
+  try {
+    const analysisId = parseInt(req.params.id);
+    const analysis = await storage.getAnalysis(analysisId);
+
+    if (!analysis) {
+      res.status(404).json({ error: "Analysis not found" });
+      return;
+    }
+
+    res.json(analysis);
+  } catch (error) {
+    console.error("Error fetching analysis:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to fetch analysis"
+    });
+  }
+});
+
 // Add these new routes before other routes
 router.patch("/analysis/:id/title", async (req, res) => {
   try {
