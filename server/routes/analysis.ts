@@ -27,11 +27,8 @@ router.post("/chat", async (req, res) => {
       return;
     }
 
-    console.log("Starting chat process for user:", user.id, "message length:", message.length);
-
     // Get or create general chat analysis
     const analysis = await storage.getOrCreateGeneralChat(user.id);
-    console.log("Using analysis:", analysis.id);
 
     // Create user message
     const userMessage = await storage.createMessage({
@@ -39,12 +36,9 @@ router.post("/chat", async (req, res) => {
       role: "user",
       content: message,
     });
-    console.log("Created user message:", userMessage.id);
 
     try {
-      console.log("Generating AI response...");
       const aiResponse = await analyzeFinancialStatement(message, "IFRS");
-      console.log("AI response received, length:", aiResponse?.length || 0);
 
       if (!aiResponse) {
         throw new Error("Empty response from AI service");
@@ -56,12 +50,9 @@ router.post("/chat", async (req, res) => {
         content: aiResponse,
         metadata: { type: "chat" },
       });
-      console.log("Created assistant message:", assistantMessage.id);
 
-      // Send both messages in the response
       res.json([userMessage, assistantMessage]);
     } catch (error) {
-      console.error("Error generating AI response:", error);
       const errorMessage = "I apologize, but I encountered an error processing your request. Please try again.";
 
       const assistantMessage = await storage.createMessage({
@@ -71,11 +62,9 @@ router.post("/chat", async (req, res) => {
         metadata: { type: "chat" },
       });
 
-      // Send both the user message and error message
       res.json([userMessage, assistantMessage]);
     }
   } catch (error) {
-    console.error("Error in chat:", error);
     res.status(500).json({
       error: error instanceof Error ? error.message : "An unknown error occurred"
     });

@@ -27,8 +27,6 @@ export default function ChatPage() {
         throw new Error("You must be logged in to chat");
       }
 
-      console.log("Sending message:", content);
-
       const response = await fetch('/api/chat', {
         method: "POST",
         headers: {
@@ -44,13 +42,11 @@ export default function ChatPage() {
       }
 
       const data = await response.json();
-      console.log("Received response:", data);
       return data;
     },
     onSuccess: (data) => {
       setMessage("");
       if (Array.isArray(data)) {
-        console.log("Setting messages:", data);
         setMessages(prevMessages => [...prevMessages, ...data]);
       }
     },
@@ -68,11 +64,17 @@ export default function ChatPage() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (message.trim() && !isSending) {
-        sendMessage(message);
-      }
+      handleSendMessage();
     }
   };
+
+  const handleSendMessage = () => {
+    if (message.trim() && !isSending) {
+      sendMessage(message);
+    }
+  };
+
+  const isButtonDisabled = !message.trim() || isSending;
 
   if (isAuthLoading) {
     return (
@@ -131,12 +133,9 @@ export default function ChatPage() {
                 disabled={isSending}
               />
               <Button
-                onClick={() => {
-                  if (message.trim() && !isSending) {
-                    sendMessage(message);
-                  }
-                }}
-                disabled={!message.trim() || isSending}
+                onClick={handleSendMessage}
+                disabled={isButtonDisabled}
+                className={isButtonDisabled ? "opacity-50" : ""}
               >
                 {isSending ? (
                   <div className="flex items-center">
