@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
@@ -15,24 +14,28 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   analysisId: number;
-  metadata?: {
-    type?: "initial_analysis" | "followup" | "chat";
-  };
 }
 
 export default function NewAnalysis() {
-  const [, setLocation] = useLocation();
   const [message, setMessage] = useState("");
-  const [currentAnalysisId, setCurrentAnalysisId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  // Query for fetching messages with optimistic updates
-  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
-    queryKey: ["/api/analysis", currentAnalysisId, "messages"],
-    enabled: true,
-    refetchInterval: 3000, // Poll every 3 seconds for new messages
-  });
+  // Pre-initialize the general chat
+  useEffect(() => {
+    if (user) {
+      fetch('/api/chat/init', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'firebase-uid': user.uid
+        }
+      }).catch(error => {
+        console.error('Failed to initialize chat:', error);
+      });
+    }
+  }, [user]);
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
@@ -57,37 +60,30 @@ export default function NewAnalysis() {
       return response.json();
     },
     onMutate: async (newMessage) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/analysis", currentAnalysisId, "messages"] });
-
-      const optimisticMessage = {
+      const optimisticUserMessage = {
         id: Date.now(),
         role: "user" as const,
         content: newMessage,
-        analysisId: currentAnalysisId || -1,
+        analysisId: -1,
       };
-
-      queryClient.setQueryData<Message[]>(["/api/analysis", currentAnalysisId, "messages"], 
-        (old = []) => [...old, optimisticMessage]
-      );
-
-      return { optimisticMessage };
+      setMessages(prev => [...prev, optimisticUserMessage]);
+      setMessage("");
+      return { optimisticUserMessage };
     },
     onSuccess: (data) => {
-      setMessage("");
       if (Array.isArray(data) && data.length > 0) {
-        setCurrentAnalysisId(data[0].analysisId);
-        // Force refetch to get the AI response
-        queryClient.invalidateQueries({ queryKey: ["/api/analysis", data[0].analysisId, "messages"] });
+        setMessages(prevMessages => 
+          [...prevMessages.slice(0, -1), ...data]
+        );
       }
     },
     onError: (error: Error, _, context) => {
-      if (context?.optimisticMessage) {
-        queryClient.setQueryData<Message[]>(
-          ["/api/analysis", currentAnalysisId, "messages"],
-          (old = []) => old.filter(msg => msg.id !== context.optimisticMessage.id)
+      if (context?.optimisticUserMessage) {
+        setMessages(prev => 
+          prev.filter(msg => msg.id !== context.optimisticUserMessage.id)
         );
       }
-
+      setMessage(context?.optimisticUserMessage.content || "");
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -151,7 +147,7 @@ export default function NewAnalysis() {
           <CardContent className="p-6">
             <ConversationThread
               messages={messages}
-              isLoading={isLoadingMessages || isSending}
+              isLoading={isSending}
             />
             <div className="flex gap-4 mt-4">
               <Textarea
