@@ -41,19 +41,8 @@ router.post("/chat", async (req, res) => {
     });
     console.log("Created user message:", userMessage.id);
 
-    // Send immediate response with user message
-    res.json([userMessage]);
-
-    // Generate AI response asynchronously
     try {
       console.log("Generating AI response...");
-      console.log("OpenAI API Key configured:", !!process.env.OPENAI_API_KEY);
-
-      // Validate message content
-      if (!message.trim()) {
-        throw new Error("Empty message content");
-      }
-
       const aiResponse = await analyzeFinancialStatement(message, "IFRS");
       console.log("AI response received, length:", aiResponse?.length || 0);
 
@@ -68,30 +57,25 @@ router.post("/chat", async (req, res) => {
         metadata: { type: "chat" },
       });
       console.log("Created assistant message:", assistantMessage.id);
+
+      // Send both messages in the response
+      res.json([userMessage, assistantMessage]);
     } catch (error) {
       console.error("Error generating AI response:", error);
-      console.error("Error type:", error.constructor.name);
-      console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+      const errorMessage = "I apologize, but I encountered an error processing your request. Please try again.";
 
-      let errorMessage = "I apologize, but I encountered an error processing your request.";
-      if (error instanceof Error) {
-        if (error.message.includes("API key")) {
-          errorMessage = "There was an authentication issue with the AI service. Please try again later.";
-        } else if (error.message.includes("timeout")) {
-          errorMessage = "The request took too long to process. Please try again.";
-        }
-      }
-
-      await storage.createMessage({
+      const assistantMessage = await storage.createMessage({
         analysisId: analysis.id,
         role: "assistant",
         content: errorMessage,
         metadata: { type: "chat" },
       });
+
+      // Send both the user message and error message
+      res.json([userMessage, assistantMessage]);
     }
   } catch (error) {
     console.error("Error in chat:", error);
-    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
     res.status(500).json({
       error: error instanceof Error ? error.message : "An unknown error occurred"
     });
