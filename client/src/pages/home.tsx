@@ -47,6 +47,9 @@ export default function Home() {
               {user ? (
                 <>
                   <Button variant="ghost" asChild>
+                    <Link href="/chat">Chat</Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
                     <Link href="/analysis">Analysis</Link>
                   </Button>
                   <Button variant="ghost" asChild>
