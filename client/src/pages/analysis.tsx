@@ -34,28 +34,36 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
 
-  // Fetch user's analyses for the list view
+  // First query - fetch current analysis
+  const { data: currentAnalysis, isLoading: isLoadingAnalysis, onError } = useQuery<Analysis>({
+    queryKey: ["/api/analysis", analysisId],
+    enabled: !!analysisId,
+    retry: 1,
+    staleTime: 0,
+    onError: (error) => {
+      console.error("Error fetching analysis:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load analysis. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Second query - fetch user's analyses for the list view
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
     queryKey: ["/api/user/analyses"],
   });
 
-  // Move this effect before the messages query
+  // Third - initialize edited title when analysis data is loaded
   useEffect(() => {
-    if (currentAnalysis) {
+    if (currentAnalysis?.fileName) {
+      console.log("Setting edited title from analysis:", currentAnalysis.fileName);
       setEditedTitle(currentAnalysis.fileName);
     }
-  }, [currentAnalysis]);
+  }, [currentAnalysis?.fileName]);
 
-
-  // Update the query to fetch current analysis
-  const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
-    queryKey: ["/api/analysis", analysisId],
-    enabled: !!analysisId,
-    retry: 1,
-    staleTime: 0, // Ensure we always get fresh data
-  });
-
-  // Fetch messages when analysisId is available
+  // Fourth - fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: ["/api/analysis", analysisId, "messages"],
     enabled: !!analysisId,
