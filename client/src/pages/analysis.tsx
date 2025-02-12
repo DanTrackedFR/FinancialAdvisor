@@ -276,7 +276,7 @@ export default function AnalysisPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <CardTitle>{currentAnalysis?.fileName}</CardTitle>
+                  <CardTitle>{currentAnalysis?.fileName || "Loading..."}</CardTitle>
                   <Button
                     size="icon"
                     variant="ghost"
