@@ -106,10 +106,15 @@ export default function NewAnalysis() {
       } else if (!e.shiftKey) {
         // Regular Enter (not Shift+Enter): Send message
         e.preventDefault();
-        if (message.trim() && !isSending) {
-          sendMessage(message);
-        }
+        handleSendMessage();
       }
+    }
+  };
+
+  const handleSendMessage = () => {
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !isSending) {
+      sendMessage(trimmedMessage);
     }
   };
 
@@ -135,21 +140,30 @@ export default function NewAnalysis() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Financial AI Chat</CardTitle>
-            <CardDescription>
-              Chat with our AI about financial topics
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ConversationThread
-              messages={messages}
-              isLoading={isSending}
-            />
-            <div className="flex gap-4 mt-4">
+    <div className="flex flex-col min-h-screen">
+      <div className="flex-1 container mx-auto px-4 pb-24">
+        <div className="max-w-6xl mx-auto py-8">
+          <Card className="min-h-[calc(100vh-16rem)]">
+            <CardHeader>
+              <CardTitle>Finance AI Chat</CardTitle>
+              <CardDescription>
+                Chat with our AI about any financial topic
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
+              <ConversationThread
+                messages={messages}
+                isLoading={isSending}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex gap-4">
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -159,11 +173,7 @@ export default function NewAnalysis() {
                 disabled={isSending}
               />
               <Button
-                onClick={() => {
-                  if (message.trim() && !isSending) {
-                    sendMessage(message);
-                  }
-                }}
+                onClick={handleSendMessage}
                 disabled={!message.trim() || isSending}
                 className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
@@ -177,8 +187,8 @@ export default function NewAnalysis() {
                 )}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
