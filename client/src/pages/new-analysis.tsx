@@ -51,8 +51,8 @@ export default function NewAnalysis() {
 
   const { mutate: createAnalysis, isPending: isCreatingAnalysis } = useMutation({
     mutationFn: async () => {
-      if (!analysisName || !fileContent) {
-        throw new Error("Please provide both a name and upload a document");
+      if (!analysisName) {
+        throw new Error("Please provide a name for the analysis");
       }
 
       const response = await fetch('/api/analysis', {
@@ -63,7 +63,7 @@ export default function NewAnalysis() {
         },
         body: JSON.stringify({
           fileName: analysisName,
-          fileContent,
+          fileContent: fileContent || "", // Make file content optional
           standard,
         }),
       });
@@ -239,7 +239,7 @@ export default function NewAnalysis() {
                 )}
                 <Button
                   onClick={() => createAnalysis()}
-                  disabled={!analysisName || !fileContent || isCreatingAnalysis}
+                  disabled={!analysisName || isCreatingAnalysis}
                 >
                   {isCreatingAnalysis ? (
                     <div className="flex items-center">

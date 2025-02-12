@@ -6,11 +6,13 @@ import { extractTextFromPDF } from "@/lib/pdf";
 import { useToast } from "@/hooks/use-toast";
 
 interface UploadAreaProps {
-  onFileProcessed: (fileName: string, content: string) => void;
+  onContentExtracted: (content: string) => void;
+  onProgress?: (progress: number) => void;
+  onAnalyzing?: (analyzing: boolean) => void;
   isLoading?: boolean;
 }
 
-export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
+export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoading }: UploadAreaProps) {
   const { toast } = useToast();
 
   const onDrop = useCallback(
@@ -25,11 +27,26 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
           duration: 10000,
         });
 
+        if (onAnalyzing) onAnalyzing(true);
+        if (onProgress) onProgress(0);
+
         const text = await extractTextFromPDF(file);
-        onFileProcessed(file.name, text);
+        onContentExtracted(text);
+
+        if (onProgress) onProgress(100);
+        if (onAnalyzing) onAnalyzing(false);
+
+        toast({
+          title: "Document Processed",
+          description: "Your document has been successfully processed.",
+          duration: 5000,
+        });
       } catch (error) {
         console.error("Error processing file:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to process PDF file";
+
+        if (onProgress) onProgress(0);
+        if (onAnalyzing) onAnalyzing(false);
 
         toast({
           title: "Error Processing PDF",
@@ -39,7 +56,7 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
         });
       }
     },
-    [onFileProcessed, toast]
+    [onContentExtracted, onProgress, onAnalyzing, toast]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -73,7 +90,7 @@ export function UploadArea({ onFileProcessed, isLoading }: UploadAreaProps) {
         ) : (
           <>
             <Upload className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm">Upload PDF</span>
+            <span className="text-sm">Upload PDF (Optional)</span>
           </>
         )}
       </div>
