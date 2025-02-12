@@ -43,6 +43,8 @@ export default function AnalysisPage() {
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId,
+    retry: 1,
+    staleTime: 0, // Ensure we always get fresh data
   });
 
   // Initialize edited title when analysis data is loaded
