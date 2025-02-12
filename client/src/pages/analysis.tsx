@@ -39,6 +39,14 @@ export default function AnalysisPage() {
     queryKey: ["/api/user/analyses"],
   });
 
+  // Move this effect before the messages query
+  useEffect(() => {
+    if (currentAnalysis) {
+      setEditedTitle(currentAnalysis.fileName);
+    }
+  }, [currentAnalysis]);
+
+
   // Update the query to fetch current analysis
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
@@ -46,13 +54,6 @@ export default function AnalysisPage() {
     retry: 1,
     staleTime: 0, // Ensure we always get fresh data
   });
-
-  // Initialize edited title when analysis data is loaded
-  useEffect(() => {
-    if (currentAnalysis) {
-      setEditedTitle(currentAnalysis.fileName);
-    }
-  }, [currentAnalysis]);
 
   // Fetch messages when analysisId is available
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
