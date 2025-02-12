@@ -39,9 +39,9 @@ export default function AnalysisPage() {
     queryKey: ["/api/user/analyses"],
   });
 
-  // Fetch current analysis when analysisId is available
+  // Update the query to fetch current analysis
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
-    queryKey: ["/api/analysis", analysisId],
+    queryKey: ["/api/user/analyses", analysisId],
     enabled: !!analysisId,
   });
 
