@@ -14,19 +14,9 @@ export async function analyzeFinancialStatement(content: string, standard: Stand
     try {
       console.log("Calling OpenAI analysis...");
       const response = await openAiAnalysis(content, standard);
-      console.log("OpenAI response received, type:", typeof response);
+      console.log("OpenAI response received:", response ? "Response present" : "No response");
 
-      // Handle different response types
-      if (typeof response === 'string') {
-        return response;
-      }
-
-      if (!response || (!response.summary && !response.reviewPoints)) {
-        console.warn("Unexpected response format from OpenAI:", response);
-        return "I'm here to help with financial analysis. What would you like to know?";
-      }
-
-      return response.summary || "I'm here to help with your financial questions. What would you like to know?";
+      return response || "I apologize, but I encountered an error. Please try again.";
     } catch (error) {
       console.error("OpenAI error:", error);
       if (error instanceof Error) {
@@ -35,7 +25,7 @@ export async function analyzeFinancialStatement(content: string, standard: Stand
           throw new Error("Authentication error with AI service. Please try again later.");
         }
       }
-      return "I'm here to help with financial analysis. What would you like to know?";
+      return "I'm here to help with financial analysis, but I encountered an error. Please try again.";
     }
 
   } catch (error) {

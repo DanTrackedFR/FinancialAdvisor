@@ -1,79 +1,39 @@
 import OpenAI from "openai";
 import { StandardType } from "@shared/schema";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function analyzeFinancialStatement(
   content: string,
   standard: StandardType,
-): Promise<{
-  summary: string;
-  reviewPoints: string[];
-  improvements: string[];
-  performance: string;
-  compliance: {
-    status: "compliant" | "partially_compliant" | "non_compliant";
-    issues: string[];
-  };
-}> {
-  const prompt = `As a financial expert, analyze this financial statement according to ${standard} standards.
-  Provide a detailed analysis covering:
-  1. Overall summary
-  2. Key review points and potential issues
-  3. Suggested improvements
-  4. Financial performance analysis
-  5. Compliance status with ${standard}
-
-  Respond in JSON format with the following structure:
-  {
-    "summary": "Brief overview of the financial statement",
-    "reviewPoints": ["Array of key points and issues found"],
-    "improvements": ["Array of suggested improvements"],
-    "performance": "Detailed financial performance analysis",
-    "compliance": {
-      "status": "compliant|partially_compliant|non_compliant",
-      "issues": ["Array of compliance issues if any"]
-    }
-  }
-
-  Financial Statement:
-  ${content}`;
-
+): Promise<string> {
   try {
-    console.log("Initiating OpenAI request with model: gpt-4o");
+    console.log("Initiating OpenAI request...");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are an expert financial analyst specializing in ${standard} standards. Focus on providing accurate, actionable insights.`
+          content: `You are a financial expert specializing in ${standard} standards. Provide concise, accurate responses.`
         },
         {
           role: "user",
-          content: prompt
+          content: content
         }
       ],
-      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 500,
     });
 
-    console.log("OpenAI response received:", response.choices[0].message?.content ? "Content present" : "No content");
+    console.log("OpenAI response received");
 
-    if (!response.choices[0].message.content) {
-      console.error("No response content received from OpenAI");
+    if (!response.choices[0].message?.content) {
+      console.error("No content in OpenAI response");
       throw new Error("No response received from OpenAI");
     }
 
-    try {
-      const analysis = JSON.parse(response.choices[0].message.content);
-      console.log("Successfully parsed OpenAI response");
-      return analysis;
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError);
-      console.error("Raw response:", response.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
-    }
+    return response.choices[0].message.content;
   } catch (error) {
     console.error("OpenAI Analysis Error:", error);
     console.error("Error details:", error instanceof Error ? {
@@ -100,7 +60,7 @@ export async function generateFollowupResponse(
     console.log("Generating followup response for standard:", standard);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -112,10 +72,12 @@ export async function generateFollowupResponse(
           role: msg.role as "user" | "assistant" | "system",
           content: msg.content
         }))
-      ]
+      ],
+      temperature: 0.7,
+      max_tokens: 500
     });
 
-    const content = response.choices[0].message.content;
+    const content = response.choices[0].message?.content;
     if (!content) {
       console.error("No content in OpenAI followup response");
       throw new Error("No response received from OpenAI");
