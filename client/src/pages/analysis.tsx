@@ -37,25 +37,25 @@ export default function AnalysisPage() {
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
     enabled: !!analysisId && !!user,
-    retry: 1,
-    onSuccess: (data) => {
-      console.log("Successfully loaded analysis data:", data);
-    },
-    onError: (error: Error) => {
-      console.error("Error loading analysis:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load analysis. Please try again.",
-        variant: "destructive",
+    queryFn: async () => {
+      if (!analysisId || !user) throw new Error("Missing required data");
+      const response = await fetch(`/api/analysis/${analysisId}`, {
+        headers: {
+          "firebase-uid": user.uid,
+        },
       });
-    }
+      if (!response.ok) {
+        throw new Error("Failed to fetch analysis");
+      }
+      return response.json();
+    },
+    retry: 1,
   });
 
   useEffect(() => {
-    if (currentAnalysis) {
-      console.log("Current analysis state:", currentAnalysis);
-    }
-  }, [currentAnalysis]);
+    console.log("Analysis ID:", analysisId);
+    console.log("Current analysis:", currentAnalysis);
+  }, [analysisId, currentAnalysis]);
 
   // Fetch user's analyses for the list view
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
