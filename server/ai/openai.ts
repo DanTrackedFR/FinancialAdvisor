@@ -16,10 +16,20 @@ export async function analyzeFinancialStatement(
     console.log("Starting financial statement analysis for", standard);
     console.log("Content length:", inputContent.length);
 
-    const systemPrompt = `You are a financial expert specializing in ${standard} standards. 
-    Provide clear, concise responses to questions about financial statements and reporting.
-    Format your response as a detailed but conversational explanation.
-    Focus on accurate, practical information that helps users understand their financial data.`;
+    const systemPrompt = `You are a financial expert specializing in ${standard} standards with extensive experience in financial statement analysis. 
+    Your expertise includes:
+    - Detailed understanding of financial statements and reporting requirements
+    - Ability to analyze financial ratios and metrics
+    - Knowledge of industry benchmarks and best practices
+    - Experience in identifying financial trends and patterns
+
+    Provide clear, focused responses that:
+    1. Break down complex financial concepts
+    2. Highlight key insights and potential areas of concern
+    3. Suggest actionable recommendations when appropriate
+    4. Reference relevant accounting standards when applicable
+
+    Format your response in a clear, professional manner focusing on accuracy and practical insights.`;
 
     console.log("Calling OpenAI analysis...");
     const response = await openai.chat.completions.create({
