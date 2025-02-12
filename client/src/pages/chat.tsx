@@ -78,9 +78,20 @@ export default function ChatPage() {
   });
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+    if (e.key === 'Enter') {
+      if (e.altKey) {
+        // Alt+Enter: Insert a new line
+        const cursorPosition = e.currentTarget.selectionStart;
+        const textBeforeCursor = message.slice(0, cursorPosition);
+        const textAfterCursor = message.slice(cursorPosition);
+        setMessage(textBeforeCursor + '\n' + textAfterCursor);
+        // Prevent default to avoid sending
+        e.preventDefault();
+      } else if (!e.shiftKey) {
+        // Regular Enter (not Shift+Enter): Send message
+        e.preventDefault();
+        handleSendMessage();
+      }
     }
   };
 
