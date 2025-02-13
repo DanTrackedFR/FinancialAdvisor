@@ -38,6 +38,8 @@ export async function createCustomer(userId: number, email: string, name: string
 export async function createCheckoutSession(customerId: string, userId: number) {
   try {
     const priceId = process.env.STRIPE_PRICE_ID;
+    console.log("Raw STRIPE_PRICE_ID value:", priceId); // Debug log
+
     if (!priceId) {
       throw new Error("Missing STRIPE_PRICE_ID environment variable");
     }
@@ -60,8 +62,8 @@ export async function createCheckoutSession(customerId: string, userId: number) 
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.PUBLIC_URL || 'https://trackedfr.com'}/profile?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.PUBLIC_URL || 'https://trackedfr.com'}/profile`,
+      success_url: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/profile?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/profile`,
       metadata: {
         userId: userId.toString(),
       },
