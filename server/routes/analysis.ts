@@ -204,6 +204,7 @@ router.post("/analysis/:id/messages", async (req, res) => {
       analysisId,
     });
 
+    console.log("Creating user message...");
     const message = await storage.createMessage(data);
     console.log("User message created:", message.id);
 

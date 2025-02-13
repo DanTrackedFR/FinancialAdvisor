@@ -89,6 +89,13 @@ export default function AnalysisPage() {
     },
   });
 
+  // Add debug logging for messages
+  useEffect(() => {
+    console.log("Current analysisId:", analysisId);
+    console.log("Messages loaded:", messages);
+  }, [analysisId, messages]);
+
+
   const { mutate: updateContent } = useMutation({
     mutationFn: async (content: string) => {
       const response = await fetch(`/api/analysis/${analysisId}/content`, {
@@ -163,6 +170,7 @@ export default function AnalysisPage() {
       if (!analysisId) throw new Error("No active analysis");
       if (!user) throw new Error("You must be logged in to send messages");
 
+      console.log("Sending message to analysis:", analysisId);
       const response = await fetch(`/api/analysis/${analysisId}/messages`, {
         method: "POST",
         headers: {
@@ -191,9 +199,11 @@ export default function AnalysisPage() {
     },
     onSuccess: () => {
       setMessage("");
+      console.log("Invalidating messages query for analysis:", analysisId);
       queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
     },
     onError: (error: Error) => {
+      console.error("Error sending message:", error);
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
