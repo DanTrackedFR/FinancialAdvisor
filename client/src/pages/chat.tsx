@@ -21,14 +21,15 @@ export default function ChatPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [message, setMessage] = useState("");
 
-  // Query for chat messages
-  const { data: messages = [], refetch: refetchMessages } = useQuery({
+  // Query for chat messages with staleTime and cacheTime settings
+  const { data: messages = [] } = useQuery({
     queryKey: ["chat-messages"],
     queryFn: async () => {
-      // Initialize with empty array if no messages exist
       const storedMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
       return storedMessages;
     },
+    staleTime: Infinity, // Keep the data fresh indefinitely
+    cacheTime: Infinity, // Never garbage collect the cache
     initialData: [],
   });
 
@@ -132,7 +133,7 @@ export default function ChatPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="flex items-next justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
