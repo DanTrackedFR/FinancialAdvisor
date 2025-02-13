@@ -11,7 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 const TRIAL_PERIOD_DAYS = 30;
-const SUBSCRIPTION_PRICE_ID = "price_monthly"; // Replace with your actual price ID
+const SUBSCRIPTION_PRICE_ID = "price_1OpMAbHY9qv2WuIkFyJ1h7X9"; // $25/month price ID
 
 export async function createCustomer(userId: number, email: string, name: string) {
   try {
@@ -24,11 +24,11 @@ export async function createCustomer(userId: number, email: string, name: string
     });
 
     await storage.updateStripeCustomerId(userId, customer.id);
-    
+
     // Set trial end date
     const trialEnd = addDays(new Date(), TRIAL_PERIOD_DAYS);
     await storage.updateUser(userId, {
-      subscriptionStatus: "trial",
+      subscriptionStatus: "trial" as any,
       trialEndsAt: trialEnd,
     });
 
@@ -39,37 +39,39 @@ export async function createCustomer(userId: number, email: string, name: string
   }
 }
 
-export async function createSubscription(customerId: string, userId: number) {
+export async function createCheckoutSession(customerId: string, userId: number) {
   try {
-    const subscription = await stripe.subscriptions.create({
+    const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      items: [{ price: SUBSCRIPTION_PRICE_ID }],
-      payment_behavior: 'default_incomplete',
-      expand: ['latest_invoice.payment_intent'],
-      trial_period_days: TRIAL_PERIOD_DAYS,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: SUBSCRIPTION_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.PUBLIC_URL || 'https://trackedfr.com'}/profile?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.PUBLIC_URL || 'https://trackedfr.com'}/profile`,
+      metadata: {
+        userId: userId.toString(),
+      },
     });
 
-    await storage.createSubscription({
-      userId,
-      stripeSubscriptionId: subscription.id,
-      status: "trial",
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-    });
-
-    return subscription;
+    return session;
   } catch (error) {
-    console.error("Error creating subscription:", error);
+    console.error("Error creating checkout session:", error);
     throw error;
   }
 }
 
+
 export async function cancelSubscription(subscriptionId: string, userId: number) {
   try {
     const subscription = await stripe.subscriptions.cancel(subscriptionId);
-    
+
     await storage.updateUserSubscriptionStatus(userId, "cancelled");
-    
+
     return subscription;
   } catch (error) {
     console.error("Error canceling subscription:", error);
@@ -79,7 +81,7 @@ export async function cancelSubscription(subscriptionId: string, userId: number)
 
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const userId = parseInt(subscription.metadata.userId);
-  
+
   await storage.updateSubscription(userId, {
     status: subscription.status as any,
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),

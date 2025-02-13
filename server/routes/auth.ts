@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
-import { createCustomer, createSubscription } from "../services/stripe";
+import { createCustomer, createCheckoutSession } from "../services/stripe";
 import { insertUserSchema } from "@shared/schema";
 
 const router = Router();
@@ -95,21 +95,10 @@ router.post("/subscriptions/manage", async (req, res) => {
       user.stripeCustomerId = customer.id;
     }
 
-    // Create or retrieve subscription
-    const subscription = await createSubscription(user.stripeCustomerId, user.id);
+    // Create checkout session
+    const session = await createCheckoutSession(user.stripeCustomerId, user.id);
 
-    // Return the checkout URL if available
-    if (subscription.latest_invoice?.payment_intent) {
-      const intent = subscription.latest_invoice.payment_intent;
-      if (intent.client_secret) {
-        res.json({ 
-          url: `https://dashboard.stripe.com/test/setup/${intent.client_secret}`
-        });
-        return;
-      }
-    }
-
-    res.json({ error: "Unable to create subscription checkout" });
+    res.json({ url: session.url });
   } catch (error: any) {
     console.error("Error managing subscription:", error);
     res.status(500).json({ error: error.message });
