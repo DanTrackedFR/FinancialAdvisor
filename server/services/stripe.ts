@@ -38,7 +38,7 @@ export async function createCustomer(userId: number, email: string, name: string
 export async function createCheckoutSession(customerId: string, userId: number) {
   try {
     const priceId = process.env.STRIPE_PRICE_ID;
-    console.log("Raw STRIPE_PRICE_ID value:", priceId); // Debug log
+    console.log("Raw STRIPE_PRICE_ID value:", priceId);
 
     if (!priceId) {
       throw new Error("Missing STRIPE_PRICE_ID environment variable");
@@ -62,6 +62,8 @@ export async function createCheckoutSession(customerId: string, userId: number) 
         },
       ],
       mode: 'subscription',
+      allow_promotion_codes: true,
+      billing_address_collection: 'auto',
       success_url: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/profile?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/profile`,
       metadata: {
