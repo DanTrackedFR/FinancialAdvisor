@@ -11,9 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 export default function Home() {
   const { user, logout } = useAuth();
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
@@ -25,6 +27,31 @@ export default function Home() {
       await logout();
     } catch (error) {
       console.error("Error signing out:", error);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      setSubscriptionError(null);
+      const response = await fetch('/api/subscriptions/manage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to manage subscription');
+      }
+
+      const { url } = await response.json();
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error: any) {
+      console.error('Subscription error:', error);
+      setSubscriptionError(error.message);
     }
   };
 
@@ -354,6 +381,14 @@ export default function Home() {
                       <p>{profile.company}</p>
                     </div>
                   )}
+                  <div className="pt-4 space-y-4">
+                    <Button onClick={handleManageSubscription}>
+                      Manage Subscription
+                    </Button>
+                    {subscriptionError && (
+                      <p className="text-sm text-red-500">{subscriptionError}</p>
+                    )}
+                  </div>
                   <div className="pt-4">
                     <Button asChild>
                       <Link href="/analysis">Start Analysis</Link>

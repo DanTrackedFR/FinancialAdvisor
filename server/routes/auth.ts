@@ -90,13 +90,16 @@ router.post("/subscriptions/manage", async (req, res) => {
       const customer = await createCustomer(
         user.id,
         user.email,
-        `${user.firstName} ${user.surname}`
+        `${user.firstName} ${user.lastName || ''}`
       );
+      await storage.updateStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
     }
 
     // Create checkout session
+    console.log('Creating checkout session with customerId:', user.stripeCustomerId);
     const session = await createCheckoutSession(user.stripeCustomerId, user.id);
+    console.log('Checkout session created:', session.id);
 
     res.json({ url: session.url });
   } catch (error: any) {

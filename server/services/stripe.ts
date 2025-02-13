@@ -42,6 +42,11 @@ export async function createCheckoutSession(customerId: string, userId: number) 
       throw new Error("Missing STRIPE_PRICE_ID environment variable");
     }
 
+    // Validate price ID format
+    if (!priceId.startsWith('price_')) {
+      throw new Error(`Invalid price ID format. Expected price ID starting with 'price_', got: ${priceId}`);
+    }
+
     console.log('Creating checkout session for customer:', customerId);
     console.log('Using price ID:', priceId);
 
@@ -85,7 +90,6 @@ export async function cancelSubscription(subscriptionId: string, userId: number)
 
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const userId = parseInt(subscription.metadata.userId);
-
   await storage.updateSubscription(userId, {
     status: subscription.status as any,
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),
