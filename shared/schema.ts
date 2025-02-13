@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,6 +7,9 @@ export type StandardType = typeof standardTypes[number];
 
 export const analysisStatus = ["Drafting", "In Review", "Complete"] as const;
 export type AnalysisStatus = typeof analysisStatus[number];
+
+export const subscriptionStatus = ["trial", "active", "cancelled", "expired"] as const;
+export type SubscriptionStatus = typeof subscriptionStatus[number];
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -17,6 +20,22 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   lastLoggedIn: timestamp("last_logged_in"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  subscriptionStatus: text("subscription_status", { enum: subscriptionStatus }).notNull().default("trial"),
+  subscriptionEndsAt: timestamp("subscription_ends_at"),
+  trialEndsAt: timestamp("trial_ends_at"),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
+  status: text("status", { enum: subscriptionStatus }).notNull(),
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  canceledAt: timestamp("canceled_at"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
 });
 
 export const analyses = pgTable("analyses", {
@@ -42,6 +61,15 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   lastLoggedIn: true,
+  stripeCustomerId: true,
+  subscriptionStatus: true,
+  subscriptionEndsAt: true,
+  trialEndsAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertAnalysisSchema = createInsertSchema(analyses).omit({
@@ -60,6 +88,8 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Analysis = typeof analyses.$inferSelect;
 export type InsertAnalysis = z.infer<typeof insertAnalysisSchema>;
 export type Message = typeof messages.$inferSelect;

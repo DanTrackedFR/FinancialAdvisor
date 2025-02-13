@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit } from "lucide-react";
+import { Loader2, Edit, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -60,10 +60,14 @@ export default function Profile() {
 
   const { mutate: updateProfile, isPending } = useMutation({
     mutationFn: async (data: ProfileFormData) => {
-      return apiRequest("/api/users/profile", {
+      const response = await apiRequest("/api/users/profile", {
         method: "PATCH",
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(data),
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/profile"] });
@@ -86,6 +90,29 @@ export default function Profile() {
     updateProfile(data);
   };
 
+  function formatDate(date: string) {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  function getSubscriptionStatusDisplay(status: string) {
+    switch (status) {
+      case 'trial':
+        return 'Free Trial';
+      case 'active':
+        return 'Active';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'expired':
+        return 'Expired';
+      default:
+        return status;
+    }
+  }
+
   if (isLoadingProfile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -96,14 +123,22 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto space-y-6">
         <Card>
           <CardHeader>
-            <div>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                View or update your profile details
-              </CardDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Profile Information</CardTitle>
+                <CardDescription>
+                  View or update your profile details
+                </CardDescription>
+              </div>
+              {!isEditing && (
+                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -172,12 +207,6 @@ export default function Profile() {
               </Form>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => setIsEditing(true)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                </div>
                 <div>
                   <h3 className="font-medium">Name</h3>
                   <p className="text-sm text-muted-foreground">
@@ -200,6 +229,52 @@ export default function Profile() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Subscription Information Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Subscription Status</CardTitle>
+                <CardDescription>
+                  Manage your subscription and billing
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium">Current Plan</h3>
+                <p className="text-sm text-muted-foreground">
+                  {getSubscriptionStatusDisplay(profile?.subscriptionStatus || 'trial')}
+                </p>
+              </div>
+              {profile?.trialEndsAt && profile.subscriptionStatus === 'trial' && (
+                <div>
+                  <h3 className="font-medium">Trial Period</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your trial ends on {formatDate(profile.trialEndsAt)}
+                  </p>
+                </div>
+              )}
+              {profile?.subscriptionEndsAt && profile.subscriptionStatus === 'active' && (
+                <div>
+                  <h3 className="font-medium">Next Billing Date</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(profile.subscriptionEndsAt)}
+                  </p>
+                </div>
+              )}
+              <div className="pt-4">
+                <Button>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {profile?.subscriptionStatus === 'trial' ? 'Upgrade to Premium' : 'Manage Subscription'}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

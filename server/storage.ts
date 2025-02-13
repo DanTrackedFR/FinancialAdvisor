@@ -1,6 +1,6 @@
-import { analyses, messages, users, type Analysis, type InsertAnalysis, type Message, type InsertMessage, type User, type InsertUser } from "@shared/schema";
+import { analyses, messages, users, subscriptions, type Analysis, type InsertAnalysis, type Message, type InsertMessage, type User, type InsertUser, type Subscription, type InsertSubscription } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -9,6 +9,13 @@ export interface IStorage {
   updateUser(id: number, data: Partial<InsertUser>): Promise<User>;
   updateLastLogin(id: number): Promise<void>;
   getAllUsers(): Promise<User[]>;
+
+  // Subscription methods
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  getSubscription(userId: number): Promise<Subscription | undefined>;
+  updateSubscription(id: number, data: Partial<InsertSubscription>): Promise<Subscription>;
+  updateUserSubscriptionStatus(userId: number, status: "trial" | "active" | "cancelled" | "expired"): Promise<void>;
+  updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<void>;
 
   // Analysis methods
   createAnalysis(analysis: InsertAnalysis & { userId: number }): Promise<Analysis>;
@@ -148,6 +155,50 @@ export class DatabaseStorage implements IStorage {
     await db.update(analyses)
       .set({ fileContent: content })
       .where(eq(analyses.id, id));
+  }
+
+  // New subscription methods
+  async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const [result] = await db.insert(subscriptions).values(subscription).returning();
+    return result;
+  }
+
+  async getSubscription(userId: number): Promise<Subscription | undefined> {
+    const [result] = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, userId),
+          gte(subscriptions.currentPeriodEnd, new Date())
+        )
+      )
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(1);
+    return result;
+  }
+
+  async updateSubscription(id: number, data: Partial<InsertSubscription>): Promise<Subscription> {
+    const [result] = await db.update(subscriptions)
+      .set(data)
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return result;
+  }
+
+  async updateUserSubscriptionStatus(
+    userId: number,
+    status: "trial" | "active" | "cancelled" | "expired"
+  ): Promise<void> {
+    await db.update(users)
+      .set({ subscriptionStatus: status })
+      .where(eq(users.id, userId));
+  }
+
+  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<void> {
+    await db.update(users)
+      .set({ stripeCustomerId })
+      .where(eq(users.id, userId));
   }
 }
 
