@@ -41,6 +41,18 @@ export default function Profile() {
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
+    queryFn: async () => {
+      if (!user) return null;
+      const response = await fetch('/api/users/profile', {
+        headers: {
+          'firebase-uid': user.uid
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+      return response.json();
+    },
     enabled: !!user,
   });
 
@@ -60,13 +72,21 @@ export default function Profile() {
 
   const { mutate: updateProfile, isPending } = useMutation({
     mutationFn: async (data: ProfileFormData) => {
-      const response = await apiRequest("/api/users/profile", {
-        method: "PATCH",
+      if (!user) throw new Error("Not authenticated");
+
+      const response = await fetch('/api/users/profile', {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'firebase-uid': user.uid
         },
         body: JSON.stringify(data),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -86,11 +106,45 @@ export default function Profile() {
     },
   });
 
+  const { mutate: handleSubscription, isPending: isSubscriptionPending } = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Not authenticated");
+
+      const response = await fetch('/api/subscriptions/manage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'firebase-uid': user.uid
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to manage subscription');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Redirect to Stripe checkout if URL is provided
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error managing subscription",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = async (data: ProfileFormData) => {
     updateProfile(data);
   };
 
-  function formatDate(date: string) {
+  function formatDate(date: string | null) {
+    if (!date) return '';
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -269,9 +323,18 @@ export default function Profile() {
                 </div>
               )}
               <div className="pt-4">
-                <Button>
+                <Button 
+                  onClick={() => handleSubscription()}
+                  disabled={isSubscriptionPending}
+                >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {profile?.subscriptionStatus === 'trial' ? 'Upgrade to Premium' : 'Manage Subscription'}
+                  {isSubscriptionPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : profile?.subscriptionStatus === 'trial' ? (
+                    'Upgrade to Premium'
+                  ) : (
+                    'Manage Subscription'
+                  )}
                 </Button>
               </div>
             </div>
