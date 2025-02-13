@@ -34,21 +34,6 @@ export default function NewAnalysis() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Pre-initialize the general chat
-  useEffect(() => {
-    if (user) {
-      fetch('/api/chat/init', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'firebase-uid': user.uid
-        }
-      }).catch(error => {
-        console.error('Failed to initialize chat:', error);
-      });
-    }
-  }, [user]);
-
   const { mutate: createAnalysis, isPending: isCreatingAnalysis } = useMutation({
     mutationFn: async () => {
       if (!analysisName) {
@@ -63,7 +48,7 @@ export default function NewAnalysis() {
         },
         body: JSON.stringify({
           fileName: analysisName,
-          fileContent: fileContent || "", // Make file content optional
+          fileContent: fileContent || "",
           standard,
         }),
       });
@@ -76,7 +61,6 @@ export default function NewAnalysis() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Invalidate both analysis queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
@@ -86,6 +70,17 @@ export default function NewAnalysis() {
         description: "Your analysis has been created successfully.",
         duration: 5000,
       });
+
+      // Add an AI acknowledgment message for the document upload
+      if (fileContent) {
+        const uploadMessage = {
+          id: Date.now(),
+          role: "assistant" as const,
+          content: "I have successfully analyzed the uploaded document. I'm ready to answer any questions you have about the financial statements.",
+          analysisId: data.id,
+        };
+        setMessages(prev => [...prev, uploadMessage]);
+      }
 
       // Reset form fields
       setAnalysisName("");
@@ -184,6 +179,18 @@ export default function NewAnalysis() {
     }
   };
 
+  const handleContentExtracted = (content: string) => {
+    setFileContent(content);
+    // Add an initial message indicating the document is being processed
+    const processingMessage = {
+      id: Date.now(),
+      role: "assistant" as const,
+      content: "I am processing the uploaded document. Once analysis is complete, I'll be ready to answer your questions about the financial statements.",
+      analysisId: -1,
+    };
+    setMessages(prev => [...prev, processingMessage]);
+  };
+
   if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -234,7 +241,7 @@ export default function NewAnalysis() {
                 </div>
                 <div>
                   <UploadArea
-                    onContentExtracted={(content) => setFileContent(content)}
+                    onContentExtracted={handleContentExtracted}
                     onProgress={setUploadProgress}
                     onAnalyzing={setIsAnalyzing}
                   />
