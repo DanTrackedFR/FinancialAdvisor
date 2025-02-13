@@ -70,16 +70,6 @@ export default function NewAnalysis() {
         duration: 5000,
       });
 
-      // Add an AI acknowledgment message for the document upload
-      const uploadMessage = {
-        id: Date.now(),
-        role: "assistant" as const,
-        content: "I have successfully analyzed the uploaded document and I'm ready to answer your questions about the financial statements.",
-        analysisId: data.id,
-      };
-      setMessages(prev => [...prev, uploadMessage]);
-
-      // Navigate to the new analysis page
       setLocation(`/analysis/${data.id}`);
     },
     onError: (error: Error) => {
@@ -92,13 +82,59 @@ export default function NewAnalysis() {
     },
   });
 
+  const handleContentExtracted = async (content: string) => {
+    setFileContent(content);
+
+    const processingMessage = {
+      id: Date.now(),
+      role: "assistant" as const,
+      content: "I am processing the uploaded document...",
+      analysisId: -1,
+    };
+    setMessages(prev => [...prev, processingMessage]);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user?.uid || "",
+        },
+        body: JSON.stringify({
+          message: "Document uploaded for analysis. Please confirm you can access the content.",
+          standard,
+          fileContent: content,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process document");
+      }
+
+      const result = await response.json();
+
+      const confirmationMessage = {
+        id: Date.now() + 1,
+        role: "assistant" as const,
+        content: "I have successfully analyzed the uploaded document and I'm ready to answer your questions about the financial statements.",
+        analysisId: -1,
+      };
+      setMessages(prev => [...prev.slice(0, -1), confirmationMessage]);
+    } catch (error) {
+      toast({
+        title: "Error Processing Document",
+        description: "Failed to process the document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
       if (!user) {
         throw new Error("You must be logged in to chat");
       }
 
-      // For the initial analysis chat, use the temporary content before saving
       const context = fileContent
         ? `Previous content: ${fileContent}\n\nUser question: ${content}`
         : content;
@@ -109,7 +145,7 @@ export default function NewAnalysis() {
           "Content-Type": "application/json",
           "firebase-uid": user.uid
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: context,
           standard: standard
         }),
@@ -135,14 +171,14 @@ export default function NewAnalysis() {
     },
     onSuccess: (data) => {
       if (Array.isArray(data) && data.length > 0) {
-        setMessages(prevMessages => 
+        setMessages(prevMessages =>
           [...prevMessages.slice(0, -1), ...data]
         );
       }
     },
     onError: (error: Error, _, context) => {
       if (context?.optimisticUserMessage) {
-        setMessages(prev => 
+        setMessages(prev =>
           prev.filter(msg => msg.id !== context.optimisticUserMessage.id)
         );
       }
@@ -159,15 +195,12 @@ export default function NewAnalysis() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       if (e.altKey) {
-        // Alt+Enter: Insert a new line
         const cursorPosition = e.currentTarget.selectionStart;
         const textBeforeCursor = message.slice(0, cursorPosition);
         const textAfterCursor = message.slice(cursorPosition);
         setMessage(textBeforeCursor + '\n' + textAfterCursor);
-        // Prevent default to avoid sending
         e.preventDefault();
       } else if (!e.shiftKey) {
-        // Regular Enter (not Shift+Enter): Send message
         e.preventDefault();
         handleSendMessage();
       }
@@ -181,17 +214,6 @@ export default function NewAnalysis() {
     }
   };
 
-  const handleContentExtracted = (content: string) => {
-    setFileContent(content);
-    // Add an initial message indicating the document is being processed
-    const processingMessage = {
-      id: Date.now(),
-      role: "assistant" as const,
-      content: "I am processing the uploaded document. Once analysis is complete, I'll be ready to answer your questions about the financial statements.",
-      analysisId: -1,
-    };
-    setMessages(prev => [...prev, processingMessage]);
-  };
 
   if (isAuthLoading) {
     return (
@@ -218,7 +240,6 @@ export default function NewAnalysis() {
     <div className="flex flex-col min-h-screen">
       <div className="flex-1 container mx-auto px-4 pb-24">
         <div className="max-w-6xl mx-auto py-8">
-          {/* Analysis Creation Card */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>New Financial Analysis</CardTitle>
@@ -274,7 +295,6 @@ export default function NewAnalysis() {
             </CardContent>
           </Card>
 
-          {/* Chat Card */}
           <Card className="min-h-[calc(100vh-16rem)]">
             <CardHeader>
               <CardTitle>Finance AI Chat</CardTitle>

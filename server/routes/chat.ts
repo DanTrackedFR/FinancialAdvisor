@@ -42,23 +42,28 @@ router.post("/chat", async (req, res) => {
       return;
     }
 
-    const { message, standard = "IFRS" } = req.body;
+    const { message, standard = "IFRS", fileContent } = req.body;
     if (!message || typeof message !== 'string') {
       res.status(400).json({ error: "Message is required" });
       return;
     }
 
+    // If fileContent is provided, use it as context for the analysis
+    const analysisContext = fileContent 
+      ? `Document Content:\n${fileContent}\n\nUser Question: ${message}`
+      : message;
+
+    // Get AI response using our analysis service
+    console.log("Getting AI response for chat message:", message);
+    const aiResponse = await analyzeFinancialStatement(analysisContext, standard as StandardType);
+
     // Create user message
     const userMessage = {
       id: Date.now(),
       role: "user" as const,
-      content: message.includes("Previous content:") ? message.split("\n\nUser question: ")[1] : message,
+      content: message,
       analysisId: -1,
     };
-
-    // Get AI response using our analysis service
-    console.log("Getting AI response for chat message:", message);
-    const aiResponse = await analyzeFinancialStatement(message, standard as StandardType);
 
     // Create AI response message
     const aiMessage = {
