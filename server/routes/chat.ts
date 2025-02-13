@@ -19,7 +19,6 @@ router.post("/chat/init", async (req, res) => {
       return;
     }
 
-    // For now, just return success as we don't need to store chat state
     res.json({ success: true });
   } catch (error) {
     console.error("Error initializing chat:", error);
@@ -43,7 +42,7 @@ router.post("/chat", async (req, res) => {
       return;
     }
 
-    const { message } = req.body;
+    const { message, standard = "IFRS" } = req.body;
     if (!message || typeof message !== 'string') {
       res.status(400).json({ error: "Message is required" });
       return;
@@ -53,13 +52,13 @@ router.post("/chat", async (req, res) => {
     const userMessage = {
       id: Date.now(),
       role: "user" as const,
-      content: message,
-      analysisId: -1, // General chat has no analysis ID
+      content: message.includes("Previous content:") ? message.split("\n\nUser question: ")[1] : message,
+      analysisId: -1,
     };
 
     // Get AI response using our analysis service
     console.log("Getting AI response for chat message:", message);
-    const aiResponse = await analyzeFinancialStatement(message, "IFRS" as StandardType);
+    const aiResponse = await analyzeFinancialStatement(message, standard as StandardType);
 
     // Create AI response message
     const aiMessage = {

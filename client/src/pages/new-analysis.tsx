@@ -64,7 +64,6 @@ export default function NewAnalysis() {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
-      // Show success message
       toast({
         title: "Analysis Created",
         description: "Your analysis has been created successfully.",
@@ -72,21 +71,16 @@ export default function NewAnalysis() {
       });
 
       // Add an AI acknowledgment message for the document upload
-      if (fileContent) {
-        const uploadMessage = {
-          id: Date.now(),
-          role: "assistant" as const,
-          content: "I have successfully analyzed the uploaded document. I'm ready to answer any questions you have about the financial statements.",
-          analysisId: data.id,
-        };
-        setMessages(prev => [...prev, uploadMessage]);
-      }
+      const uploadMessage = {
+        id: Date.now(),
+        role: "assistant" as const,
+        content: "I have successfully analyzed the uploaded document and I'm ready to answer your questions about the financial statements.",
+        analysisId: data.id,
+      };
+      setMessages(prev => [...prev, uploadMessage]);
 
-      // Reset form fields
-      setAnalysisName("");
-      setFileContent("");
-      setUploadProgress(0);
-      setIsAnalyzing(false);
+      // Navigate to the new analysis page
+      setLocation(`/analysis/${data.id}`);
     },
     onError: (error: Error) => {
       toast({
@@ -104,13 +98,21 @@ export default function NewAnalysis() {
         throw new Error("You must be logged in to chat");
       }
 
+      // For the initial analysis chat, use the temporary content before saving
+      const context = fileContent
+        ? `Previous content: ${fileContent}\n\nUser question: ${content}`
+        : content;
+
       const response = await fetch('/api/chat', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "firebase-uid": user.uid
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ 
+          message: context,
+          standard: standard
+        }),
       });
 
       if (!response.ok) {
