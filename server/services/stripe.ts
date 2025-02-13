@@ -53,8 +53,9 @@ export async function createCheckoutSession(customerId: string, userId: number) 
     console.log('Using price ID:', priceId);
 
     const baseUrl = process.env.PUBLIC_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    console.log('Base URL for redirects:', baseUrl);
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionConfig = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [
@@ -71,9 +72,13 @@ export async function createCheckoutSession(customerId: string, userId: number) 
       metadata: {
         userId: userId.toString(),
       },
-    });
+    };
 
+    console.log('Creating session with config:', JSON.stringify(sessionConfig, null, 2));
+    const session = await stripe.checkout.sessions.create(sessionConfig);
     console.log('Checkout session created:', session.id);
+    console.log('Session URL:', session.url);
+
     return session;
   } catch (error) {
     console.error("Error creating checkout session:", error);

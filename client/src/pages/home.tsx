@@ -34,12 +34,16 @@ export default function Home() {
   const handleManageSubscription = async () => {
     try {
       setSubscriptionError(null);
+      console.log('Starting subscription management process...');
+
       const response = await apiRequest('POST', '/api/subscriptions/manage');
       const data = await response.json();
+      console.log('Received response from server:', data);
 
       if (data.url) {
         console.log('Redirecting to Stripe checkout:', data.url);
-        window.location.href = data.url;
+        // Use window.location.assign for more reliable redirection
+        window.location.assign(data.url);
       } else {
         throw new Error('No checkout URL received from server');
       }
