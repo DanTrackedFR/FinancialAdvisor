@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
+import { queryClient } from "@/lib/queryClient";
 
 interface Message {
   id: number;
@@ -16,10 +17,20 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const [message, setMessage] = useState("");
+
+  // Query for chat messages
+  const { data: messages = [], refetch: refetchMessages } = useQuery({
+    queryKey: ["chat-messages"],
+    queryFn: async () => {
+      // Initialize with empty array if no messages exist
+      const storedMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
+      return storedMessages;
+    },
+    initialData: [],
+  });
 
   // Pre-initialize the general chat
   useEffect(() => {
@@ -65,22 +76,27 @@ export default function ChatPage() {
         content: newMessage,
         analysisId: -1,
       };
-      setMessages(prev => [...prev, optimisticUserMessage]);
+
+      // Update cached messages optimistically
+      const previousMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
+      queryClient.setQueryData(["chat-messages"], [...previousMessages, optimisticUserMessage]);
+
       setMessage("");
-      return { optimisticUserMessage };
+      return { optimisticUserMessage, previousMessages };
     },
     onSuccess: (data) => {
       if (Array.isArray(data) && data.length > 0) {
-        setMessages(prevMessages => 
-          [...prevMessages.slice(0, -1), ...data]
+        const previousMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
+        queryClient.setQueryData(
+          ["chat-messages"], 
+          [...previousMessages.slice(0, -1), ...data]
         );
       }
     },
     onError: (error: Error, _, context) => {
-      if (context?.optimisticUserMessage) {
-        setMessages(prev => 
-          prev.filter(msg => msg.id !== context.optimisticUserMessage.id)
-        );
+      if (context) {
+        // Revert to previous messages on error
+        queryClient.setQueryData(["chat-messages"], context.previousMessages);
       }
       setMessage(context?.optimisticUserMessage.content || "");
       toast({
@@ -95,15 +111,12 @@ export default function ChatPage() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       if (e.altKey) {
-        // Alt+Enter: Insert a new line
         const cursorPosition = e.currentTarget.selectionStart;
         const textBeforeCursor = message.slice(0, cursorPosition);
         const textAfterCursor = message.slice(cursorPosition);
         setMessage(textBeforeCursor + '\n' + textAfterCursor);
-        // Prevent default to avoid sending
         e.preventDefault();
       } else if (!e.shiftKey) {
-        // Regular Enter (not Shift+Enter): Send message
         e.preventDefault();
         handleSendMessage();
       }
@@ -119,7 +132,7 @@ export default function ChatPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-next justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
