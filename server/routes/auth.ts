@@ -90,7 +90,7 @@ router.post("/subscriptions/manage", async (req, res) => {
       const customer = await createCustomer(
         user.id,
         user.email,
-        `${user.firstName} ${user.lastName || ''}`
+        `${user.firstName} ${user.surname}`
       );
       await storage.updateStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;

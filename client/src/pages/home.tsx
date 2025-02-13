@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type User } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Card,
   CardContent,
@@ -33,18 +34,7 @@ export default function Home() {
   const handleManageSubscription = async () => {
     try {
       setSubscriptionError(null);
-      const response = await fetch('/api/subscriptions/manage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to manage subscription');
-      }
-
+      const response = await apiRequest('POST', '/api/subscriptions/manage');
       const { url } = await response.json();
       if (url) {
         window.location.href = url;
