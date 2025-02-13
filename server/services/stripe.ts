@@ -6,10 +6,14 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("Missing STRIPE_SECRET_KEY environment variable");
 }
 
+if (!process.env.STRIPE_PRICE_ID) {
+  console.warn("Warning: STRIPE_PRICE_ID environment variable not set. Using test mode.");
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const TRIAL_PERIOD_DAYS = 30;
-const SUBSCRIPTION_PRICE_ID = "price_1OpMAbHY9qv2WuIkFyJ1h7X9"; // $25/month price ID
+const SUBSCRIPTION_PRICE_ID = process.env.STRIPE_PRICE_ID;
 
 export async function createCustomer(userId: number, email: string, name: string) {
   try {
@@ -39,7 +43,13 @@ export async function createCustomer(userId: number, email: string, name: string
 
 export async function createCheckoutSession(customerId: string, userId: number) {
   try {
+    if (!SUBSCRIPTION_PRICE_ID) {
+      throw new Error("STRIPE_PRICE_ID environment variable not set");
+    }
+
     console.log('Creating checkout session for customer:', customerId);
+    console.log('Using price ID:', SUBSCRIPTION_PRICE_ID);
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
