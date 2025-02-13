@@ -52,6 +52,8 @@ export async function createCheckoutSession(customerId: string, userId: number) 
     console.log('Creating checkout session for customer:', customerId);
     console.log('Using price ID:', priceId);
 
+    const baseUrl = process.env.PUBLIC_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -64,8 +66,8 @@ export async function createCheckoutSession(customerId: string, userId: number) 
       mode: 'subscription',
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      success_url: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/profile?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.PUBLIC_URL || 'http://localhost:5000'}/profile`,
+      success_url: `${baseUrl}/profile?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/profile`,
       metadata: {
         userId: userId.toString(),
       },

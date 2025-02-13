@@ -35,13 +35,17 @@ export default function Home() {
     try {
       setSubscriptionError(null);
       const response = await apiRequest('POST', '/api/subscriptions/manage');
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
+      const data = await response.json();
+
+      if (data.url) {
+        console.log('Redirecting to Stripe checkout:', data.url);
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received from server');
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
-      setSubscriptionError(error.message);
+      setSubscriptionError(error.message || 'Failed to start checkout process');
     }
   };
 
