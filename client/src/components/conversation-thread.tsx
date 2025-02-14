@@ -1,7 +1,8 @@
-import { Avatar } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Card } from "./ui/card";
-import { Bot, User } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Message {
   id: number;
@@ -20,6 +21,7 @@ export function ConversationThread({
   isLoading,
 }: ConversationThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -28,6 +30,11 @@ export function ConversationThread({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const getUserInitials = () => {
+    if (!user?.firstName || !user?.surname) return "U";
+    return `${user.firstName[0]}${user.surname[0]}`.toUpperCase();
+  };
 
   return (
     <div className="space-y-4">
@@ -43,9 +50,14 @@ export function ConversationThread({
           <div className="flex gap-4">
             <Avatar className="h-8 w-8">
               {message.role === "assistant" ? (
-                <Bot className="h-4 w-4" />
+                <>
+                  <AvatarImage src="/tracked-fr-logo.png" alt="AI" />
+                  <AvatarFallback>
+                    <Bot className="h-4 w-4" />
+                  </AvatarFallback>
+                </>
               ) : (
-                <User className="h-4 w-4" />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
               )}
             </Avatar>
             <div className="flex-1">
