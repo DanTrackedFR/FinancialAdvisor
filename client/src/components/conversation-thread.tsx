@@ -9,6 +9,9 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   analysisId: number;
+  metadata?: {
+    type?: "initial_analysis" | "followup";
+  };
 }
 
 interface ConversationThreadProps {
@@ -58,7 +61,7 @@ export function ConversationThread({
               {message.role === "assistant" ? (
                 <>
                   <AvatarImage 
-                    src="/tracked-fr-logo.png" 
+                    src="/logo.JPG" 
                     alt="TrackedFR AI"
                     className="object-cover"
                   />
