@@ -32,8 +32,14 @@ export function ConversationThread({
   }, [messages]);
 
   const getUserInitials = () => {
-    if (!user?.firstName || !user?.surname) return "U";
-    return `${user.firstName[0]}${user.surname[0]}`.toUpperCase();
+    if (!user?.email) return "U";
+    const nameParts = user.email.split('@')[0].split('.');
+    if (nameParts.length >= 2) {
+      const firstInitial = nameParts[0][0].toUpperCase();
+      const secondInitial = nameParts[1][0].toUpperCase();
+      return `${firstInitial}${secondInitial}`;
+    }
+    return nameParts[0][0].toUpperCase();
   };
 
   return (
@@ -52,7 +58,7 @@ export function ConversationThread({
               {message.role === "assistant" ? (
                 <>
                   <AvatarImage 
-                    src="/assets/Color logo - no background.png" 
+                    src="/tracked-fr-logo.png" 
                     alt="TrackedFR AI"
                     className="object-cover"
                   />
