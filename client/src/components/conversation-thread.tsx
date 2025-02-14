@@ -3,6 +3,7 @@ import { Card } from "./ui/card";
 import { Bot } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import type { User } from "@shared/schema";
 
 interface Message {
   id: number;
