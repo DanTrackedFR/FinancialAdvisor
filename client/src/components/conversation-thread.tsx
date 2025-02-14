@@ -35,17 +35,8 @@ export function ConversationThread({
   }, [messages]);
 
   const getUserInitials = () => {
-    if (!user?.email) return "U";
-    const emailParts = user.email.split('@')[0];
-    const nameParts = emailParts.split('.');
-    let initials = nameParts[0][0].toUpperCase(); // Always get first initial
-
-    // Add second initial if it exists
-    if (nameParts.length > 1 && nameParts[1].length > 0) {
-      initials += nameParts[1][0].toUpperCase();
-    }
-
-    return initials;
+    if (!user?.firstName || !user?.surname) return "U";
+    return `${user.firstName[0].toUpperCase()}${user.surname[0].toUpperCase()}`;
   };
 
   return (
