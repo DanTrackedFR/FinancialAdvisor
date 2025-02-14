@@ -33,12 +33,11 @@ export function ConversationThread({
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
-    const [firstName, surname] = user.email
-      .split('@')[0]
-      .split('.')
-      .map(part => part.charAt(0).toUpperCase())
-      .slice(0, 2);
-    return surname ? `${firstName}${surname}` : firstName;
+    const emailParts = user.email.split('@')[0].split('.');
+    if (emailParts.length >= 2) {
+      return `${emailParts[0][0]}${emailParts[1][0]}`.toUpperCase();
+    }
+    return emailParts[0][0].toUpperCase();
   };
 
   return (
@@ -56,13 +55,19 @@ export function ConversationThread({
             <Avatar className="h-8 w-8">
               {message.role === "assistant" ? (
                 <>
-                  <AvatarImage src="/assets/logo.JPG" alt="AI" />
-                  <AvatarFallback>
-                    <Bot className="h-4 w-4" />
+                  <AvatarImage 
+                    src="/assets/logo.JPG" 
+                    alt="TrackedFR AI"
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-primary">
+                    <Bot className="h-4 w-4 text-white" />
                   </AvatarFallback>
                 </>
               ) : (
-                <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                <AvatarFallback className="bg-secondary">
+                  {getUserInitials()}
+                </AvatarFallback>
               )}
             </Avatar>
             <div className="flex-1">
