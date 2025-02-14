@@ -36,13 +36,16 @@ export function ConversationThread({
 
   const getUserInitials = () => {
     if (!user?.email) return "U";
-    const nameParts = user.email.split('@')[0].split('.');
-    if (nameParts.length >= 2) {
-      const firstInitial = nameParts[0][0].toUpperCase();
-      const secondInitial = nameParts[1][0].toUpperCase();
-      return `${firstInitial}${secondInitial}`;
+    const emailParts = user.email.split('@')[0];
+    const nameParts = emailParts.split('.');
+    let initials = nameParts[0][0].toUpperCase(); // Always get first initial
+
+    // Add second initial if it exists
+    if (nameParts.length > 1 && nameParts[1].length > 0) {
+      initials += nameParts[1][0].toUpperCase();
     }
-    return nameParts[0][0].toUpperCase();
+
+    return initials;
   };
 
   return (
@@ -61,7 +64,7 @@ export function ConversationThread({
               {message.role === "assistant" ? (
                 <>
                   <AvatarImage 
-                    src="/logo.JPG" 
+                    src="/assets/tracked-ai-logo.jpg" 
                     alt="TrackedFR AI"
                     className="object-cover"
                   />
