@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { type User } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,20 +57,6 @@ export default function Profile() {
     enabled: !!user,
   });
 
-  const form = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      firstName: profile?.firstName || "",
-      surname: profile?.surname || "",
-      company: profile?.company || "",
-    },
-    values: {
-      firstName: profile?.firstName || "",
-      surname: profile?.surname || "",
-      company: profile?.company || "",
-    },
-  });
-
   const { mutate: updateProfile, isPending } = useMutation({
     mutationFn: async (data: ProfileFormData) => {
       if (!user) throw new Error("Not authenticated");
@@ -109,6 +95,9 @@ export default function Profile() {
 
   const handleManageSubscription = async () => {
     try {
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
       setIsSubscriptionPending(true);
       console.log('Starting subscription management process...');
 
@@ -163,9 +152,9 @@ export default function Profile() {
     updateProfile(data);
   };
 
-  function formatDate(date: string | null) {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('en-US', {
+  function formatDate(dateStr: string | null) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
