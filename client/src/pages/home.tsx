@@ -17,6 +17,7 @@ import { useState } from "react";
 export default function Home() {
   const { user, logout } = useAuth();
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+  const [isLoadingCheckout, setIsLoadingCheckout] = useState(false); // Added loading state
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
@@ -34,6 +35,7 @@ export default function Home() {
   const handleManageSubscription = async () => {
     try {
       setSubscriptionError(null);
+      setIsLoadingCheckout(true); // Set loading state to true
       console.log('Starting subscription management process...');
 
       const response = await apiRequest('POST', '/api/subscriptions/manage');
@@ -50,6 +52,8 @@ export default function Home() {
     } catch (error: any) {
       console.error('Subscription error:', error);
       setSubscriptionError(error.message || 'Failed to start checkout process');
+    } finally {
+      setIsLoadingCheckout(false); // Set loading state to false after request completes
     }
   };
 
@@ -380,11 +384,23 @@ export default function Home() {
                     </div>
                   )}
                   <div className="pt-4 space-y-4">
-                    <Button onClick={handleManageSubscription}>
-                      Manage Subscription
+                    <Button
+                      onClick={handleManageSubscription}
+                      disabled={subscriptionError !== null}
+                    >
+                      {subscriptionError ? 'Error' : 'Manage Subscription'}
                     </Button>
                     {subscriptionError && (
                       <p className="text-sm text-red-500">{subscriptionError}</p>
+                    )}
+                    {/* Add loading state indicator */}
+                    {isLoadingCheckout && (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <p className="text-sm text-muted-foreground">
+                          Preparing checkout...
+                        </p>
+                      </div>
                     )}
                   </div>
                   <div className="pt-4">
