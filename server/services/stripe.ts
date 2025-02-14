@@ -55,6 +55,10 @@ export async function createCheckoutSession(customerId: string, userId: number) 
     const baseUrl = process.env.PUBLIC_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
     console.log('Base URL for redirects:', baseUrl);
 
+    const successUrl = new URL('/profile', baseUrl);
+    successUrl.searchParams.set('session_id', '{CHECKOUT_SESSION_ID}');
+    const cancelUrl = new URL('/profile', baseUrl);
+
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       payment_method_types: ['card'],
@@ -67,8 +71,8 @@ export async function createCheckoutSession(customerId: string, userId: number) 
       mode: 'subscription',
       allow_promotion_codes: true,
       billing_address_collection: 'required',
-      success_url: `${baseUrl}/profile?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/profile`,
+      success_url: successUrl.toString(),
+      cancel_url: cancelUrl.toString(),
       metadata: {
         userId: userId.toString(),
       },

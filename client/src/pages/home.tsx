@@ -35,25 +35,38 @@ export default function Home() {
   const handleManageSubscription = async () => {
     try {
       setSubscriptionError(null);
-      setIsLoadingCheckout(true); // Set loading state to true
+      setIsLoadingCheckout(true);
       console.log('Starting subscription management process...');
 
       const response = await apiRequest('POST', '/api/subscriptions/manage');
       const data = await response.json();
       console.log('Received response from server:', data);
 
-      if (data.url) {
-        console.log('Redirecting to Stripe checkout:', data.url);
-        // Use window.location.assign for more reliable redirection
-        window.location.assign(data.url);
-      } else {
+      if (!data.url) {
         throw new Error('No checkout URL received from server');
+      }
+
+      // Validate URL format
+      try {
+        new URL(data.url);
+      } catch (e) {
+        throw new Error('Invalid checkout URL received from server');
+      }
+
+      console.log('Opening Stripe checkout:', data.url);
+      // Open in new window for better compatibility
+      const checkoutWindow = window.open(data.url, '_blank');
+
+      if (!checkoutWindow) {
+        // If popup was blocked, try direct navigation
+        console.log('Popup blocked, trying direct navigation');
+        window.location.href = data.url;
       }
     } catch (error: any) {
       console.error('Subscription error:', error);
       setSubscriptionError(error.message || 'Failed to start checkout process');
     } finally {
-      setIsLoadingCheckout(false); // Set loading state to false after request completes
+      setIsLoadingCheckout(false);
     }
   };
 
