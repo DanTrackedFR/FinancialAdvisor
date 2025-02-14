@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type User } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +38,7 @@ export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSubscriptionPending, setIsSubscriptionPending] = useState(false);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
@@ -106,9 +107,10 @@ export default function Profile() {
     },
   });
 
-  const { mutate: handleSubscription, isPending: isSubscriptionPending } = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Not authenticated");
+  const handleManageSubscription = async () => {
+    try {
+      setIsSubscriptionPending(true);
+      console.log('Starting subscription management process...');
 
       const response = await fetch('/api/subscriptions/manage', {
         method: 'POST',
@@ -122,22 +124,40 @@ export default function Profile() {
         throw new Error('Failed to manage subscription');
       }
 
-      return response.json();
-    },
-    onSuccess: (data) => {
-      // Redirect to Stripe checkout if URL is provided
-      if (data.url) {
+      const data = await response.json();
+      console.log('Received response from server:', data);
+
+      if (!data.url) {
+        throw new Error('No checkout URL received from server');
+      }
+
+      // Validate URL format
+      try {
+        new URL(data.url);
+      } catch (e) {
+        throw new Error('Invalid checkout URL received from server');
+      }
+
+      console.log('Opening Stripe checkout:', data.url);
+      // Open in new window for better compatibility
+      const checkoutWindow = window.open(data.url, '_blank');
+
+      if (!checkoutWindow) {
+        // If popup was blocked, try direct navigation
+        console.log('Popup blocked, trying direct navigation');
         window.location.href = data.url;
       }
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
+      console.error('Subscription error:', error);
       toast({
         title: "Error managing subscription",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsSubscriptionPending(false);
+    }
+  };
 
   const onSubmit = async (data: ProfileFormData) => {
     updateProfile(data);
@@ -324,7 +344,7 @@ export default function Profile() {
               )}
               <div className="pt-4">
                 <Button 
-                  onClick={() => handleSubscription()}
+                  onClick={handleManageSubscription}
                   disabled={isSubscriptionPending}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
