@@ -21,7 +21,6 @@ export default function ChatPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [message, setMessage] = useState("");
 
-  // Query for chat messages with staleTime settings
   const { data: messages = [] } = useQuery({
     queryKey: ["chat-messages"],
     queryFn: async () => {
@@ -33,7 +32,6 @@ export default function ChatPage() {
     initialData: [],
   });
 
-  // Pre-initialize the general chat
   useEffect(() => {
     if (user) {
       fetch('/api/chat/init', {
@@ -78,7 +76,6 @@ export default function ChatPage() {
         analysisId: -1,
       };
 
-      // Update cached messages optimistically
       const previousMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
       queryClient.setQueryData(["chat-messages"], [...previousMessages, optimisticUserMessage]);
 
@@ -89,14 +86,13 @@ export default function ChatPage() {
       if (Array.isArray(data) && data.length > 0) {
         const previousMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
         queryClient.setQueryData(
-          ["chat-messages"], 
+          ["chat-messages"],
           [...previousMessages.slice(0, -1), ...data]
         );
       }
     },
     onError: (error: Error, _, context) => {
       if (context) {
-        // Revert to previous messages on error
         queryClient.setQueryData(["chat-messages"], context.previousMessages);
       }
       setMessage(context?.optimisticUserMessage.content || "");
@@ -151,8 +147,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Fixed Header */}
-      <div className="bg-background border-b">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-background border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
             <h1 className="text-2xl font-bold">Chat</h1>
@@ -160,22 +155,18 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Chat Content Area */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full container mx-auto px-4">
-          <div className="max-w-6xl mx-auto h-full py-4">
-            <div className="h-full overflow-y-auto">
-              <ConversationThread
-                messages={messages}
-                isLoading={isSending}
-              />
-            </div>
+      <div className="flex-1 overflow-y-auto pt-16 pb-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <ConversationThread
+              messages={messages}
+              isLoading={isSending}
+            />
           </div>
         </div>
       </div>
 
-      {/* Fixed Input Area */}
-      <div className="border-t bg-background">
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4">
