@@ -238,13 +238,13 @@ export default function NewAnalysis() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex-1 container mx-auto px-4 pb-24">
+      <div className="flex-1 container mx-auto px-4 pb-[calc(24px+180px)]">
         <div className="max-w-6xl mx-auto py-8">
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>New Financial Analysis</CardTitle>
               <CardDescription>
-                Upload a document and provide details for analysis
+                Create your analysis and upload documents for discussion
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -262,22 +262,6 @@ export default function NewAnalysis() {
                     onChange={(value) => setStandard(value)}
                   />
                 </div>
-                <div>
-                  <UploadArea
-                    onContentExtracted={handleContentExtracted}
-                    onProgress={setUploadProgress}
-                    onAnalyzing={setIsAnalyzing}
-                  />
-                </div>
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <Progress value={uploadProgress} className="w-full" />
-                )}
-                {isAnalyzing && (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analyzing document...</span>
-                  </div>
-                )}
                 <Button
                   onClick={() => createAnalysis()}
                   disabled={!analysisName || isCreatingAnalysis}
@@ -312,8 +296,31 @@ export default function NewAnalysis() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
-        <div className="container mx-auto px-4">
+      {/* Fixed Upload Area */}
+      <div className="fixed bottom-[88px] left-0 right-0 border-t bg-background">
+        <div className="container mx-auto px-4 py-4">
+          <div className="max-w-6xl mx-auto">
+            <UploadArea
+              onContentExtracted={handleContentExtracted}
+              onProgress={setUploadProgress}
+              onAnalyzing={setIsAnalyzing}
+            />
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <Progress value={uploadProgress} className="w-full mt-2" />
+            )}
+            {isAnalyzing && (
+              <div className="flex items-center gap-2 mt-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Analyzing document...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Input Area */}
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
+        <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4">
               <Textarea
