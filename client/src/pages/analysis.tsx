@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Navigation } from "@/components/navigation";
 
 interface Message {
   id: number;
@@ -282,110 +283,117 @@ export default function AnalysisPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/analysis")}
-          >
-            ← Back to Analysis List
-          </Button>
-        </div>
+    <div className="flex flex-col h-screen">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background">
+        <Navigation />
+      </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="space-y-1">
-              <CardTitle>
-                {isLoadingAnalysis ? (
+      <div className="flex-1 overflow-y-auto pt-[64px] pb-[180px]">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/analysis")}
+              >
+                ← Back to Analysis List
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                  <CardTitle>
+                    {isLoadingAnalysis ? (
+                      <div className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </div>
+                    ) : (
+                      currentAnalysis?.fileName || "Untitled Analysis"
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Upload additional documents or update content
+                  </CardDescription>
+                </div>
+                {currentAnalysis && (
+                  <Select
+                    value={currentAnalysis.status}
+                    onValueChange={(value) => updateStatus(value)}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Drafting">Drafting</SelectItem>
+                      <SelectItem value="In Review">In Review</SelectItem>
+                      <SelectItem value="Complete">Complete</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <UploadArea
+                  onContentExtracted={(content) => updateContent(content)}
+                  onProgress={setUploadProgress}
+                  onAnalyzing={setIsAnalyzing}
+                />
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <Progress value={uploadProgress} className="w-full" />
+                )}
+                {isAnalyzing && (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing document...</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="min-h-[calc(100vh-24rem)]">
+              <CardHeader>
+                <CardTitle>Analysis Chat</CardTitle>
+                <CardDescription>Ask questions about your analysis</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[calc(100vh-32rem)] overflow-y-auto">
+                <ConversationThread
+                  messages={messages}
+                  isLoading={isLoadingMessages}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Input Area */}
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
+        <div className="container mx-auto px-4 py-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex gap-4">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Ask a question about the analysis..."
+                className="flex-1"
+                disabled={isSending}
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!message.trim() || !analysisId || isSending}
+                className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isSending ? (
                   <div className="flex items-center">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
+                    Sending...
                   </div>
                 ) : (
-                  currentAnalysis?.fileName || "Untitled Analysis"
+                  'Send'
                 )}
-              </CardTitle>
-              <CardDescription>
-                Upload additional documents or update content
-              </CardDescription>
-            </div>
-            {currentAnalysis && (
-              <Select
-                value={currentAnalysis.status}
-                onValueChange={(value) => updateStatus(value)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Drafting">Drafting</SelectItem>
-                  <SelectItem value="In Review">In Review</SelectItem>
-                  <SelectItem value="Complete">Complete</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <UploadArea
-              onContentExtracted={(content) => updateContent(content)}
-              onProgress={setUploadProgress}
-              onAnalyzing={setIsAnalyzing}
-            />
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <Progress value={uploadProgress} className="w-full" />
-            )}
-            {isAnalyzing && (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Analyzing document...</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chat Section */}
-        <Card className="min-h-[calc(100vh-16rem)]">
-          <CardHeader>
-            <CardTitle>Analysis Chat</CardTitle>
-            <CardDescription>Ask questions about your analysis</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
-            <ConversationThread
-              messages={messages}
-              isLoading={isLoadingMessages}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Chat Input */}
-        <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
-          <div className="container mx-auto px-4">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex gap-4">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Ask a question about the analysis..."
-                  className="flex-1"
-                  disabled={isSending}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!message.trim() || !analysisId || isSending}
-                  className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {isSending ? (
-                    <div className="flex items-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </div>
-                  ) : (
-                    'Send'
-                  )}
-                </Button>
-              </div>
+              </Button>
             </div>
           </div>
         </div>

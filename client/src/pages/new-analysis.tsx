@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Navigation } from "@/components/navigation";
 
 interface Message {
   id: number;
@@ -254,6 +255,10 @@ export default function NewAnalysis() {
     }
   };
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -276,88 +281,94 @@ export default function NewAnalysis() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 container mx-auto px-4 pb-[calc(24px+180px)]">
-        <div className="max-w-6xl mx-auto py-8">
-          <Card className="mb-8">
-            <CardHeader>
-              {!currentAnalysis ? (
-                <>
-                  <CardTitle>New Financial Analysis</CardTitle>
-                  <CardDescription>
-                    Create your analysis and upload documents for discussion
-                  </CardDescription>
-                </>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{currentAnalysis.fileName}</CardTitle>
-                    <CardDescription>Upload documents for discussion</CardDescription>
-                  </div>
-                  <Select
-                    value={currentAnalysis.status}
-                    onValueChange={handleUpdateStatus}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Drafting">Drafting</SelectItem>
-                      <SelectItem value="In Review">In Review</SelectItem>
-                      <SelectItem value="Complete">Complete</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </CardHeader>
-            {!currentAnalysis && (
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div>
-                    <Input
-                      placeholder="Analysis Name"
-                      value={analysisName}
-                      onChange={(e) => setAnalysisName(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <StandardSelector
-                      value={standard}
-                      onChange={(value) => setStandard(value)}
-                    />
-                  </div>
-                  <Button
-                    onClick={() => createAnalysis()}
-                    disabled={!analysisName || isCreatingAnalysis}
-                  >
-                    {isCreatingAnalysis ? (
-                      <div className="flex items-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating Analysis...
-                      </div>
-                    ) : (
-                      'Create Analysis'
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            )}
-          </Card>
+    <div className="flex flex-col h-screen">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background">
+        <Navigation />
+      </div>
 
-          <Card className="min-h-[calc(100vh-16rem)]">
-            <CardHeader>
-              <CardTitle>Finance AI Chat</CardTitle>
-              <CardDescription>
-                Chat with our AI about any financial topic
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
-              <ConversationThread
-                messages={messages}
-                isLoading={isSending}
-              />
-            </CardContent>
-          </Card>
+      <div className="flex-1 overflow-y-auto pt-[64px] pb-[180px]">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <Card className="mb-8">
+              <CardHeader>
+                {!currentAnalysis ? (
+                  <>
+                    <CardTitle>New Financial Analysis</CardTitle>
+                    <CardDescription>
+                      Create your analysis and upload documents for discussion
+                    </CardDescription>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>{currentAnalysis.fileName}</CardTitle>
+                      <CardDescription>Upload documents for discussion</CardDescription>
+                    </div>
+                    <Select
+                      value={currentAnalysis.status}
+                      onValueChange={handleUpdateStatus}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Drafting">Drafting</SelectItem>
+                        <SelectItem value="In Review">In Review</SelectItem>
+                        <SelectItem value="Complete">Complete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardHeader>
+              {!currentAnalysis && (
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4">
+                    <div>
+                      <Input
+                        placeholder="Analysis Name"
+                        value={analysisName}
+                        onChange={(e) => setAnalysisName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <StandardSelector
+                        value={standard}
+                        onChange={(value) => setStandard(value)}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => createAnalysis()}
+                      disabled={!analysisName || isCreatingAnalysis}
+                    >
+                      {isCreatingAnalysis ? (
+                        <div className="flex items-center">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Analysis...
+                        </div>
+                      ) : (
+                        'Create Analysis'
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            <Card className="min-h-[calc(100vh-16rem)]">
+              <CardHeader>
+                <CardTitle>Finance AI Chat</CardTitle>
+                <CardDescription>
+                  Chat with our AI about any financial topic
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
+                <ConversationThread
+                  messages={messages}
+                  isLoading={isSending}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 

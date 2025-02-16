@@ -34,6 +34,10 @@ export default function ChatPage() {
   });
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (user) {
       fetch('/api/chat/init', {
         method: 'POST',
