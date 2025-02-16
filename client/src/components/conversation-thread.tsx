@@ -3,7 +3,6 @@ import { Card } from "./ui/card";
 import { Bot } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import type { User } from "@shared/schema";
 
 interface Message {
   id: number;
@@ -35,26 +34,20 @@ export function ConversationThread({
     scrollToBottom();
   }, [messages]);
 
-  const getUserInitials = () => {
-    if (!user?.firstName || !user?.surname) return "U";
-    return `${user.firstName[0].toUpperCase()}${user.surname[0].toUpperCase()}`;
-  };
-
   return (
     <div className="space-y-4">
       {messages.map((message) => (
-        <Card
-          key={message.id}
-          className={`p-4 ${
-            message.role === "assistant"
-              ? "bg-primary/5 border-primary/20"
-              : ""
-          }`}
-        >
-          <div className="flex gap-4">
-            <Avatar className="h-8 w-8">
-              {message.role === "assistant" ? (
-                <>
+        <div key={message.id} className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}>
+          <Card
+            className={`p-4 max-w-[80%] ${
+              message.role === "assistant"
+                ? "bg-primary/5 border-primary/20"
+                : "bg-secondary"
+            }`}
+          >
+            <div className={`flex gap-4 ${message.role === "user" ? "flex-row-reverse" : ""}`}>
+              {message.role === "assistant" && (
+                <Avatar className="h-8 w-8">
                   <AvatarImage 
                     src="/assets/tracked-ai-logo.jpg" 
                     alt="TrackedFR AI"
@@ -63,18 +56,14 @@ export function ConversationThread({
                   <AvatarFallback className="bg-primary">
                     <Bot className="h-4 w-4 text-white" />
                   </AvatarFallback>
-                </>
-              ) : (
-                <AvatarFallback className="bg-secondary">
-                  {getUserInitials()}
-                </AvatarFallback>
+                </Avatar>
               )}
-            </Avatar>
-            <div className="flex-1">
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <div className="flex-1">
+                <p className="whitespace-pre-wrap">{message.content}</p>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       ))}
       {isLoading && (
         <Card className="p-4 animate-pulse">
