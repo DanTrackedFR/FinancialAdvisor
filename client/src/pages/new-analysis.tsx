@@ -14,6 +14,13 @@ import { StandardSelector } from "@/components/standard-selector";
 import { UploadArea } from "@/components/upload-area";
 import { queryClient } from "@/lib/queryClient";
 import type { StandardType } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Message {
   id: number;
@@ -30,6 +37,7 @@ export default function NewAnalysis() {
   const [standard, setStandard] = useState<StandardType>("IFRS");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentAnalysis, setCurrentAnalysis] = useState<any>(null);
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -63,13 +71,13 @@ export default function NewAnalysis() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+      setCurrentAnalysis(data);
 
       toast({
         title: "Analysis Created",
         description: "Your analysis has been created successfully.",
         duration: 5000,
       });
-
       setLocation(`/analysis/${data.id}`);
     },
     onError: (error: Error) => {
@@ -214,6 +222,37 @@ export default function NewAnalysis() {
     }
   };
 
+  const handleUpdateStatus = async (status: string) => {
+    if (!currentAnalysis) return;
+
+    try {
+      const response = await fetch(`/api/analysis/${currentAnalysis.id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user?.uid || "",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      setCurrentAnalysis({ ...currentAnalysis, status });
+
+      toast({
+        title: "Status Updated",
+        description: "Analysis status has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isAuthLoading) {
     return (
@@ -242,41 +281,67 @@ export default function NewAnalysis() {
         <div className="max-w-6xl mx-auto py-8">
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>New Financial Analysis</CardTitle>
-              <CardDescription>
-                Create your analysis and upload documents for discussion
-              </CardDescription>
+              {!currentAnalysis ? (
+                <>
+                  <CardTitle>New Financial Analysis</CardTitle>
+                  <CardDescription>
+                    Create your analysis and upload documents for discussion
+                  </CardDescription>
+                </>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>{currentAnalysis.fileName}</CardTitle>
+                    <CardDescription>Upload documents for discussion</CardDescription>
+                  </div>
+                  <Select
+                    value={currentAnalysis.status}
+                    onValueChange={handleUpdateStatus}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Drafting">Drafting</SelectItem>
+                      <SelectItem value="In Review">In Review</SelectItem>
+                      <SelectItem value="Complete">Complete</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4">
-                <div>
-                  <Input
-                    placeholder="Analysis Name"
-                    value={analysisName}
-                    onChange={(e) => setAnalysisName(e.target.value)}
-                  />
+            {!currentAnalysis && (
+              <CardContent className="space-y-4">
+                <div className="grid gap-4">
+                  <div>
+                    <Input
+                      placeholder="Analysis Name"
+                      value={analysisName}
+                      onChange={(e) => setAnalysisName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <StandardSelector
+                      value={standard}
+                      onChange={(value) => setStandard(value)}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => createAnalysis()}
+                    disabled={!analysisName || isCreatingAnalysis}
+                  >
+                    {isCreatingAnalysis ? (
+                      <div className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Analysis...
+                      </div>
+                    ) : (
+                      'Create Analysis'
+                    )}
+                  </Button>
                 </div>
-                <div>
-                  <StandardSelector
-                    value={standard}
-                    onChange={(value) => setStandard(value)}
-                  />
-                </div>
-                <Button
-                  onClick={() => createAnalysis()}
-                  disabled={!analysisName || isCreatingAnalysis}
-                >
-                  {isCreatingAnalysis ? (
-                    <div className="flex items-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Analysis...
-                    </div>
-                  ) : (
-                    'Create Analysis'
-                  )}
-                </Button>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
 
           <Card className="min-h-[calc(100vh-16rem)]">
