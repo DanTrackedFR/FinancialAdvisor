@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -142,10 +142,8 @@ export default function ChatPage() {
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center">Please log in to use the chat.</p>
-          </CardContent>
+        <Card className="p-6">
+          <p className="text-center">Please log in to use the chat.</p>
         </Card>
       </div>
     );
@@ -153,21 +151,32 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen">
+      {/* Fixed Header */}
+      <div className="bg-background border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-2xl font-bold">Chat</h1>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat Content Area */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full relative">
-          <Card className="absolute inset-0 border-0 rounded-none">
-            <CardContent className="h-full p-4 overflow-y-auto">
+        <div className="h-full container mx-auto px-4">
+          <div className="max-w-6xl mx-auto h-full py-4">
+            <div className="h-full overflow-y-auto">
               <ConversationThread
                 messages={messages}
                 isLoading={isSending}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="border-t bg-background py-4">
-        <div className="container mx-auto px-4">
+      {/* Fixed Input Area */}
+      <div className="border-t bg-background">
+        <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4">
               <Textarea
