@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,15 +21,15 @@ export default function ChatPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [message, setMessage] = useState("");
 
-  // Query for chat messages with staleTime and cacheTime settings
+  // Query for chat messages with staleTime settings
   const { data: messages = [] } = useQuery({
     queryKey: ["chat-messages"],
     queryFn: async () => {
       const storedMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
       return storedMessages;
     },
-    staleTime: Infinity, // Keep the data fresh indefinitely
-    cacheTime: Infinity, // Never garbage collect the cache
+    staleTime: Infinity,
+    gcTime: Infinity,
     initialData: [],
   });
 
@@ -143,27 +143,20 @@ export default function ChatPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>Please log in to use the chat.</CardDescription>
-          </CardHeader>
+          <CardContent className="pt-6">
+            <p className="text-center">Please log in to use the chat.</p>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 container mx-auto px-4 pb-24">
-        <div className="max-w-6xl mx-auto py-8">
-          <Card className="min-h-[calc(100vh-16rem)]">
-            <CardHeader>
-              <CardTitle>Finance AI Chat</CardTitle>
-              <CardDescription>
-                Chat with our AI about any financial topic
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[calc(100vh-24rem)] overflow-y-auto">
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full relative">
+          <Card className="absolute inset-0 border-0 rounded-none">
+            <CardContent className="h-full p-4 overflow-y-auto">
               <ConversationThread
                 messages={messages}
                 isLoading={isSending}
@@ -173,7 +166,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
+      <div className="border-t bg-background py-4">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4">
