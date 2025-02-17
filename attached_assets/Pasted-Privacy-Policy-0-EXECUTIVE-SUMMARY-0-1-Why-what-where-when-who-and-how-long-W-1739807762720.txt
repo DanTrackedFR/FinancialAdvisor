@@ -1,0 +1,134 @@
+Privacy Policy
+0. EXECUTIVE SUMMARY
+
+
+0.1 Why, what, where, when, who and how (long)
+
+
+•    Why: Your personal data is needed to create an account so you (or the company or enterprise you represent) can use our services. We also use your personal data for account management (including customer service and invoicing). We do not ask for additional personal data beyond what is necessary for account creation and service provision.
+
+
+•    What (personal data): We collect and process limited personal data, including the full name, email address, and mobile phone number of the person signing up on behalf of their company or enterprise.
+
+
+•    What else - cookies: We may use cookies to recognize visitors, remember preferences, and deliver a better user experience. See our cookie statement for more information.
+
+
+•    What else – rights: You have all rights granted by applicable law, such as the right to know what information we hold, the right to be forgotten, and the right to amend or delete your personal information.
+
+
+•    What else – security: We have implemented a range of procedures and controls to prevent unauthorized access to, and misuse of, your personal data, including encryption, access control, and network security.
+
+
+•    Where: We collect and process information through our website and app, where you can manage your personal information and cookie settings.
+
+
+•    When: Upon registration (or at any time thereafter), we may ask you to provide, update, or complete relevant required information in your account.
+
+
+•    Who: Tracked is responsible for the data it collects, acting as the data controller (see paragraph 1.1 below for more information).
+
+
+•    How (long): We retain personal data as long as necessary to manage our business relationship with you, provide services, and comply with applicable laws.
+______________________________________________________________________
+1. INTRODUCTION AND DEFINITIONS
+
+
+1.1 About us
+1.1.1 We are Tracked Financial Reporting, a company incorporated in the Netherlands ("Tracked", 'we', 'us', 'our').
+1.1.2 We collect personal data via our platform (website and app) and cookies (see our cookie statement for more information).
+1.1.3 Personal data is collected solely for sign-up and registration purposes, account management, customer service, invoicing, and fee collection.
+
+
+1.2 Privacy statement
+1.2.1 This privacy statement explains how Tracked processes your personal data. "You", "your" or "User" refers to the user of our services on our website/app.
+1.2.2 This privacy statement applies to all group companies of Tracked that are responsible for processing User data.
+______________________________________________________________________
+2. DATA COLLECTION
+
+
+2.1 Personal data Tracked collects
+2.1.1 We may request the following personal data:
+•    Contact details: First and last name, email address, mobile phone number, and (if required) credit card details.
+•    Financial data: Data for billing purposes, including bank details, credit/debit card information, and VAT number.
+•    Other data: Information from communications with Tracked.
+
+
+2.2 Information We Collect Automatically
+2.2.1 Tracked may automatically collect information based on your device settings and business relationship. This may include:
+•    Name, email address, language settings, IP address, geo location, device settings, operating system, log information, and other usage data.
+
+
+2.3 Other information from other sources
+•    Data from governmental authorities: We may receive additional information in connection with investigations.
+•    Fraud detection: Data may be collected from third-party sources for fraud detection and compliance purposes.
+______________________________________________________________________
+3. PROCESSING PURPOSES AND SHARING
+
+
+3.1 Purposes
+3.1.1 Tracked uses User information, including personal data, for the following:
+•    A. Registration and administration: Account management, customer service, invoicing, and verification.
+•    B. Marketing: Reminders, newsletters, surveys, and other marketing communications.
+•    C. Communication with or among Users: Customer engagement, safety, fraud prevention, compliance, and support.
+•    D. Legal, regulatory, and compliance: Supporting investigations and compliance with legal obligations.
+
+
+3.2 Legal grounds
+
+
+3.2.1 Tracked relies on legal bases, such as the necessity to execute agreements with Users, compliance with legal obligations, and legitimate interests for fraud prevention and service improvement.
+
+
+3.3 Sharing with affiliated group companies
+Tracked may share data within its group companies for the following purposes: account management, fraud prevention, product improvement, marketing, communication, and legal compliance.
+
+
+3.4 Sharing with third parties
+3.4.1 Tracked may share User information with:
+•    Service providers: To support business operations, billing, and fraud detection.
+•    Legal compliance: As required by law or legal proceedings.
+______________________________________________________________________
+4. SECURITY AND PROTECTION
+
+
+4.1 You can access your personal data via your account.
+
+
+4.2 We have procedures to prevent unauthorized access to and misuse of personal data.
+
+
+4.3 We use security systems and procedures to protect information, including restricted access for authorized personnel only.
+______________________________________________________________________
+5. DATA RETENTION
+
+
+5.1 We retain personal data as long as necessary for managing business relationships, providing services, complying with legal requirements, and resolving disputes.
+
+
+5.2 If you have questions about retention periods, please contact Tracked.
+______________________________________________________________________
+6. YOUR CHOICES AND RIGHTS
+
+
+6.1 You have rights related to the personal data we hold about you, including the rights to access, correct, delete, block, and transfer data.
+
+
+6.2 You may withdraw consent or object to processing based on legitimate interests, subject to applicable law.
+
+
+6.3 We rely on Users to ensure the personal information we hold is accurate and current.
+______________________________________________________________________
+7. CONTACT US
+
+
+7.1 If you have questions about how we process your data or want to exercise any rights under this Privacy Statement, please contact us.
+
+
+7.2 We handle privacy-specific questions, requests, and concerns based on applicable laws and regularly review this policy.
+______________________________________________________________________
+8. CHANGES TO THIS PRIVACY STATEMENT
+
+
+This privacy statement may be updated from time to time. We will inform you in advance of any material changes affecting you.
+
