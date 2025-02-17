@@ -42,6 +42,11 @@ export default function AnalysisPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Add scroll to top effect
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Fetch current analysis data
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
     queryKey: ["/api/analysis", analysisId],
@@ -101,7 +106,7 @@ export default function AnalysisPage() {
     mutationFn: async (content: string) => {
       const response = await fetch(`/api/analysis/${analysisId}/content`, {
         method: "PATCH",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "firebase-uid": user?.uid || "",
         },
@@ -242,33 +247,43 @@ export default function AnalysisPage() {
   if (!analysisId) {
     if (isLoadingAnalyses) {
       return (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col min-h-screen">
+          <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
+            <Navigation />
+          </div>
+          <div className="flex items-center justify-center flex-1 pt-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Your Analyses</h1>
-            <Button onClick={() => navigate("/new-analysis")}>
-              New Analysis
-            </Button>
+      <div className="flex flex-col min-h-screen">
+        <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
+          <Navigation />
+        </div>
+        <div className="container mx-auto px-4 py-8 pt-16">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">Your Analyses</h1>
+              <Button onClick={() => navigate("/new-analysis")}>
+                New Analysis
+              </Button>
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Analyses</CardTitle>
+                <CardDescription>View and manage your financial analyses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AnalysisTable
+                  analyses={analyses}
+                  onNewAnalysis={() => navigate("/new-analysis")}
+                />
+              </CardContent>
+            </Card>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Analyses</CardTitle>
-              <CardDescription>View and manage your financial analyses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AnalysisTable
-                analyses={analyses}
-                onNewAnalysis={() => navigate("/new-analysis")}
-              />
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -276,19 +291,24 @@ export default function AnalysisPage() {
 
   if (isLoadingMessages || isLoadingAnalysis) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col min-h-screen">
+        <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
+          <Navigation />
+        </div>
+        <div className="flex items-center justify-center flex-1 pt-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background">
+    <div className="flex flex-col min-h-screen">
+      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
         <Navigation />
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-[64px] pb-[180px]">
+      <div className="flex-1 pt-16 pb-[180px]">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
@@ -300,7 +320,7 @@ export default function AnalysisPage() {
               </Button>
             </div>
 
-            <Card>
+            <Card className="sticky top-[80px] z-40 bg-background">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                   <CardTitle>

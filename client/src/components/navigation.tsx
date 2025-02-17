@@ -5,7 +5,7 @@ export function Navigation() {
   const [location] = useLocation();
 
   return (
-    <nav className="border-b">
+    <nav className="border-b bg-background">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo on the left */}
         <Link to="/" className="flex-none">

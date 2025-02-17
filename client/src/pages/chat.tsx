@@ -134,29 +134,39 @@ export default function ChatPage() {
 
   if (isAuthLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col min-h-screen">
+        <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
+          <Navigation />
+        </div>
+        <div className="flex items-center justify-center flex-1 pt-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="p-6">
-          <p className="text-center">Please log in to use the chat.</p>
-        </Card>
+      <div className="flex flex-col min-h-screen">
+        <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
+          <Navigation />
+        </div>
+        <div className="container mx-auto px-4 py-8 pt-16">
+          <Card className="p-6">
+            <p className="text-center">Please log in to use the chat.</p>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background">
+    <div className="flex flex-col min-h-screen">
+      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background">
         <Navigation />
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-[64px] pb-24">
+      <div className="flex-1 pt-16 pb-24">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <ConversationThread
