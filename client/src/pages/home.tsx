@@ -355,6 +355,9 @@ export default function Home() {
               <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">© 2025 Tracked Financial Reporting</p>
                 <div className="space-x-4">
+                  <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">
+                    Terms & Conditions
+                  </Link>
                   <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">
                     Privacy Policy
                   </Link>
