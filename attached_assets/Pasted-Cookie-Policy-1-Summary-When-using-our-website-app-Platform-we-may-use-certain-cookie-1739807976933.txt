@@ -1,0 +1,142 @@
+Cookie Policy
+1. Summary
+
+​
+
+When using our website/app ("Platform"), we may use certain cookies and online tracking technologies ("cookies") for various purposes, including ensuring seamless use of our Platform, analyzing traffic, and, if permitted, for advertising. These cookies help improve our services.
+
+​
+
+2. Details
+
+​
+
+Below is more detailed information about the types of cookies and tracking technologies used by Tracked and how they are used. Section 3 outlines your choices.
+
+​
+
+2.1 What are cookies and online tracking technologies?
+
+A cookie is a small text file that websites place on your computer or mobile device. These cookies store information about the content you view, remember preferences, and analyze how you use our services.
+
+Types of cookies:
+
+First-party cookies: Placed by Tracked.
+
+Third-party cookies: Placed by trusted partners (e.g., social media, advertising, security).
+
+Categories:
+
+Session cookies: Deleted when you close your browser.
+
+Persistent cookies: Remain on your device after closing the browser, with a limited lifespan for most.
+
+In addition to cookies, we use tracking technologies such as web beacons, scripts, tracking URLs, and Software Development Kits (SDKs):
+
+Beacons: Small images that retrieve information from your device, such as IP address and device type.
+
+Scripts: Embedded programs that enable additional functionality on the Platform, like analytics and ads.
+
+Tracking URLs: Links with unique identifiers to track the source of visits.
+
+SDKs: Part of app source code that gathers data like device ID and location.
+
+ 
+
+2.2 How are cookies used?
+
+Cookies help us collect information, such as:
+
+IP address
+
+Device ID
+
+Pages viewed
+
+Browser type
+
+Operating system
+
+Timestamp and geolocation
+
+Ad responses
+
+Referrer URL
+
+They allow us to recognize you across sessions and devices. The purposes of these cookies fall into three categories:
+
+​
+
+2.2.1 Functional cookies
+
+Necessary for the functioning of our Platform. They enable:
+
+Account creation, login, and transaction viewing.
+
+Remembering your preferences, like currency and language settings.
+
+Storing login details (encrypted) for convenience.
+
+ 
+
+2.2.2 Analytical cookies
+
+Help us understand how our Platform is used and improve our services. They:
+
+Measure how visitors and customers interact with Tracked.
+
+Provide insights into the effectiveness of advertising.
+
+Track interactions after seeing an online ad, including clicks, mouse movements, and keywords used.
+
+ 
+
+2.2.3 Marketing cookies
+
+Used by Tracked and partners to show you interest-based ads on and off our Platform. They:
+
+Build interest profiles based on browsing behavior.
+
+Display personalized ads and retargeting content.
+
+Integrate social media functions (e.g., "like" and "share" buttons).
+
+ 
+
+We work with trusted partners and may share data for tailored advertising. Check their privacy policies to understand how they use your data.
+
+​
+
+2.3 Non-Cookie Techniques – Email Pixels
+
+We may use pixels in emails to see if you open and interact with them. This helps us optimize our communication.
+
+​
+
+3. WHAT ARE YOUR CHOICES?
+
+​
+
+For more information on cookies and how to manage or delete them, visit allaboutcookies.org or the help section of your browser.
+
+You can adjust your cookie settings in browsers like Safari, Edge, Firefox, or Chrome. Blocking certain cookies may limit Platform functionality.
+
+Options to opt out:
+
+Analysis: Use Google Analytics Opt-out Browser Add-on to prevent data collection.
+
+Advertising: Visit NAI and IAB to opt out of behavioral advertising.
+
+Some devices allow you to limit retargeting via settings. Note that opting out doesn’t stop all ads, just tailored ones.
+
+​
+
+4. HOW TO CONTACT US?
+
+​
+
+For questions about this cookie statement, email us at info@trackedfr.com
+
+We may update this cookie statement periodically. Please check this page regularly for the latest version.
+
+​
