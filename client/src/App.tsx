@@ -8,6 +8,7 @@ import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
 import Privacy from "@/pages/privacy";
 import Cookies from "@/pages/cookies";
+import Terms from "@/pages/terms";
 import Auth from "@/pages/auth";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
@@ -41,6 +42,7 @@ function Router() {
         <ProtectedRoute path="/users" component={Users} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />
+        <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
