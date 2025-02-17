@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Loader2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -30,6 +31,9 @@ const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
+  acceptTerms: z.boolean().refine((val) => val === true, {
+    message: "You must accept the Terms & Conditions"
+  })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -60,13 +64,14 @@ export default function AuthPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      acceptTerms: false,
     },
   });
 
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
-        const { confirmPassword, ...signUpData } = data as SignUpFormData;
+        const { confirmPassword, acceptTerms, ...signUpData } = data as SignUpFormData;
         await signUp(signUpData);
       } else {
         await login(data.email, data.password);
@@ -163,7 +168,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               onChange={(e) => signUpForm.setValue('firstName', e.target.value)}
                               value={signUpForm.watch('firstName')}
                               placeholder="Enter your first name"
@@ -180,7 +185,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               onChange={(e) => signUpForm.setValue('surname', e.target.value)}
                               value={signUpForm.watch('surname')}
                               placeholder="Enter your surname"
@@ -248,6 +253,29 @@ export default function AuthPage() {
                             />
                           </FormControl>
                           <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={signUpForm.control}
+                      name="acceptTerms"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              I accept the{" "}
+                              <Link href="/terms" className="text-primary hover:underline">
+                                Terms & Conditions
+                              </Link>
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
                         </FormItem>
                       )}
                     />
