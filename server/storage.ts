@@ -1,6 +1,10 @@
-import { analyses, messages, users, subscriptions, type Analysis, type InsertAnalysis, type Message, type InsertMessage, type User, type InsertUser, type Subscription, type InsertSubscription } from "@shared/schema";
+import { analyses, messages, users, subscriptions, pageViews, userSessions, userActions,
+  type Analysis, type InsertAnalysis, type Message, type InsertMessage, 
+  type User, type InsertUser, type Subscription, type InsertSubscription,
+  type PageView, type InsertPageView, type UserSession, type InsertUserSession,
+  type UserAction, type InsertUserAction } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte, between, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -33,10 +37,26 @@ export interface IStorage {
   // Title and content update methods
   updateAnalysisTitle(id: number, title: string): Promise<void>;
   updateAnalysisContent(id: number, content: string): Promise<void>;
+
+  // Analytics methods
+  createPageView(pageView: InsertPageView): Promise<PageView>;
+  getPageViews(userId?: number, startDate?: Date, endDate?: Date): Promise<PageView[]>;
+
+  createUserSession(session: InsertUserSession): Promise<UserSession>;
+  updateUserSession(id: number, endTime: Date): Promise<void>;
+  getUserSessions(userId: number): Promise<UserSession[]>;
+
+  createUserAction(action: InsertUserAction): Promise<UserAction>;
+  getUserActions(userId: number): Promise<UserAction[]>;
+
+  // Analytics aggregation methods
+  getDailyActiveUsers(startDate: Date, endDate: Date): Promise<{ date: string; count: number; }[]>;
+  getPopularPages(startDate: Date, endDate: Date): Promise<{ path: string; views: number; }[]>;
+  getAverageSessionDuration(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User methods remain unchanged
+  // User methods
   async createUser(user: InsertUser): Promise<User> {
     const [result] = await db.insert(users).values(user).returning();
     return result;
@@ -199,6 +219,102 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ stripeCustomerId })
       .where(eq(users.id, userId));
+  }
+
+  // Analytics methods
+  async createPageView(pageView: InsertPageView): Promise<PageView> {
+    const [result] = await db.insert(pageViews).values(pageView).returning();
+    return result;
+  }
+
+  // Fix query chaining in getPageViews method
+  async getPageViews(userId?: number, startDate?: Date, endDate?: Date): Promise<PageView[]> {
+    let baseQuery = db.select().from(pageViews);
+
+    const conditions = [];
+
+    if (userId) {
+      conditions.push(eq(pageViews.userId, userId));
+    }
+
+    if (startDate && endDate) {
+      conditions.push(between(pageViews.timestamp, startDate, endDate));
+    }
+
+    if (conditions.length > 0) {
+      return baseQuery.where(and(...conditions)).orderBy(desc(pageViews.timestamp));
+    }
+
+    return baseQuery.orderBy(desc(pageViews.timestamp));
+  }
+
+  async createUserSession(session: InsertUserSession): Promise<UserSession> {
+    const [result] = await db.insert(userSessions).values(session).returning();
+    return result;
+  }
+
+  async updateUserSession(id: number, endTime: Date): Promise<void> {
+    await db.update(userSessions)
+      .set({ endTime, lastActivity: new Date() })
+      .where(eq(userSessions.id, id));
+  }
+
+  async getUserSessions(userId: number): Promise<UserSession[]> {
+    return db.select()
+      .from(userSessions)
+      .where(eq(userSessions.userId, userId))
+      .orderBy(desc(userSessions.startTime));
+  }
+
+  async createUserAction(action: InsertUserAction): Promise<UserAction> {
+    const [result] = await db.insert(userActions).values(action).returning();
+    return result;
+  }
+
+  async getUserActions(userId: number): Promise<UserAction[]> {
+    return db.select()
+      .from(userActions)
+      .where(eq(userActions.userId, userId))
+      .orderBy(desc(userActions.timestamp));
+  }
+
+  // Analytics aggregation methods
+  async getDailyActiveUsers(startDate: Date, endDate: Date): Promise<{ date: string; count: number; }[]> {
+    const result = await db.execute(sql`
+      SELECT DATE(timestamp) as date, COUNT(DISTINCT user_id) as count
+      FROM page_views
+      WHERE timestamp BETWEEN ${startDate} AND ${endDate}
+      GROUP BY DATE(timestamp)
+      ORDER BY date DESC
+    `);
+    return result.rows as { date: string; count: number; }[];
+  }
+
+  async getPopularPages(startDate: Date, endDate: Date): Promise<{ path: string; views: number; }[]> {
+    const result = await db.execute(sql`
+      SELECT path, COUNT(*) as views
+      FROM page_views
+      WHERE timestamp BETWEEN ${startDate} AND ${endDate}
+      GROUP BY path
+      ORDER BY views DESC
+      LIMIT 10
+    `);
+    return result.rows as { path: string; views: number; }[];
+  }
+
+  // Fix average duration calculation
+  async getAverageSessionDuration(): Promise<number> {
+    const result = await db.execute(sql`
+      SELECT COALESCE(
+        AVG(
+          EXTRACT(EPOCH FROM (end_time - start_time))
+        )::integer,
+        0
+      ) as avg_duration
+      FROM user_sessions 
+      WHERE end_time IS NOT NULL
+    `);
+    return Number(result.rows[0]?.avg_duration ?? 0);
   }
 }
 

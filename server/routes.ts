@@ -5,6 +5,7 @@ import { insertUserSchema } from "@shared/schema";
 import analysisRoutes from "./routes/analysis";
 import chatRoutes from "./routes/chat";
 import authRoutes from "./routes/auth";
+import analyticsRoutes from "./routes/analytics";
 
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -13,6 +14,7 @@ export function registerRoutes(app: Express) {
   app.use("/api", analysisRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", authRoutes);
+  app.use("/api/analytics", analyticsRoutes);
 
   // User routes
   app.get("/api/users", async (_req, res) => {

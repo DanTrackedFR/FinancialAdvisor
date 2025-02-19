@@ -86,6 +86,61 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   metadata: true,
 });
 
+export const pageViews = pgTable("page_views", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  path: text("path").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  duration: integer("duration"), // in seconds
+  referrer: text("referrer"),
+  userAgent: text("user_agent"),
+});
+
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  startTime: timestamp("start_time").defaultNow().notNull(),
+  endTime: timestamp("end_time"),
+  lastActivity: timestamp("last_activity").defaultNow().notNull(),
+  device: text("device"),
+  browser: text("browser"),
+  ipAddress: text("ip_address"),
+});
+
+export const userActions = pgTable("user_actions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  action: text("action").notNull(), // e.g., 'login', 'logout', 'analysis_created'
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  metadata: jsonb("metadata"), // Additional context about the action
+});
+
+// Add insert schemas for new tables
+export const insertPageViewSchema = createInsertSchema(pageViews).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  startTime: true,
+  lastActivity: true,
+});
+
+export const insertUserActionSchema = createInsertSchema(userActions).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Export types for new tables
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = z.infer<typeof insertPageViewSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type UserAction = typeof userActions.$inferSelect;
+export type InsertUserAction = z.infer<typeof insertUserActionSchema>;
+
+// Keep existing exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
