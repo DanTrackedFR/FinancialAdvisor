@@ -85,9 +85,6 @@ export default function Home() {
                     <Link to="/chat">Chat</Link>
                   </Button>
                   <Button variant="ghost" asChild>
-                    <Link to="/analysis">Analysis</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
                     <Link to="/profile">Profile</Link>
                   </Button>
                   <Button variant="outline" onClick={handleSignOut}>
@@ -402,7 +399,6 @@ export default function Home() {
                     {subscriptionError && (
                       <p className="text-sm text-red-500">{subscriptionError}</p>
                     )}
-                    {/* Add loading state indicator */}
                     {isLoadingCheckout && (
                       <div className="flex items-center space-x-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -414,7 +410,8 @@ export default function Home() {
                   </div>
                   <div className="pt-4">
                     <Button asChild>
-                      <Link to="/analysis">Start Analysis</Link>
+                      {/*Removed Link to /analysis here */}
+                      <p>Start Analysis</p>
                     </Button>
                   </div>
                 </CardContent>
