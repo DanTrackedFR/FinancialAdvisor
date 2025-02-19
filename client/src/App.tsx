@@ -25,7 +25,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   useAnalytics(); // Add analytics tracking
 
   return (
-    <div>
+    <div className="min-h-screen bg-background">
       {user && <Navigation />}
       {children}
     </div>
