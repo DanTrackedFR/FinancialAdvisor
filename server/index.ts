@@ -19,9 +19,10 @@ app.use((req, res, next) => {
 
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
   }
 
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, firebase-uid');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, firebase-uid, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
@@ -65,7 +66,7 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
-    throw err;
+    console.error(err);
   });
 
   if (process.env.NODE_ENV === "development") {
@@ -80,11 +81,20 @@ app.use((req, res, next) => {
       );
     }
 
-    app.use(express.static(publicPath));
+    // Serve static files with proper caching headers
+    app.use(express.static(publicPath, {
+      maxAge: '1h',
+      etag: true,
+      lastModified: true
+    }));
 
-    // fall through to index.html if the file doesn't exist
-    app.use("*", (_req, res) => {
-      res.sendFile(path.resolve(publicPath, "index.html"));
+    // Handle all routes - API requests go to API handlers, everything else serves index.html
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        next();
+      } else {
+        res.sendFile(path.join(publicPath, 'index.html'));
+      }
     });
   }
 

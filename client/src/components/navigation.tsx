@@ -1,8 +1,19 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { LogOut } from "lucide-react";
 
 export function Navigation() {
   const [location] = useLocation();
+  const { logout } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <nav className="border-b bg-background">
@@ -27,8 +38,12 @@ export function Navigation() {
           <Button variant={location === "/profile" ? "default" : "ghost"} asChild>
             <Link to="/profile">Profile</Link>
           </Button>
-          <Button variant="ghost" asChild>
-            <Link to="/auth">Sign Out</Link>
+          <Button variant={location === "/admin/analytics" ? "default" : "ghost"} asChild>
+            <Link to="/admin/analytics">Analytics</Link>
+          </Button>
+          <Button variant="ghost" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
           </Button>
         </div>
       </div>
