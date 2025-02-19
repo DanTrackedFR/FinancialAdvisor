@@ -27,9 +27,6 @@ export function Navigation() {
           <Button variant={location === "/profile" ? "default" : "ghost"} asChild>
             <Link to="/profile">Profile</Link>
           </Button>
-          <Button variant={location === "/admin/analytics" ? "default" : "ghost"} asChild>
-            <Link to="/admin/analytics">Analytics</Link>
-          </Button>
           <Button variant="ghost" asChild>
             <Link to="/auth">Sign Out</Link>
           </Button>
