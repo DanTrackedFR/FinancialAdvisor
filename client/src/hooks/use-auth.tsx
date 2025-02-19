@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { 
   User,
   signOut,
@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       console.log("Starting sign up process...");
-      await sendEmailVerification(email);
+      await sendVerificationEmail(auth, email);
 
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({
         firstName,
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendEmailVerification = async (email: string) => {
     try {
-      await sendVerificationEmail(email);
+      await sendVerificationEmail(auth, email);
       window.localStorage.setItem('emailForSignIn', email);
       toast({
         title: "Verification email sent",
