@@ -21,7 +21,6 @@ import { useAnalytics } from "@/hooks/use-analytics";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  useAnalytics(); // Add analytics tracking
 
   return (
     <div className="min-h-screen bg-background">

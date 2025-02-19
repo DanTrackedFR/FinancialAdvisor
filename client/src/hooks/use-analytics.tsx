@@ -18,7 +18,7 @@ export function useAnalytics() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            userId: user.id,
+            userId: user.firebaseUid, // Changed from id to firebaseUid
             path: location,
             referrer: document.referrer,
             userAgent: navigator.userAgent,
@@ -42,7 +42,7 @@ export function useAnalytics() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user.firebaseUid, // Changed from id to firebaseUid
           action,
           metadata,
         }),
