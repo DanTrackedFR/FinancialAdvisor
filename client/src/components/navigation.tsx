@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut } from "lucide-react";
+import { LogOut, MessageCircle, BarChart, User, FileText } from "lucide-react";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -30,16 +30,28 @@ export function Navigation() {
         {/* Navigation buttons on the right */}
         <div className="flex items-center space-x-4">
           <Button variant={location === "/chat" ? "default" : "ghost"} asChild>
-            <Link to="/chat">Chat</Link>
+            <Link to="/chat" className="flex items-center">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Chat
+            </Link>
           </Button>
           <Button variant={location === "/analysis" ? "default" : "ghost"} asChild>
-            <Link to="/analysis">Analysis</Link>
+            <Link to="/analysis" className="flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              Analysis
+            </Link>
           </Button>
           <Button variant={location === "/profile" ? "default" : "ghost"} asChild>
-            <Link to="/profile">Profile</Link>
+            <Link to="/profile" className="flex items-center">
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </Link>
           </Button>
           <Button variant={location === "/admin/analytics" ? "default" : "ghost"} asChild>
-            <Link to="/admin/analytics">Analytics</Link>
+            <Link to="/admin/analytics" className="flex items-center">
+              <BarChart className="h-4 w-4 mr-2" />
+              Analytics
+            </Link>
           </Button>
           <Button variant="ghost" onClick={handleSignOut}>
             <LogOut className="h-4 w-4 mr-2" />
