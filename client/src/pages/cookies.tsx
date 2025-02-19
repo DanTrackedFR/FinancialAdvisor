@@ -2,63 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { Navigation } from "@/components/navigation";
 
 export default function Cookies() {
-  const { user, logout } = useAuth();
-
-  const handleSignOut = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with logo and text */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <img
-                  src="/assets/Black logo - no background.png"
-                  alt="TrackedFR Logo"
-                  className="h-8 w-auto"
-                />
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              {user ? (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link to="/chat">Chat</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link to="/analysis">Analysis</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link to="/profile">Profile</Link>
-                  </Button>
-                  <Button variant="outline" onClick={handleSignOut}>
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link to="/auth?mode=signup">Sign Up</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link to="/auth?mode=login">Login</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Use the shared Navigation component */}
+      {user && <Navigation />}
 
       <div className="container mx-auto px-4 py-8 pt-24">
         <Card className="max-w-4xl mx-auto">
