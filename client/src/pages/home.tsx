@@ -17,7 +17,7 @@ import { useState } from "react";
 export default function Home() {
   const { user, logout } = useAuth();
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
-  const [isLoadingCheckout, setIsLoadingCheckout] = useState(false); // Added loading state
+  const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
@@ -36,30 +36,23 @@ export default function Home() {
     try {
       setSubscriptionError(null);
       setIsLoadingCheckout(true);
-      console.log('Starting subscription management process...');
 
       const response = await apiRequest('POST', '/api/subscriptions/manage');
       const data = await response.json();
-      console.log('Received response from server:', data);
 
       if (!data.url) {
         throw new Error('No checkout URL received from server');
       }
 
-      // Validate URL format
       try {
         new URL(data.url);
       } catch (e) {
         throw new Error('Invalid checkout URL received from server');
       }
 
-      console.log('Opening Stripe checkout:', data.url);
-      // Open in new window for better compatibility
       const checkoutWindow = window.open(data.url, '_blank');
 
       if (!checkoutWindow) {
-        // If popup was blocked, try direct navigation
-        console.log('Popup blocked, trying direct navigation');
         window.location.href = data.url;
       }
     } catch (error: any) {
@@ -90,9 +83,6 @@ export default function Home() {
                 <>
                   <Button variant="ghost" asChild>
                     <Link href="/chat">Chat</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link href="/analysis">Analysis</Link>
                   </Button>
                   <Button variant="ghost" asChild>
                     <Link href="/profile">Profile</Link>

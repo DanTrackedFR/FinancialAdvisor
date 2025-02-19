@@ -37,15 +37,15 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/auth" component={Auth} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/cookies" component={Cookies} />
         <ProtectedRoute path="/chat" component={Chat} />
         <ProtectedRoute path="/analysis" component={Analysis} />
         <ProtectedRoute path="/analysis/:id" component={Analysis} />
         <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
-        <Route path="/privacy" component={Privacy} />
-        <Route path="/cookies" component={Cookies} />
-        <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
