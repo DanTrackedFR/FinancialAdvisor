@@ -6,16 +6,14 @@ export function useAnalytics() {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  // Analytics tracking has been temporarily disabled
+  // Analytics tracking has been completely removed
   useEffect(() => {
-    // No-op - analytics tracking disabled
-    return;
+    // No-op
   }, [location, user]);
 
-  const trackAction = async (_action: string, _metadata?: Record<string, any>) => {
-    // No-op - analytics tracking disabled
-    return;
+  return {
+    trackAction: async () => {
+      // No-op
+    }
   };
-
-  return { trackAction };
 }
