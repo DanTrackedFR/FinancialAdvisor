@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2 } from "lucide-react";
+import React from 'react';
 
 export default function AnalyticsDashboard() {
   const { user, logout } = useAuth();
@@ -24,6 +25,7 @@ export default function AnalyticsDashboard() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30); // Last 30 days
       const response = await fetch(`/api/analytics/daily-users?start=${startDate.toISOString()}&end=${new Date().toISOString()}`);
+      if (!response.ok) throw new Error('Failed to fetch daily users');
       return response.json();
     }
   });
@@ -34,6 +36,7 @@ export default function AnalyticsDashboard() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 30);
       const response = await fetch(`/api/analytics/popular-pages?start=${startDate.toISOString()}&end=${new Date().toISOString()}`);
+      if (!response.ok) throw new Error('Failed to fetch popular pages');
       return response.json();
     }
   });
@@ -42,6 +45,7 @@ export default function AnalyticsDashboard() {
     queryKey: ['/api/analytics/session-duration'],
     queryFn: async () => {
       const response = await fetch('/api/analytics/session-duration');
+      if (!response.ok) throw new Error('Failed to fetch session duration');
       return response.json();
     }
   });
@@ -50,6 +54,7 @@ export default function AnalyticsDashboard() {
     queryKey: ['/api/analytics/recent-actions'],
     queryFn: async () => {
       const response = await fetch('/api/analytics/recent-actions');
+      if (!response.ok) throw new Error('Failed to fetch recent actions');
       return response.json();
     }
   });
@@ -58,51 +63,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with logo and text */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <img
-                  src="/assets/Black logo - no background.png"
-                  alt="TrackedFR Logo"
-                  className="h-8 w-auto"
-                />
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              {user ? (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link href="/chat">Chat</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link href="/analysis">Analysis</Link>
-                  </Button>
-                  <Button variant="ghost" asChild>
-                    <Link href="/profile">Profile</Link>
-                  </Button>
-                  <Button variant="outline" onClick={handleSignOut}>
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link href="/auth?mode=signup">Sign Up</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/auth?mode=login">Login</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8 pt-24">
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Daily Active Users */}
           <Card className="col-span-2">
@@ -159,7 +120,7 @@ export default function AnalyticsDashboard() {
                 <Loader2 className="h-8 w-8 animate-spin" />
               ) : (
                 <div className="text-4xl font-bold">
-                  {Math.floor(sessionDuration / 60)} minutes
+                  {Math.floor((sessionDuration || 0) / 60)} minutes
                 </div>
               )}
             </CardContent>
