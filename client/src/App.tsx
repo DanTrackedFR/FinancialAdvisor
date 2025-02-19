@@ -18,9 +18,12 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  useAnalytics(); // Add analytics tracking
+
   return (
     <div>
       {user && <Navigation />}
