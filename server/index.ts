@@ -11,9 +11,15 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add CORS headers for Replit deployment
+// Add CORS headers for production domain
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = ['https://trackedfr.com', 'https://www.trackedfr.com'];
+  const origin = req.headers.origin;
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, firebase-uid');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
@@ -62,20 +68,26 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
-    // Serve static files from the dist/public directory
+    // Ensure the public directory exists and contains the built files
     const publicPath = path.resolve(__dirname, "..", "dist", "public");
     app.use(express.static(publicPath));
 
-    // Serve index.html for all non-API routes (client-side routing)
-    app.get("*", (req, res) => {
+    // Handle client-side routing by serving index.html for all non-API routes
+    app.get("*", (req, res, next) => {
       if (!req.path.startsWith("/api")) {
-        res.sendFile(path.resolve(publicPath, "index.html"));
+        res.sendFile(path.resolve(publicPath, "index.html"), err => {
+          if (err) {
+            next(err);
+          }
+        });
+      } else {
+        next();
       }
     });
   }
 
   const port = process.env.PORT || 5000;
-  server.listen(port, () => {
-    log(`serving on port ${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    log(`Server running on port ${port}`);
   });
 })();
