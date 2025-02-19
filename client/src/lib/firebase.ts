@@ -21,10 +21,18 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Add authorized domains for Firebase Auth
+const authorizedDomains = [
+  'trackedfr.com',
+  'www.trackedfr.com',
+  currentDomain
+];
+
 // Log configuration for debugging
 console.log("Firebase configuration:", {
   projectId: firebaseConfig.projectId,
-  authDomain: firebaseConfig.authDomain
+  authDomain: firebaseConfig.authDomain,
+  authorizedDomains
 });
 
 // Initialize Firebase
@@ -38,6 +46,7 @@ export const auth = getAuth(app);
 export const actionCodeSettings = {
   url: `${window.location.origin}/auth?email=${encodeURIComponent(window.location.search)}`,
   handleCodeInApp: true,
+  dynamicLinkDomain: 'trackedfr.com'
 };
 
 // Function to send email verification link
