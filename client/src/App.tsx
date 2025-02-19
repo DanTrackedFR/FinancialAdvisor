@@ -13,6 +13,7 @@ import Auth from "@/pages/auth";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Chat from "@/pages/chat";
+import AnalyticsDashboard from "@/pages/admin/analytics";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
@@ -40,6 +41,7 @@ function Router() {
         <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
+        <ProtectedRoute path="/admin/analytics" component={AnalyticsDashboard} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />
         <Route path="/terms" component={Terms} />
