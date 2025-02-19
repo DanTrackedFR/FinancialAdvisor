@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -58,6 +60,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
+  // Error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -69,20 +72,19 @@ app.use((req, res, next) => {
     await setupVite(app, server);
   } else {
     // Ensure the public directory exists and contains the built files
-    const publicPath = path.resolve(__dirname, "..", "dist", "public");
+    const publicPath = path.resolve(__dirname, "public");
+
+    if (!fs.existsSync(publicPath)) {
+      throw new Error(
+        `Could not find the build directory: ${publicPath}, make sure to build the client first`,
+      );
+    }
+
     app.use(express.static(publicPath));
 
-    // Handle client-side routing by serving index.html for all non-API routes
-    app.get("*", (req, res, next) => {
-      if (!req.path.startsWith("/api")) {
-        res.sendFile(path.resolve(publicPath, "index.html"), err => {
-          if (err) {
-            next(err);
-          }
-        });
-      } else {
-        next();
-      }
+    // fall through to index.html if the file doesn't exist
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(publicPath, "index.html"));
     });
   }
 
