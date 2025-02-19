@@ -70,7 +70,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="flex items-center">
+              <Link to="/" className="flex items-center">
                 <img
                   src="/assets/Black logo - no background.png"
                   alt="TrackedFR Logo"
@@ -82,13 +82,13 @@ export default function Home() {
               {user ? (
                 <>
                   <Button variant="ghost" asChild>
-                    <Link href="/chat">Chat</Link>
+                    <Link to="/chat">Chat</Link>
                   </Button>
                   <Button variant="ghost" asChild>
-                    <Link href="/analysis">Analysis</Link>
+                    <Link to="/analysis">Analysis</Link>
                   </Button>
                   <Button variant="ghost" asChild>
-                    <Link href="/profile">Profile</Link>
+                    <Link to="/profile">Profile</Link>
                   </Button>
                   <Button variant="outline" onClick={handleSignOut}>
                     Sign Out
@@ -97,10 +97,10 @@ export default function Home() {
               ) : (
                 <>
                   <Button variant="ghost" asChild>
-                    <Link href="/auth?mode=signup">Sign Up</Link>
+                    <Link to="/auth?mode=signup">Sign Up</Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/auth?mode=login">Login</Link>
+                    <Link to="/auth?mode=login">Login</Link>
                   </Button>
                 </>
               )}
@@ -138,7 +138,7 @@ export default function Home() {
                     size="lg"
                     className="px-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   >
-                    <Link href="/auth?mode=signup">Sign Up Now</Link>
+                    <Link to="/auth?mode=signup">Sign Up Now</Link>
                   </Button>
                 </div>
               </div>
@@ -337,7 +337,7 @@ export default function Home() {
                 Start using our AI-powered platform today
               </p>
               <Button asChild size="lg" className="px-8">
-                <Link href="/auth?mode=signup">Sign Up Now</Link>
+                <Link to="/auth?mode=signup">Sign Up Now</Link>
               </Button>
             </div>
           </section>
@@ -348,13 +348,13 @@ export default function Home() {
               <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">© 2025 Tracked Financial Reporting</p>
                 <div className="space-x-4">
-                  <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">
+                  <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary">
                     Terms & Conditions
                   </Link>
-                  <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">
+                  <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary">
                     Privacy Policy
                   </Link>
-                  <Link href="/cookies" className="text-sm text-muted-foreground hover:text-primary">
+                  <Link to="/cookies" className="text-sm text-muted-foreground hover:text-primary">
                     Cookie Policy
                   </Link>
                 </div>
@@ -414,7 +414,7 @@ export default function Home() {
                   </div>
                   <div className="pt-4">
                     <Button asChild>
-                      <Link href="/analysis">Start Analysis</Link>
+                      <Link to="/analysis">Start Analysis</Link>
                     </Button>
                   </div>
                 </CardContent>

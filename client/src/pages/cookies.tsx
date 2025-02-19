@@ -33,10 +33,13 @@ export default function Cookies() {
               {user ? (
                 <>
                   <Button variant="ghost" asChild>
-                    <Link href="/chat">Chat</Link>
+                    <Link to="/chat">Chat</Link>
                   </Button>
                   <Button variant="ghost" asChild>
-                    <Link href="/profile">Profile</Link>
+                    <Link to="/analysis">Analysis</Link>
+                  </Button>
+                  <Button variant="ghost" asChild>
+                    <Link to="/profile">Profile</Link>
                   </Button>
                   <Button variant="outline" onClick={handleSignOut}>
                     Sign Out
@@ -45,10 +48,10 @@ export default function Cookies() {
               ) : (
                 <>
                   <Button variant="ghost" asChild>
-                    <Link href="/auth?mode=signup">Sign Up</Link>
+                    <Link to="/auth?mode=signup">Sign Up</Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/auth?mode=login">Login</Link>
+                    <Link to="/auth?mode=login">Login</Link>
                   </Button>
                 </>
               )}
@@ -177,8 +180,19 @@ export default function Cookies() {
             </p>
 
             <div className="mt-8">
-              <Link href="/" className="text-primary hover:underline">
+              <Link to="/" className="text-primary hover:underline">
                 Return to Home
+              </Link>
+            </div>
+            <div className="space-x-4 mt-4">
+              <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary">
+                Terms & Conditions
+              </Link>
+              <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary">
+                Privacy Policy
+              </Link>
+              <Link to="/cookies" className="text-sm text-muted-foreground hover:text-primary">
+                Cookie Policy
               </Link>
             </div>
           </CardContent>
