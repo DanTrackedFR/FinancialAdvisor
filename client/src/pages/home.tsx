@@ -16,7 +16,9 @@ import { useState } from "react";
 
 export default function Home() {
   const { user, logout } = useAuth();
-  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(
+    null,
+  );
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
@@ -37,27 +39,27 @@ export default function Home() {
       setSubscriptionError(null);
       setIsLoadingCheckout(true);
 
-      const response = await apiRequest('POST', '/api/subscriptions/manage');
+      const response = await apiRequest("POST", "/api/subscriptions/manage");
       const data = await response.json();
 
       if (!data.url) {
-        throw new Error('No checkout URL received from server');
+        throw new Error("No checkout URL received from server");
       }
 
       try {
         new URL(data.url);
       } catch (e) {
-        throw new Error('Invalid checkout URL received from server');
+        throw new Error("Invalid checkout URL received from server");
       }
 
-      const checkoutWindow = window.open(data.url, '_blank');
+      const checkoutWindow = window.open(data.url, "_blank");
 
       if (!checkoutWindow) {
         window.location.href = data.url;
       }
     } catch (error: any) {
-      console.error('Subscription error:', error);
-      setSubscriptionError(error.message || 'Failed to start checkout process');
+      console.error("Subscription error:", error);
+      setSubscriptionError(error.message || "Failed to start checkout process");
     } finally {
       setIsLoadingCheckout(false);
     }
@@ -127,7 +129,8 @@ export default function Home() {
                   Automated Financial Reporting
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Transform your general ledger data into compliant financial statements ready to meet your filing obligations
+                  Transform your general ledger data into compliant financial
+                  statements ready to meet your filing obligations
                 </p>
                 <div className="flex justify-center gap-4 pt-4">
                   <Button
@@ -145,14 +148,19 @@ export default function Home() {
           {/* Features Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">Effortless Financial Statement Generation</h2>
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Effortless Financial Statement Generation
+              </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <Card>
                   <CardHeader>
                     <CardTitle>Automated & Accurate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Based on prior-year financial statements, Tracked will create fully compliant financial statements instantly.</p>
+                    <p className="text-muted-foreground">
+                      Based on prior-year financial statements, Tracked will
+                      create fully compliant financial statements instantly.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -161,7 +169,11 @@ export default function Home() {
                     <CardTitle>Cost-Efficient Solution</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Streamline your financial reporting process while reducing costs. Our solution offers a cost-efficient approach to generating compliant financial statements.</p>
+                    <p className="text-muted-foreground">
+                      Streamline your financial reporting process while reducing
+                      costs. Our solution offers a cost-efficient approach to
+                      generating compliant financial statements.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -170,7 +182,10 @@ export default function Home() {
                     <CardTitle>Seamless ERP Integration</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Integrate effortlessly with popular ERPs like Netsuite, Xero, Quickbooks for smoother financial reporting.</p>
+                    <p className="text-muted-foreground">
+                      Integrate effortlessly with popular ERPs like Netsuite,
+                      Xero, Quickbooks for smoother financial reporting.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -179,7 +194,10 @@ export default function Home() {
                     <CardTitle>Automated Compliance</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Automate compliance checks for financial records, ensuring accuracy and efficiency.</p>
+                    <p className="text-muted-foreground">
+                      Automate compliance checks for financial records, ensuring
+                      accuracy and efficiency.
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -189,11 +207,15 @@ export default function Home() {
           {/* Enhanced Financial Understanding Section */}
           <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">Enhanced Financial Understanding</h2>
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Enhanced Financial Understanding
+              </h2>
               <Card className="max-w-3xl mx-auto">
                 <CardContent className="p-8">
                   <p className="text-lg text-muted-foreground">
-                    Deepen your understanding of financial statements and their impact on your business. Our tool provides valuable insights to help you make informed financial decisions.
+                    Deepen your understanding of financial statements and their
+                    impact on your business. Our tool provides valuable insights
+                    to help you make informed financial decisions.
                   </p>
                 </CardContent>
               </Card>
@@ -203,7 +225,9 @@ export default function Home() {
           {/* About Tracked Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">About Tracked</h2>
+              <h2 className="text-3xl font-bold text-center mb-12">
+                About Tracked
+              </h2>
               <div className="grid md:grid-cols-3 gap-8">
                 <Card>
                   <CardHeader>
@@ -211,7 +235,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">
-                      Frustrated by work that added no value, we are building the ability to automatically create compliant financial statements- at speed, perfectly accurate.
+                      Frustrated by work that added no value, we are building
+                      the ability to automatically create compliant financial
+                      statements- at speed, perfectly accurate.
                     </p>
                   </CardContent>
                 </Card>
@@ -222,7 +248,10 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">
-                      Our vision is to revolutionize financial statement creation and empower accounting professionals and finance teams with a seamless and efficient solution. Be the reviewer, not the preparer.
+                      Our vision is to revolutionize financial statement
+                      creation and empower accounting professionals and finance
+                      teams with a seamless and efficient solution. Be the
+                      reviewer, not the preparer.
                     </p>
                   </CardContent>
                 </Card>
@@ -233,7 +262,9 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground">
-                      Explore the advanced technology that drives Tracked Financial Reporting. Our commitment to innovation ensures a robust and reliable platform for our users.
+                      Explore the advanced technology that drives Tracked
+                      Financial Reporting. Our commitment to innovation ensures
+                      a robust and reliable platform for our users.
                     </p>
                   </CardContent>
                 </Card>
@@ -244,7 +275,9 @@ export default function Home() {
           {/* Partners Section */}
           <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">Built by alumni who know what great looks like</h2>
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Built by alumni who know what great looks like
+              </h2>
               <div className="flex justify-center items-center gap-12 flex-wrap">
                 <img
                   src="https://static.wixstatic.com/media/67030e_cdc0b65dd0684915bb65c25bd4bb7033~mv2.jpg/v1/crop/x_15,y_0,w_347,h_282/fill/w_128,h_104,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/pwc_JPG.jpg"
@@ -268,14 +301,20 @@ export default function Home() {
           {/* Customers Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">Who are our customers?</h2>
+              <h2 className="text-3xl font-bold text-center mb-12">
+                Who are our customers?
+              </h2>
               <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 <Card>
                   <CardHeader>
                     <CardTitle>Accounting Firms</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Generate accurate financial statements from trial balances, saving time so you can add value to your clients' day, not just gather signatures.</p>
+                    <p className="text-muted-foreground">
+                      Generate accurate financial statements from trial
+                      balances, saving time so you can add value to your
+                      clients' day, not just gather signatures.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -284,7 +323,10 @@ export default function Home() {
                     <CardTitle>Internal Finance Teams</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">Automate the work that adds no value, so you can get on with driving business performance.</p>
+                    <p className="text-muted-foreground">
+                      Automate the work that adds no value, so you can get on
+                      with driving business performance.
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -294,32 +336,47 @@ export default function Home() {
           {/* Testimonials Section */}
           <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
+              <h2 className="text-3xl font-bold text-center mb-12">
+                What Our Users Say
+              </h2>
               <div className="grid md:grid-cols-3 gap-8">
                 <Card>
                   <CardContent className="p-8">
                     <blockquote className="text-lg text-muted-foreground italic">
-                      "We expect Tracked Financial Reporting to transform how we manage preparing financial statements. The accuracy and speed of the platform will significantly improve our processes."
+                      "We expect Tracked Financial Reporting to transform how we
+                      manage preparing financial statements. The accuracy and
+                      speed of the platform will significantly improve our
+                      processes."
                     </blockquote>
-                    <p className="mt-4 font-medium">Sarah Johnson - CFO at Datum Consulting</p>
+                    <p className="mt-4 font-medium">
+                      Sarah Johnson - CFO at Datum Consulting
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardContent className="p-8">
                     <blockquote className="text-lg text-muted-foreground italic">
-                      "The automated compliance checks and seamless ERP integration have revolutionized our financial reporting workflow."
+                      "The automated compliance checks and seamless ERP
+                      integration have revolutionized our financial reporting
+                      workflow."
                     </blockquote>
-                    <p className="mt-4 font-medium">Michael Chen - Senior Manager at PwC</p>
+                    <p className="mt-4 font-medium">
+                      Michael Chen - Senior Manager at PwC
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardContent className="p-8">
                     <blockquote className="text-lg text-muted-foreground italic">
-                      "This platform has significantly reduced the time we spend on financial statement preparation, allowing us to focus on value-added analysis."
+                      "This platform has significantly reduced the time we spend
+                      on financial statement preparation, allowing us to focus
+                      on value-added analysis."
                     </blockquote>
-                    <p className="mt-4 font-medium">Emma Thompson - Finance Director</p>
+                    <p className="mt-4 font-medium">
+                      Emma Thompson - Finance Director
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -329,7 +386,9 @@ export default function Home() {
           {/* CTA Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4 text-center">
-              <h2 className="text-3xl font-bold mb-4">Experience automated financial statements</h2>
+              <h2 className="text-3xl font-bold mb-4">
+                Experience automated financial statements
+              </h2>
               <p className="text-xl text-muted-foreground mb-8">
                 Start using our AI-powered platform today
               </p>
@@ -343,15 +402,26 @@ export default function Home() {
           <footer className="py-8 border-t">
             <div className="container mx-auto px-4">
               <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">© 2025 Tracked Financial Reporting</p>
+                <p className="text-sm text-muted-foreground">
+                  © 2025 Tracked Financial Reporting
+                </p>
                 <div className="space-x-4">
-                  <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary">
+                  <Link
+                    to="/terms"
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
                     Terms & Conditions
                   </Link>
-                  <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary">
+                  <Link
+                    to="/privacy"
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
                     Privacy Policy
                   </Link>
-                  <Link to="/cookies" className="text-sm text-muted-foreground hover:text-primary">
+                  <Link
+                    to="/cookies"
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
                     Cookie Policy
                   </Link>
                 </div>
@@ -376,16 +446,24 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Name</p>
-                    <p>{profile.firstName} {profile.surname}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Name
+                    </p>
+                    <p>
+                      {profile.firstName} {profile.surname}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Email</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Email
+                    </p>
                     <p>{profile.email}</p>
                   </div>
                   {profile.company && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Company</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Company
+                      </p>
                       <p>{profile.company}</p>
                     </div>
                   )}
@@ -394,10 +472,12 @@ export default function Home() {
                       onClick={handleManageSubscription}
                       disabled={subscriptionError !== null}
                     >
-                      {subscriptionError ? 'Error' : 'Manage Subscription'}
+                      {subscriptionError ? "Error" : "Manage Subscription"}
                     </Button>
                     {subscriptionError && (
-                      <p className="text-sm text-red-500">{subscriptionError}</p>
+                      <p className="text-sm text-red-500">
+                        {subscriptionError}
+                      </p>
                     )}
                     {isLoadingCheckout && (
                       <div className="flex items-center space-x-2">

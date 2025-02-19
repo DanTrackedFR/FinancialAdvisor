@@ -44,13 +44,13 @@ export default function Profile() {
     queryKey: ["/api/users/profile"],
     queryFn: async () => {
       if (!user) return null;
-      const response = await fetch('/api/users/profile', {
+      const response = await fetch("/api/users/profile", {
         headers: {
-          'firebase-uid': user.uid
-        }
+          "firebase-uid": user.uid,
+        },
       });
       if (!response.ok) {
-        throw new Error('Failed to fetch profile');
+        throw new Error("Failed to fetch profile");
       }
       return response.json();
     },
@@ -61,17 +61,17 @@ export default function Profile() {
     mutationFn: async (data: ProfileFormData) => {
       if (!user) throw new Error("Not authenticated");
 
-      const response = await fetch('/api/users/profile', {
-        method: 'PATCH',
+      const response = await fetch("/api/users/profile", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'firebase-uid': user.uid
+          "Content-Type": "application/json",
+          "firebase-uid": user.uid,
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        throw new Error("Failed to update profile");
       }
 
       return response.json();
@@ -99,45 +99,45 @@ export default function Profile() {
         throw new Error("Not authenticated");
       }
       setIsSubscriptionPending(true);
-      console.log('Starting subscription management process...');
+      console.log("Starting subscription management process...");
 
-      const response = await fetch('/api/subscriptions/manage', {
-        method: 'POST',
+      const response = await fetch("/api/subscriptions/manage", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'firebase-uid': user.uid
-        }
+          "Content-Type": "application/json",
+          "firebase-uid": user.uid,
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to manage subscription');
+        throw new Error("Failed to manage subscription");
       }
 
       const data = await response.json();
-      console.log('Received response from server:', data);
+      console.log("Received response from server:", data);
 
       if (!data.url) {
-        throw new Error('No checkout URL received from server');
+        throw new Error("No checkout URL received from server");
       }
 
       // Validate URL format
       try {
         new URL(data.url);
       } catch (e) {
-        throw new Error('Invalid checkout URL received from server');
+        throw new Error("Invalid checkout URL received from server");
       }
 
-      console.log('Opening Stripe checkout:', data.url);
+      console.log("Opening Stripe checkout:", data.url);
       // Open in new window for better compatibility
-      const checkoutWindow = window.open(data.url, '_blank');
+      const checkoutWindow = window.open(data.url, "_blank");
 
       if (!checkoutWindow) {
         // If popup was blocked, try direct navigation
-        console.log('Popup blocked, trying direct navigation');
+        console.log("Popup blocked, trying direct navigation");
         window.location.href = data.url;
       }
     } catch (error: any) {
-      console.error('Subscription error:', error);
+      console.error("Subscription error:", error);
       toast({
         title: "Error managing subscription",
         description: error.message,
@@ -153,24 +153,24 @@ export default function Profile() {
   };
 
   function formatDate(dateStr: string | null) {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   }
 
   function getSubscriptionStatusDisplay(status: string) {
     switch (status) {
-      case 'trial':
-        return 'Free Trial';
-      case 'active':
-        return 'Active';
-      case 'cancelled':
-        return 'Cancelled';
-      case 'expired':
-        return 'Expired';
+      case "trial":
+        return "Free Trial";
+      case "active":
+        return "Active";
+      case "cancelled":
+        return "Cancelled";
+      case "expired":
+        return "Expired";
       default:
         return status;
     }
@@ -312,37 +312,41 @@ export default function Profile() {
               <div>
                 <h3 className="font-medium">Current Plan</h3>
                 <p className="text-sm text-muted-foreground">
-                  {getSubscriptionStatusDisplay(profile?.subscriptionStatus || 'trial')}
+                  {getSubscriptionStatusDisplay(
+                    profile?.subscriptionStatus || "trial",
+                  )}
                 </p>
               </div>
-              {profile?.trialEndsAt && profile.subscriptionStatus === 'trial' && (
-                <div>
-                  <h3 className="font-medium">Trial Period</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your trial ends on {formatDate(profile.trialEndsAt)}
-                  </p>
-                </div>
-              )}
-              {profile?.subscriptionEndsAt && profile.subscriptionStatus === 'active' && (
-                <div>
-                  <h3 className="font-medium">Next Billing Date</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(profile.subscriptionEndsAt)}
-                  </p>
-                </div>
-              )}
+              {profile?.trialEndsAt &&
+                profile.subscriptionStatus === "trial" && (
+                  <div>
+                    <h3 className="font-medium">Trial Period</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Your trial ends on {formatDate(profile.trialEndsAt)}
+                    </p>
+                  </div>
+                )}
+              {profile?.subscriptionEndsAt &&
+                profile.subscriptionStatus === "active" && (
+                  <div>
+                    <h3 className="font-medium">Next Billing Date</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(profile.subscriptionEndsAt)}
+                    </p>
+                  </div>
+                )}
               <div className="pt-4">
-                <Button 
+                <Button
                   onClick={handleManageSubscription}
                   disabled={isSubscriptionPending}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
                   {isSubscriptionPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : profile?.subscriptionStatus === 'trial' ? (
-                    'Upgrade to Premium'
+                  ) : profile?.subscriptionStatus === "trial" ? (
+                    "Upgrade to Premium"
                   ) : (
-                    'Manage Subscription'
+                    "Manage Subscription"
                   )}
                 </Button>
               </div>
