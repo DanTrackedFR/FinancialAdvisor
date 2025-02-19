@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MessageCircle, User, LogOut } from "lucide-react";
+import { MessageCircle, User, FileText, LogOut } from "lucide-react";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -33,6 +33,12 @@ export function Navigation() {
             <Link to="/chat" className="flex items-center">
               <MessageCircle className="h-4 w-4 mr-2" />
               Chat
+            </Link>
+          </Button>
+          <Button variant={location === "/analysis" ? "default" : "ghost"} asChild>
+            <Link to="/analysis" className="flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              Analysis
             </Link>
           </Button>
           <Button variant={location === "/profile" ? "default" : "ghost"} asChild>
