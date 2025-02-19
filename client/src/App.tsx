@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-
+  
   return (
     <div className="min-h-screen bg-background">
       {user && <Navigation />}
