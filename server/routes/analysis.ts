@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { analyzeFinancialStatement } from "../services/analysis";
 import { storage } from "../storage";
-import { insertMessageSchema } from "@shared/schema";
-import { insertAnalysisSchema } from "@shared/schema";
+import { insertMessageSchema, insertAnalysisSchema } from "@shared/schema";
 
 const router = Router();
 
@@ -100,8 +99,10 @@ router.patch("/analysis/:id/status", async (req, res) => {
     const analysisId = parseInt(req.params.id);
     const { status } = req.body;
 
-    if (!status || typeof status !== 'string') {
-      res.status(400).json({ error: "Valid status is required" });
+    // Validate status value
+    const validStatuses = ["Drafting", "In Review", "Complete"] as const;
+    if (!status || !validStatuses.includes(status)) {
+      res.status(400).json({ error: "Invalid status. Must be one of: Drafting, In Review, Complete" });
       return;
     }
 
@@ -138,11 +139,13 @@ router.post("/analysis", async (req, res) => {
     const data = insertAnalysisSchema.parse(req.body);
     console.log("Analysis data validated");
 
-    const analysis = await storage.createAnalysis({
+    // Create analysis with validated data
+    const analysisData = {
       ...data,
       userId: user.id,
-      status: "Drafting"
-    });
+    };
+
+    const analysis = await storage.createAnalysis(analysisData);
     console.log("Analysis record created:", analysis.id);
 
     // Start AI analysis in the background

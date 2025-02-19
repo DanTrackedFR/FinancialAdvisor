@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, MessageCircle, User, FileText } from "lucide-react";
+import { MessageCircle, User, FileText } from "lucide-react";
 
 export function Navigation() {
   const [location] = useLocation();
