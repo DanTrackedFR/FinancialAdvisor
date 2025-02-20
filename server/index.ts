@@ -103,18 +103,19 @@ app.use((req, res, next) => {
 
     // Production-optimized static file serving
     app.use(express.static(publicPath, {
-      maxAge: '30d', // Increased cache duration for production
+      maxAge: '30d', // Cache duration for static assets
       etag: true,
       lastModified: true,
       immutable: true, // For files with content hash
       compress: true  // Enable compression
     }));
 
-    // SPA fallback route
-    app.get('*', (req, res, next) => {
+    // SPA fallback route - Handle all non-API routes
+    app.get('/*', (req, res, next) => {
       if (req.path.startsWith('/api')) {
         next();
       } else {
+        // Always serve index.html for client-side routes
         res.sendFile(path.join(publicPath, 'index.html'), {
           maxAge: '0', // Don't cache the index.html file
           etag: true,
