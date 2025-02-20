@@ -14,16 +14,17 @@ app.use(express.urlencoded({ extended: false }));
 
 // Add CORS headers for production domain
 app.use((req, res, next) => {
+  // Include both www and non-www versions of the domain
   const allowedOrigins = ['https://trackedfr.com', 'https://www.trackedfr.com'];
   const origin = req.headers.origin;
 
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, firebase-uid, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   }
 
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, firebase-uid, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -81,7 +82,7 @@ app.use((req, res, next) => {
       );
     }
 
-    // Serve static files with proper caching headers
+    // Serve static files with proper caching headers and compression
     app.use(express.static(publicPath, {
       maxAge: '1h',
       etag: true,

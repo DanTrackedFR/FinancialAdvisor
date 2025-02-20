@@ -42,9 +42,9 @@ console.log("Firebase initialized successfully");
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
-// Email verification link configuration
+// Email verification link configuration for custom domain
 export const actionCodeSettings = {
-  url: `${window.location.origin}/auth?email=${encodeURIComponent(window.location.search)}`,
+  url: `https://trackedfr.com/auth?email=${encodeURIComponent(window.location.search)}`,
   handleCodeInApp: true,
   dynamicLinkDomain: 'trackedfr.com'
 };
