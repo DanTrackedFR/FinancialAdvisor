@@ -11,6 +11,7 @@ import Auth from "@/pages/auth";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Chat from "@/pages/chat";
+import Analysis from "@/pages/analysis"; // Add Analysis import
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
@@ -18,7 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  
+
   return (
     <div className="min-h-screen bg-background">
       {user && <Navigation />}
@@ -37,6 +38,7 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />
         <ProtectedRoute path="/chat" component={Chat} />
+        <ProtectedRoute path="/analysis" component={Analysis} /> {/* Add Analysis route */}
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
         <Route component={NotFound} />
