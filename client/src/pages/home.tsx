@@ -349,7 +349,7 @@ export default function Home() {
                       processes."
                     </blockquote>
                     <p className="mt-4 font-medium">
-                      Sarah Johnson - CFO at Datum Consulting
+                      Georgia Wigley - CFO at Datum Consulting
                     </p>
                   </CardContent>
                 </Card>
@@ -362,7 +362,7 @@ export default function Home() {
                       workflow."
                     </blockquote>
                     <p className="mt-4 font-medium">
-                      Michael Chen - Senior Manager at PwC
+                      Rebecca Peters - Head of Finance Taurus Built Construction
                     </p>
                   </CardContent>
                 </Card>
@@ -375,7 +375,7 @@ export default function Home() {
                       on value-added analysis."
                     </blockquote>
                     <p className="mt-4 font-medium">
-                      Emma Thompson - Finance Director
+                      Tiarnan Stack - Financial Controller Irish Housing
                     </p>
                   </CardContent>
                 </Card>
