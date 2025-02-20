@@ -11,7 +11,8 @@ import Auth from "@/pages/auth";
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Chat from "@/pages/chat";
-import Analysis from "@/pages/analysis"; // Add Analysis import
+import Analysis from "@/pages/analysis";
+import NewAnalysis from "@/pages/new-analysis";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
@@ -38,7 +39,9 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />
         <ProtectedRoute path="/chat" component={Chat} />
-        <ProtectedRoute path="/analysis" component={Analysis} /> {/* Add Analysis route */}
+        <ProtectedRoute path="/analysis" component={Analysis} />
+        <ProtectedRoute path="/analysis/:id" component={Analysis} />
+        <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
         <Route component={NotFound} />

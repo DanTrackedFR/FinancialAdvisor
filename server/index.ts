@@ -107,7 +107,6 @@ app.use((req, res, next) => {
       etag: true,
       lastModified: true,
       immutable: true, // For files with content hash
-      compress: true  // Enable compression
     }));
 
     // SPA fallback route - Handle all non-API routes
