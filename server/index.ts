@@ -12,16 +12,18 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add CORS headers for production domain
+// Production-optimized CORS configuration
 app.use((req, res, next) => {
-  // Include both www and non-www versions of the domain
   const allowedOrigins = [
     'https://trackedfr.com',
-    'https://www.trackedfr.com',
-    // Include development URLs
-    'http://localhost:5000',
-    'http://localhost:3000'
+    'https://www.trackedfr.com'
   ];
+
+  // Only add development URLs in non-production environment
+  if (process.env.NODE_ENV === 'development') {
+    allowedOrigins.push('http://localhost:5000', 'http://localhost:3000');
+  }
+
   const origin = req.headers.origin;
 
   if (origin && allowedOrigins.includes(origin)) {
@@ -29,6 +31,13 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, firebase-uid, Authorization');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    // Add security headers for production
+    if (process.env.NODE_ENV === 'production') {
+      res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      res.header('X-Content-Type-Options', 'nosniff');
+      res.header('X-Frame-Options', 'SAMEORIGIN');
+      res.header('X-XSS-Protection', '1; mode=block');
+    }
   }
 
   if (req.method === 'OPTIONS') {
@@ -37,10 +46,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware
+// Production-optimized request logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  // Only log API requests in production
+  if (process.env.NODE_ENV === 'production' && !path.startsWith("/api")) {
+    return next();
+  }
+
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -53,11 +68,8 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      if (capturedJsonResponse && process.env.NODE_ENV !== 'production') {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
       }
       log(logLine);
     }
@@ -68,10 +80,12 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
-  // Error handling middleware
+  // Production-optimized error handling
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Internal Server Error'
+      : (err.message || 'Internal Server Error');
     res.status(status).json({ message });
     console.error(err);
   });
@@ -79,7 +93,6 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
-    // Ensure the public directory exists and contains the built files
     const publicPath = path.resolve(__dirname, "public");
 
     if (!fs.existsSync(publicPath)) {
@@ -88,25 +101,31 @@ app.use((req, res, next) => {
       );
     }
 
-    // Serve static files with proper caching headers and compression
+    // Production-optimized static file serving
     app.use(express.static(publicPath, {
-      maxAge: '1h',
+      maxAge: '30d', // Increased cache duration for production
       etag: true,
-      lastModified: true
+      lastModified: true,
+      immutable: true, // For files with content hash
+      compress: true  // Enable compression
     }));
 
-    // Handle all routes - API requests go to API handlers, everything else serves index.html
+    // SPA fallback route
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api')) {
         next();
       } else {
-        res.sendFile(path.join(publicPath, 'index.html'));
+        res.sendFile(path.join(publicPath, 'index.html'), {
+          maxAge: '0', // Don't cache the index.html file
+          etag: true,
+          lastModified: true
+        });
       }
     });
   }
 
   const port = Number(process.env.PORT) || 5000;
   server.listen(port, "0.0.0.0", () => {
-    log(`Server running on port ${port}`);
+    log(`Server running on port ${port} in ${process.env.NODE_ENV} mode`);
   });
 })();
