@@ -46,15 +46,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// Debug logging for client routes in production
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && !req.path.startsWith('/api')) {
+    log(`Client route requested: ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 // Production-optimized request logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-
-  // Only log API requests in production
-  if (process.env.NODE_ENV === 'production' && !path.startsWith("/api")) {
-    return next();
-  }
 
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
@@ -66,11 +69,8 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse && process.env.NODE_ENV !== 'production') {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+    const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+    if (path.startsWith("/api") || res.statusCode === 404) {
       log(logLine);
     }
   });
@@ -114,6 +114,7 @@ app.use((req, res, next) => {
       if (req.path.startsWith('/api')) {
         next();
       } else {
+        log(`Serving index.html for client route: ${req.path}`);
         // Always serve index.html for client-side routes
         res.sendFile(path.join(publicPath, 'index.html'), {
           maxAge: '0', // Don't cache the index.html file
