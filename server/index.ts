@@ -8,6 +8,10 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ensure NODE_ENV is set
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+log(`Starting server in ${process.env.NODE_ENV} mode`);
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -46,34 +50,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Debug logging for client routes in production
+// Enhanced debug logging
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production' && !req.path.startsWith('/api')) {
-    log(`Client route requested: ${req.method} ${req.path}`);
-  }
-  next();
-});
-
-// Production-optimized request logging
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-    if (path.startsWith("/api") || res.statusCode === 404) {
-      log(logLine);
-    }
-  });
+  log(`${process.env.NODE_ENV} :: ${req.method} ${req.path}`);
   next();
 });
 
@@ -94,6 +73,7 @@ app.use((req, res, next) => {
     await setupVite(app, server);
   } else {
     const publicPath = path.resolve(__dirname, "public");
+    log(`Serving static files from: ${publicPath}`);
 
     if (!fs.existsSync(publicPath)) {
       throw new Error(
@@ -103,21 +83,21 @@ app.use((req, res, next) => {
 
     // Production-optimized static file serving
     app.use(express.static(publicPath, {
-      maxAge: '30d', // Cache duration for static assets
+      maxAge: '30d',
       etag: true,
       lastModified: true,
-      immutable: true, // For files with content hash
+      immutable: true,
     }));
 
-    // SPA fallback route - Handle all non-API routes
+    // Enhanced SPA fallback with logging
     app.get('/*', (req, res, next) => {
       if (req.path.startsWith('/api')) {
+        log(`API request: ${req.path}`);
         next();
       } else {
-        log(`Serving index.html for client route: ${req.path}`);
-        // Always serve index.html for client-side routes
+        log(`Serving SPA for client route: ${req.path}`);
         res.sendFile(path.join(publicPath, 'index.html'), {
-          maxAge: '0', // Don't cache the index.html file
+          maxAge: '0',
           etag: true,
           lastModified: true
         });
