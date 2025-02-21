@@ -68,8 +68,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Non-authenticated landing page */}
-      {!user && (
-        <div>
+      {!user ? (
+        <div className="pt-16">
           {/* Landing page header */}
           <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
             <div className="container mx-auto px-4">
@@ -381,79 +381,73 @@ export default function Home() {
             </div>
           </footer>
         </div>
-      )}
-
-      {/* Authenticated user dashboard */}
-      {user && (
-        <div className="pt-16">
-          <div className="container mx-auto px-4">
-            <div className="py-8">
-              {isLoadingProfile ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : profile ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Welcome back, {profile.firstName}!</CardTitle>
-                    <CardDescription>Your Profile Information</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Name
-                      </p>
-                      <p>
-                        {profile.firstName} {profile.surname}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Email
-                      </p>
-                      <p>{profile.email}</p>
-                    </div>
-                    {profile.company && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Company
-                        </p>
-                        <p>{profile.company}</p>
-                      </div>
-                    )}
-                    <div className="pt-4 space-y-4">
-                      <Button
-                        onClick={handleManageSubscription}
-                        disabled={subscriptionError !== null}
-                      >
-                        {subscriptionError ? "Error" : "Manage Subscription"}
-                      </Button>
-                      {subscriptionError && (
-                        <p className="text-sm text-red-500">
-                          {subscriptionError}
-                        </p>
-                      )}
-                      {isLoadingCheckout && (
-                        <div className="flex items-center space-x-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <p className="text-sm text-muted-foreground">
-                            Preparing checkout...
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="pt-4">
-                      <Button asChild>
-                        <Link to="/chat">Start Analysis</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <p>Error loading profile information</p>
-              )}
+      ) : (
+        // Authenticated user dashboard
+        <div className="container mx-auto px-4 py-8">
+          {isLoadingProfile ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          </div>
+          ) : profile ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome back, {profile.firstName}!</CardTitle>
+                <CardDescription>Your Profile Information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Name
+                  </p>
+                  <p>
+                    {profile.firstName} {profile.surname}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Email
+                  </p>
+                  <p>{profile.email}</p>
+                </div>
+                {profile.company && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Company
+                    </p>
+                    <p>{profile.company}</p>
+                  </div>
+                )}
+                <div className="pt-4 space-y-4">
+                  <Button
+                    onClick={handleManageSubscription}
+                    disabled={subscriptionError !== null}
+                  >
+                    {subscriptionError ? "Error" : "Manage Subscription"}
+                  </Button>
+                  {subscriptionError && (
+                    <p className="text-sm text-red-500">
+                      {subscriptionError}
+                    </p>
+                  )}
+                  {isLoadingCheckout && (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <p className="text-sm text-muted-foreground">
+                        Preparing checkout...
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="pt-4">
+                  <Button asChild>
+                    <Link to="/chat">Start Analysis</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <p>Error loading profile information</p>
+          )}
         </div>
       )}
     </div>
