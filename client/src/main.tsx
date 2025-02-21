@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Force reload and clear cache
+// Force reload and clear cache with enhanced logging
 const forceReload = () => {
   const timestamp = Date.now();
   console.log('Development mode detected at:', timestamp);
@@ -20,6 +20,7 @@ const forceReload = () => {
   console.log('Adding timestamp to prevent caching:', timestamp);
 
   // Force module reloading by adding a dynamic import
+  /* @vite-ignore */
   const moduleUrl = `/@vite/client?t=${timestamp}`;
   import(moduleUrl).catch(err => {
     console.log('Module reload attempted:', moduleUrl);

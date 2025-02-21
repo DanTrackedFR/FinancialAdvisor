@@ -47,7 +47,7 @@ app.use((req, res, next) => {
     // Always use Vite in development mode
     await setupVite(app, server);
 
-    const port = Number(process.env.PORT) || 5001; // Changed to 5001
+    const port = Number(process.env.PORT) || 5000; // Changed back to 5000 to match workflow expectations
 
     // Add error handling for port conflicts
     server.on('error', (error: any) => {
