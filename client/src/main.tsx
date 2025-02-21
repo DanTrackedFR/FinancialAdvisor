@@ -4,7 +4,9 @@ import "./index.css";
 
 // Force reload and clear cache
 const forceReload = () => {
-  console.log('Development mode detected, clearing caches...');
+  const timestamp = Date.now();
+  console.log('Development mode detected at:', timestamp);
+  console.log('Clearing caches...');
   if ('caches' in window) {
     caches.keys().then(names => {
       names.forEach(name => {
@@ -15,7 +17,6 @@ const forceReload = () => {
   }
 
   // Add timestamp to prevent browser caching
-  const timestamp = Date.now();
   console.log('Adding timestamp to prevent caching:', timestamp);
 
   // Force module reloading by adding a dynamic import
