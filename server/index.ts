@@ -3,7 +3,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const isDev = true; // Force development mode
 process.env.NODE_ENV = 'development';
 log(`Starting server in ${process.env.NODE_ENV} mode with timestamp ${Date.now()}`);
+log('Development mode detected - enforcing no-cache policy');
 
 const app = express();
 app.use(express.json());
@@ -47,13 +47,16 @@ app.use((req, res, next) => {
     // Always use Vite in development mode
     await setupVite(app, server);
 
-    const port = Number(process.env.PORT) || 5000; // Changed back to 5000 to match workflow expectations
+    const port = Number(process.env.PORT) || 5000; // Using port 5000 to match workflow expectations
 
     // Add error handling for port conflicts
     server.on('error', (error: any) => {
       if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use. Please free up the port and try again.`);
-        process.exit(1);
+        console.error(`Port ${port} is already in use.`);
+        // Try the next available port
+        const nextPort = port + 1;
+        console.log(`Attempting to use port ${nextPort}...`);
+        server.listen(nextPort, "0.0.0.0");
       } else {
         console.error('Server error:', error);
         process.exit(1);
@@ -61,7 +64,11 @@ app.use((req, res, next) => {
     });
 
     server.listen(port, "0.0.0.0", () => {
-      log(`Server running on port ${port} in ${process.env.NODE_ENV} mode at ${Date.now()}`);
+      log(`Development server starting...`);
+      log(`Server running at http://0.0.0.0:${port}`);
+      log(`Environment: ${process.env.NODE_ENV}`);
+      log(`Timestamp: ${Date.now()}`);
+      log('Press Ctrl+C to stop the server');
     });
 
     // Handle process termination

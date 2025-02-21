@@ -5,26 +5,28 @@ import "./index.css";
 // Force reload and clear cache with enhanced logging
 const forceReload = () => {
   const timestamp = Date.now();
-  console.log('Development mode detected at:', timestamp);
-  console.log('Clearing caches...');
+  console.log('🚀 Development mode detected');
+  console.log('📅 Timestamp:', new Date().toISOString());
+  console.log('🧹 Clearing caches...');
+
   if ('caches' in window) {
     caches.keys().then(names => {
       names.forEach(name => {
-        console.log('Clearing cache:', name);
+        console.log('🗑️ Clearing cache:', name);
         caches.delete(name);
       });
     });
   }
 
   // Add timestamp to prevent browser caching
-  console.log('Adding timestamp to prevent caching:', timestamp);
+  console.log('⏱️ Adding timestamp to prevent caching:', timestamp);
 
   // Force module reloading by adding a dynamic import
   /* @vite-ignore */
   const moduleUrl = `/@vite/client?t=${timestamp}`;
   import(moduleUrl).catch(err => {
-    console.log('Module reload attempted:', moduleUrl);
-    console.error('Module reload error (expected):', err);
+    console.log('📦 Module reload attempted:', moduleUrl);
+    console.error('❌ Module reload error (expected):', err);
   });
 
   // Add meta tag to prevent caching
@@ -36,7 +38,7 @@ const forceReload = () => {
 
 // Force reload in development
 if (import.meta.env.DEV) {
-  console.log('Starting application in development mode');
+  console.log('🛠️ Starting application in development mode');
   forceReload();
 }
 
