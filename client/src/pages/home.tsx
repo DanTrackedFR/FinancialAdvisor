@@ -67,7 +67,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with logo and text */}
+      {/* Header section unified for both mobile and desktop */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -83,10 +83,10 @@ export default function Home() {
             <div className="flex items-center gap-2 md:gap-4">
               {user ? (
                 <>
-                  <Button variant="ghost" size="sm" className="hidden md:inline-flex" asChild>
+                  <Button variant="ghost" size="sm" asChild>
                     <Link to="/chat">Chat</Link>
                   </Button>
-                  <Button variant="ghost" size="sm" className="hidden md:inline-flex" asChild>
+                  <Button variant="ghost" size="sm" asChild>
                     <Link to="/profile">Profile</Link>
                   </Button>
                   <Button variant="outline" size="sm" onClick={handleSignOut}>
@@ -108,10 +108,11 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Adjust the pt-16 class for mobile */}
       {!user && (
-        <div className="pt-16">
+        <div className="pt-20 md:pt-16">
           {/* Hero Section with mobile optimization */}
-          <section className="container mx-auto px-4 py-8 md:py-16 pt-20 md:pt-16">
+          <section className="container mx-auto px-4 py-8 md:py-16">
             <div className="max-w-3xl mx-auto">
               <div className="flex flex-col items-center mb-6 md:mb-8">
                 <div className="flex justify-center">
@@ -399,7 +400,7 @@ export default function Home() {
       )}
 
       {user && (
-        <div className="pt-16 container mx-auto px-4">
+        <div className="md:pt-16 container mx-auto px-4">
           <div className="py-8">
             {isLoadingProfile ? (
               <div className="flex items-center justify-center">
@@ -457,7 +458,7 @@ export default function Home() {
                   </div>
                   <div className="pt-4">
                     <Button asChild>
-                      <p>Start Analysis</p>
+                      <Link to="/chat">Start Analysis</Link>
                     </Button>
                   </div>
                 </CardContent>

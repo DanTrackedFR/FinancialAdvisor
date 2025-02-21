@@ -47,7 +47,7 @@ app.use((req, res, next) => {
     // Always use Vite in development mode
     await setupVite(app, server);
 
-    const port = Number(process.env.PORT) || 3000; // Changed default port to 3000 to match workflow expectations
+    const port = Number(process.env.PORT) || 5000; // Changed to match .replit configuration
 
     // Add error handling for port conflicts
     server.on('error', (error: any) => {
