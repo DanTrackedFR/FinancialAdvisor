@@ -11,15 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Menu, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Home() {
   const { user, logout } = useAuth();
-  const [subscriptionError, setSubscriptionError] = useState<string | null>(
-    null,
-  );
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
     queryKey: ["/api/users/profile"],
@@ -29,6 +29,7 @@ export default function Home() {
   const handleSignOut = async () => {
     try {
       await logout();
+      setIsMobileMenuOpen(false);
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -67,7 +68,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header section unified for both mobile and desktop */}
+      {/* Header section with mobile menu */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -80,7 +81,9 @@ export default function Home() {
                 />
               </Link>
             </div>
-            <div className="flex items-center gap-2 md:gap-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-2 md:gap-4">
               {user ? (
                 <>
                   <Button variant="ghost" size="sm" asChild>
@@ -104,11 +107,63 @@ export default function Home() {
                 </>
               )}
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[75vw] sm:w-[350px]">
+                  <nav className="flex flex-col gap-4">
+                    {user ? (
+                      <>
+                        <Link href="/chat" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start" size="lg">
+                            Chat
+                          </Button>
+                        </Link>
+                        <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start" size="lg">
+                            Profile
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start" 
+                          size="lg"
+                          onClick={() => {
+                            handleSignOut();
+                            setIsMobileMenuOpen(false);
+                          }}
+                        >
+                          Sign Out
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start" size="lg">
+                            Sign Up
+                          </Button>
+                        </Link>
+                        <Link href="/auth?mode=login" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Button variant="ghost" className="w-full justify-start" size="lg">
+                            Login
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Adjust the pt-16 class for mobile */}
       {!user && (
         <div className="pt-20 md:pt-16">
           {/* Hero Section with mobile optimization */}
