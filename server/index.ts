@@ -48,14 +48,14 @@ app.get('/health', (_req, res) => {
 
 (async () => {
   try {
-    // Register API routes first
-    const server = registerRoutes(app);
-
-    // Set up static file serving before Vite middleware
+    // Set up static file serving before API routes
     if (!isDev) {
       log('Setting up static file serving...');
       serveStatic(app);
     }
+
+    // Register API routes first
+    const server = registerRoutes(app);
 
     // Then set up Vite for development
     if (isDev) {
