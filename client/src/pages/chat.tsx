@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 import { queryClient } from "@/lib/queryClient";
 import { Navigation } from "@/components/navigation";
-import { UploadButton } from "@/components/upload-button";
 
 interface Message {
   id: number;
@@ -135,36 +134,6 @@ export default function ChatPage() {
     }
   };
 
-  const handleContentExtracted = async (content: string) => {
-    try {
-      const response = await fetch('/api/chat', {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "firebase-uid": user?.uid || ""
-        },
-        body: JSON.stringify({
-          message: "Document uploaded for analysis. Please confirm you can access the content.",
-          fileContent: content,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to process document");
-      }
-
-      const result = await response.json();
-      if (Array.isArray(result) && result.length > 0) {
-        queryClient.setQueryData(["chat-messages"], (old: Message[] = []) => [...old, ...result]);
-      }
-    } catch (error) {
-      toast({
-        title: "Error Processing Document",
-        description: "Failed to process the document. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   if (isAuthLoading) {
     return (
@@ -215,11 +184,6 @@ export default function ChatPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex gap-4 items-center">
-              <UploadButton
-                onContentExtracted={handleContentExtracted}
-                onProgress={setUploadProgress}
-                onAnalyzing={setIsAnalyzing}
-              />
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}

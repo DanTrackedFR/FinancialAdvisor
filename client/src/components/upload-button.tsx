@@ -1,11 +1,5 @@
 import { Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useDropzone } from "react-dropzone";
 
 interface UploadButtonProps {
@@ -52,19 +46,10 @@ export function UploadButton({
 
   return (
     <div {...getRootProps()}>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <input {...getInputProps()} />
-              <Paperclip className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Please upload financial statements (or any finance document) for review and feedback</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Button variant="ghost" size="icon" className="h-9 w-9" title="Upload financial statements for review">
+        <input {...getInputProps()} />
+        <Paperclip className="h-5 w-5" />
+      </Button>
     </div>
   );
 }
