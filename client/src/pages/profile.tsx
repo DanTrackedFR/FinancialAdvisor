@@ -206,7 +206,7 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             {isEditing ? (
-              {(() => {
+              (() => {
                 const form = useForm<ProfileFormData>({
                   resolver: zodResolver(profileSchema),
                   defaultValues: {
@@ -222,8 +222,10 @@ export default function Profile() {
                       onSubmit={form.handleSubmit(onSubmit)}
                       className="space-y-4"
                     >
+                </Form>
                 );
-              })()}
+              })()
+            ) : (
                   <FormField
                     control={useForm<ProfileFormData>({
                       resolver: zodResolver(profileSchema),
