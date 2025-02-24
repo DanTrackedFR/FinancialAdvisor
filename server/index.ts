@@ -48,6 +48,7 @@ app.get('/health', (_req, res) => {
 
 (async () => {
   try {
+    // Register API routes first
     const server = registerRoutes(app);
 
     // Development error handling with full details
@@ -58,8 +59,14 @@ app.get('/health', (_req, res) => {
       res.status(status).json({ message, stack: isDev ? err.stack : undefined });
     });
 
-    // Always use Vite in development mode
-    await setupVite(app, server);
+    // Then set up Vite for static content
+    if (isDev) {
+      log('Setting up Vite middleware...');
+      await setupVite(app, server);
+    } else {
+      log('Setting up static file serving...');
+      serveStatic(app);
+    }
 
     const port = 5000; // Fixed port for production compatibility
 
