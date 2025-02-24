@@ -22,9 +22,8 @@ const forceReload = () => {
   console.log('⏱️ Adding timestamp to prevent caching:', timestamp);
 
   // Force module reloading by adding a dynamic import
-  /* @vite-ignore */
   const moduleUrl = `/@vite/client?t=${timestamp}`;
-  import(moduleUrl).catch(err => {
+  import(/* @vite-ignore */ moduleUrl).catch(err => {
     console.log('📦 Module reload attempted:', moduleUrl);
     console.error('❌ Module reload error (expected):', err);
   });
