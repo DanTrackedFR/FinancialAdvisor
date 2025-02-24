@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sendEmailVerification = async (email: string) => {
     try {
       // Correction applied here
-      await sendVerificationEmail(auth, email);
+      await sendVerificationEmail(auth.currentUser);
       window.localStorage.setItem('emailForSignIn', email);
       toast({
         title: "Verification email sent",
