@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 import { queryClient } from "@/lib/queryClient";
 import { Navigation } from "@/components/navigation";
+import { UploadButton } from "@/components/upload-button";
 
 interface Message {
   id: number;
@@ -21,6 +22,8 @@ export default function ChatPage() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [message, setMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["chat-messages"],
@@ -132,6 +135,37 @@ export default function ChatPage() {
     }
   };
 
+  const handleContentExtracted = async (content: string) => {
+    try {
+      const response = await fetch('/api/chat', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user?.uid || ""
+        },
+        body: JSON.stringify({
+          message: "Document uploaded for analysis. Please confirm you can access the content.",
+          fileContent: content,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process document");
+      }
+
+      const result = await response.json();
+      if (Array.isArray(result) && result.length > 0) {
+        queryClient.setQueryData(["chat-messages"], (old: Message[] = []) => [...old, ...result]);
+      }
+    } catch (error) {
+      toast({
+        title: "Error Processing Document",
+        description: "Failed to process the document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isAuthLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -180,7 +214,12 @@ export default function ChatPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+              <UploadButton
+                onContentExtracted={handleContentExtracted}
+                onProgress={setUploadProgress}
+                onAnalyzing={setIsAnalyzing}
+              />
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -204,6 +243,12 @@ export default function ChatPage() {
                 )}
               </Button>
             </div>
+            {isAnalyzing && (
+              <div className="flex items-center gap-2 mt-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Analyzing document...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

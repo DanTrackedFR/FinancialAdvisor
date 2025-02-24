@@ -9,7 +9,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
-import { UploadArea } from "@/components/upload-area";
+import { UploadButton } from "@/components/upload-button";
 import { Analysis } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
@@ -244,6 +244,38 @@ export default function AnalysisPage() {
     }
   };
 
+  const handleContentExtracted = async (content: string) => {
+    if (!analysisId) return;
+
+    updateContent(content);
+
+    try {
+      const response = await fetch(`/api/analysis/${analysisId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user?.uid || "",
+        },
+        body: JSON.stringify({
+          content: "Document uploaded for analysis. Please confirm you can access the content.",
+          role: "user",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process document");
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
+    } catch (error) {
+      toast({
+        title: "Error Processing Document",
+        description: "Failed to process the document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!analysisId) {
     if (isLoadingAnalyses) {
       return (
@@ -354,11 +386,7 @@ export default function AnalysisPage() {
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
-                <UploadArea
-                  onContentExtracted={(content) => updateContent(content)}
-                  onProgress={setUploadProgress}
-                  onAnalyzing={setIsAnalyzing}
-                />
+                {/* Removed UploadArea */}
                 {uploadProgress > 0 && uploadProgress < 100 && (
                   <Progress value={uploadProgress} className="w-full" />
                 )}
@@ -391,7 +419,12 @@ export default function AnalysisPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+              <UploadButton
+                onContentExtracted={handleContentExtracted}
+                onProgress={setUploadProgress}
+                onAnalyzing={setIsAnalyzing}
+              />
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -415,6 +448,12 @@ export default function AnalysisPage() {
                 )}
               </Button>
             </div>
+            {isAnalyzing && (
+              <div className="flex items-center gap-2 mt-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Analyzing document...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
