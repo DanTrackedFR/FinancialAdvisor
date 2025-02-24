@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
+import { UploadArea } from "@/components/upload-area";
 import { Analysis } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,6 +37,8 @@ export default function AnalysisPage() {
   const location = window.location.pathname;
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -331,7 +334,7 @@ export default function AnalysisPage() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Update content and analyze
+                    Upload additional documents or update content
                   </CardDescription>
                 </div>
                 {currentAnalysis && (
@@ -350,6 +353,22 @@ export default function AnalysisPage() {
                   </Select>
                 )}
               </CardHeader>
+              <CardContent className="space-y-4">
+                <UploadArea
+                  onContentExtracted={(content) => updateContent(content)}
+                  onProgress={setUploadProgress}
+                  onAnalyzing={setIsAnalyzing}
+                />
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <Progress value={uploadProgress} className="w-full" />
+                )}
+                {isAnalyzing && (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing document...</span>
+                  </div>
+                )}
+              </CardContent>
             </Card>
 
             <Card className="min-h-[calc(100vh-24rem)]">
@@ -368,6 +387,7 @@ export default function AnalysisPage() {
         </div>
       </div>
 
+      {/* Fixed Input Area */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">

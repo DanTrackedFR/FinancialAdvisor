@@ -14,8 +14,6 @@ log(`Starting server in ${process.env.NODE_ENV} mode with timestamp ${Date.now()
 log('Development mode detected - enforcing no-cache policy');
 
 const app = express();
-
-// Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -28,88 +26,55 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging middleware
+// Enhanced debug logging
 app.use((req, res, next) => {
-  const start = Date.now();
-  log(`Incoming ${req.method} request to ${req.url}`);
-
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    log(`${req.method} ${req.url} completed with status ${res.statusCode} in ${duration}ms`);
-  });
+  log(`${process.env.NODE_ENV} :: ${req.method} ${req.path} :: ${Date.now()}`);
   next();
-});
-
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    timestamp: Date.now(),
-    env: process.env.NODE_ENV,
-    port: 5000
-  });
 });
 
 (async () => {
   try {
-    // Create HTTP server first
     const server = registerRoutes(app);
 
-    // API routes error handling
-    app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
-      if (req.path.startsWith('/api')) {
-        const status = err.status || err.statusCode || 500;
-        const message = err.message || 'Internal Server Error';
-        log(`API Error: ${status} - ${message}`);
-        return res.status(status).json({
-          error: message,
-          status,
-          path: req.path,
-          timestamp: Date.now()
-        });
-      }
-      next(err);
-    });
-
-    if (isDev) {
-      // Development mode: Use Vite middleware
-      log('Setting up Vite middleware for development...');
-      await setupVite(app, server);
-    } else {
-      // Production mode: Serve static files
-      log('Setting up static file serving for production...');
-      serveStatic(app);
-    }
-
-    // Generic error handler (after all routes)
-    app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    // Development error handling with full details
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || 'Internal Server Error';
-      log(`General Error: ${status} - ${message}`);
-      if (req.path.startsWith('/api')) {
-        return res.status(status).json({ error: message });
-      }
-      // For non-API routes in development, let Vite handle the error
-      if (isDev) {
-        next(err);
+      res.status(status).json({ message, stack: err.stack });
+      console.error('Error:', err);
+    });
+
+    // Always use Vite in development mode
+    await setupVite(app, server);
+
+    const port = Number(process.env.PORT) || 5000; // Changed to match .replit configuration
+
+    // Add error handling for port conflicts
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use.`);
+        // Try the next available port
+        const nextPort = port + 1;
+        console.log(`Attempting to use port ${nextPort}...`);
+        server.listen(nextPort, "0.0.0.0");
       } else {
-        // In production, serve the error page
-        res.status(status).send('Server Error');
+        console.error('Server error:', error);
+        process.exit(1);
       }
     });
 
-    const port = 5000;
     server.listen(port, "0.0.0.0", () => {
-      log(`Server started successfully on port ${port}`);
+      log(`Development server starting...`);
+      log(`Server running at http://0.0.0.0:${port}`);
       log(`Environment: ${process.env.NODE_ENV}`);
       log(`Timestamp: ${Date.now()}`);
+      log('Press Ctrl+C to stop the server');
     });
 
-    // Graceful shutdown handling
+    // Handle process termination
     const cleanup = () => {
-      log('Shutting down server...');
       server.close(() => {
-        log('Server closed');
+        console.log('Server closed');
         process.exit(0);
       });
     };
@@ -117,12 +82,12 @@ app.get('/health', (_req, res) => {
     process.on('SIGTERM', cleanup);
     process.on('SIGINT', cleanup);
     process.on('uncaughtException', (err) => {
-      log(`Uncaught exception: ${err.message}`);
+      console.error('Uncaught exception:', err);
       cleanup();
     });
 
   } catch (error) {
-    log(`Failed to start server: ${error}`);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 })();

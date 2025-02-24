@@ -21,8 +21,6 @@ export default function ChatPage() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [message, setMessage] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["chat-messages"],
@@ -134,7 +132,6 @@ export default function ChatPage() {
     }
   };
 
-
   if (isAuthLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -183,7 +180,7 @@ export default function ChatPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-4">
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -207,12 +204,6 @@ export default function ChatPage() {
                 )}
               </Button>
             </div>
-            {isAnalyzing && (
-              <div className="flex items-center gap-2 mt-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Analyzing document...</span>
-              </div>
-            )}
           </div>
         </div>
       </div>

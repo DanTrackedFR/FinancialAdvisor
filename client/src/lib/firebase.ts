@@ -1,9 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
 
-// Use the current domain for dynamic configuration
 const currentDomain = window.location.hostname;
-const currentOrigin = window.location.origin;
 
 // Firebase configuration object
 const firebaseConfig = {
@@ -14,12 +12,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Add authorized domains for Firebase Auth - include both production and development domains
+// Add authorized domains for Firebase Auth
 const authorizedDomains = [
   'trackedfr.com',
   'www.trackedfr.com',
-  currentDomain,
-  `${currentDomain}.repl.co`, // Add Replit domain
+  currentDomain
 ];
 
 // Initialize Firebase
@@ -28,26 +25,14 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
-// Email verification link configuration that works in both development and production
+// Email verification link configuration for custom domain
 export const actionCodeSettings = {
-  url: `${currentOrigin}/auth${window.location.search}`,
+  url: `https://trackedfr.com/auth?email=${encodeURIComponent(window.location.search)}`,
   handleCodeInApp: true,
-  // Only set dynamicLinkDomain for production domain
-  ...(currentDomain.includes('trackedfr.com') && { dynamicLinkDomain: 'trackedfr.com' })
+  dynamicLinkDomain: 'trackedfr.com'
 };
 
-// Function to send email verification link with error handling
+// Function to send email verification link
 export async function sendVerificationEmail(email: string) {
-  try {
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    // Store the email in localStorage for later use
-    window.localStorage.setItem('emailForSignIn', email);
-    return { success: true };
-  } catch (error: any) {
-    console.error('Error sending verification email:', error);
-    return { 
-      success: false, 
-      error: error.message || 'Failed to send verification email'
-    };
-  }
+  return sendSignInLinkToEmail(auth, email, actionCodeSettings);
 }

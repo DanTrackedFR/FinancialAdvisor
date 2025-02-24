@@ -11,7 +11,7 @@ import { ConversationThread } from "@/components/conversation-thread";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { StandardSelector } from "@/components/standard-selector";
-import { UploadButton } from "@/components/upload-button";
+import { UploadArea } from "@/components/upload-area";
 import { queryClient } from "@/lib/queryClient";
 import type { StandardType } from "@shared/schema";
 import {
@@ -372,15 +372,33 @@ export default function NewAnalysis() {
         </div>
       </div>
 
+      {/* Fixed Upload Area */}
+      <div className="fixed bottom-[88px] left-0 right-0 border-t bg-background">
+        <div className="container mx-auto px-4 py-4">
+          <div className="max-w-6xl mx-auto">
+            <UploadArea
+              onContentExtracted={handleContentExtracted}
+              onProgress={setUploadProgress}
+              onAnalyzing={setIsAnalyzing}
+            />
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <Progress value={uploadProgress} className="w-full mt-2" />
+            )}
+            {isAnalyzing && (
+              <div className="flex items-center gap-2 mt-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Analyzing document...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Input Area */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4 items-center">
-              <UploadButton
-                onContentExtracted={handleContentExtracted}
-                onProgress={setUploadProgress}
-                onAnalyzing={setIsAnalyzing}
-              />
+            <div className="flex gap-4">
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -404,12 +422,6 @@ export default function NewAnalysis() {
                 )}
               </Button>
             </div>
-            {isAnalyzing && (
-              <div className="flex items-center gap-2 mt-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Analyzing document...</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
