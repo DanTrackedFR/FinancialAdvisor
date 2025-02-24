@@ -70,7 +70,7 @@ app.get('/health', (_req, res) => {
       serveStatic(app);
     }
 
-    // Register API routes first
+    // Register API routes
     const server = registerRoutes(app);
 
     // Then set up Vite for development
