@@ -51,6 +51,18 @@ app.get('/health', (_req, res) => {
     // Register API routes first
     const server = registerRoutes(app);
 
+    // Set up static file serving before Vite middleware
+    if (!isDev) {
+      log('Setting up static file serving...');
+      serveStatic(app);
+    }
+
+    // Then set up Vite for development
+    if (isDev) {
+      log('Setting up Vite middleware...');
+      await setupVite(app, server);
+    }
+
     // Development error handling with full details
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
@@ -58,15 +70,6 @@ app.get('/health', (_req, res) => {
       log(`Error handling request: ${message}`);
       res.status(status).json({ message, stack: isDev ? err.stack : undefined });
     });
-
-    // Then set up Vite for static content
-    if (isDev) {
-      log('Setting up Vite middleware...');
-      await setupVite(app, server);
-    } else {
-      log('Setting up static file serving...');
-      serveStatic(app);
-    }
 
     const port = 5000; // Fixed port for production compatibility
 
