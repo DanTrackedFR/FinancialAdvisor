@@ -70,59 +70,50 @@ app.get('/health', (_req, res) => {
 
     const port = 5000; // Fixed port for production compatibility
 
-    // Initialize server with retry mechanism
-    async function startServer(): Promise<boolean> {
-      return new Promise((resolve) => {
-        const serverInstance = server.listen(port, "0.0.0.0", () => {
-          log(`Server started successfully on port ${port}`);
-          log(`Environment: ${process.env.NODE_ENV}`);
-          log(`Timestamp: ${Date.now()}`);
-          resolve(true);
-        });
-
-        serverInstance.on('error', async (error: any) => {
-          if (error.code === 'EADDRINUSE') {
-            log(`Port ${port} is in use, attempting to free it...`);
-            try {
-              const { exec } = await import('child_process');
-              exec(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9`, async (err) => {
-                if (err) {
-                  log(`Failed to free port ${port}: ${err.message}`);
-                  resolve(false);
-                } else {
-                  log(`Successfully freed port ${port}`);
-                  // Wait briefly before retry
-                  await new Promise(r => setTimeout(r, 1000));
-                  resolve(await startServer());
-                }
-              });
-            } catch (err) {
-              log(`Error freeing port: ${err}`);
-              resolve(false);
-            }
-          } else {
-            log(`Server error: ${error.message}`);
-            resolve(false);
-          }
-        });
-      });
-    }
-
     // Attempt to start server with retries
     let attempts = 0;
     const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
       log(`Attempting to start server (attempt ${attempts + 1}/${maxAttempts})`);
-      if (await startServer()) {
+      try {
+        server.listen(port, "0.0.0.0", () => {
+          log(`Server started successfully on port ${port}`);
+          log(`Environment: ${process.env.NODE_ENV}`);
+          log(`Timestamp: ${Date.now()}`);
+        });
         break;
+      } catch (error: any) {
+        log(`Failed to start server: ${error.message}`);
+        if (error.code === 'EADDRINUSE') {
+          log(`Port ${port} is in use, attempting to free it...`);
+          try {
+            const { exec } = await import('child_process');
+            await new Promise((resolve, reject) => {
+              exec(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9`, (err) => {
+                if (err) {
+                  reject(new Error(`Failed to free port ${port}: ${err.message}`));
+                } else {
+                  log(`Successfully freed port ${port}`);
+                  resolve(true);
+                }
+              });
+            });
+            // Wait briefly before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (err) {
+            log(`Error freeing port: ${err}`);
+            attempts++;
+            if (attempts === maxAttempts) {
+              process.exit(1);
+            }
+            continue;
+          }
+        } else {
+          log(`Server error: ${error.message}`);
+          process.exit(1);
+        }
       }
-      attempts++;
-      if (attempts === maxAttempts) {
-        throw new Error(`Failed to start server after ${maxAttempts} attempts`);
-      }
-      // Wait between attempts
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     // Graceful shutdown handling
