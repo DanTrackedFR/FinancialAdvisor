@@ -30,7 +30,6 @@ export async function extractTextFromPDF(file: File): Promise<string> {
       console.log(`Processing page ${i} of ${pdf.numPages}`);
       const page = await pdf.getPage(i);
       const content = await page.getTextContent({
-        
         disableCombineTextItems: false,
       });
       const pageText = content.items

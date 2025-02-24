@@ -5,7 +5,9 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   isSignInWithEmailLink,
-  signInWithEmailLink
+  signInWithEmailLink,
+  sendSignInLinkToEmail,
+  ActionCodeSettings
 } from "firebase/auth";
 import { auth, sendVerificationEmail } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -116,8 +118,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       console.log("Starting sign up process...");
-      // Correction applied here
-      await sendVerificationEmail(auth, email);
+      //Incomplete change - needs proper actionCodeSettings and email link handling
+      const actionCodeSettings = {
+        url: 'http://localhost:3000/verify-email', //Update with your URL
+        handleCodeInApp: true,
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({
         firstName,

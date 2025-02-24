@@ -215,11 +215,25 @@ export default function Profile() {
                 },
               })}>
                 <form
-                  onSubmit={form.handleSubmit(onSubmit)}
+                  onSubmit={useForm<ProfileFormData>({
+                    resolver: zodResolver(profileSchema),
+                    defaultValues: {
+                      firstName: profile?.firstName || "",
+                      surname: profile?.surname || "",
+                      company: profile?.company || "",
+                    },
+                  }).handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
                   <FormField
-                    control={form.control}
+                    control={useForm<ProfileFormData>({
+                      resolver: zodResolver(profileSchema),
+                      defaultValues: {
+                        firstName: profile?.firstName || "",
+                        surname: profile?.surname || "",
+                        company: profile?.company || "",
+                      },
+                    }).control}
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
@@ -232,7 +246,14 @@ export default function Profile() {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={useForm<ProfileFormData>({
+                      resolver: zodResolver(profileSchema),
+                      defaultValues: {
+                        firstName: profile?.firstName || "",
+                        surname: profile?.surname || "",
+                        company: profile?.company || "",
+                      },
+                    }).control}
                     name="surname"
                     render={({ field }) => (
                       <FormItem>
@@ -245,7 +266,14 @@ export default function Profile() {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={useForm<ProfileFormData>({
+                      resolver: zodResolver(profileSchema),
+                      defaultValues: {
+                        firstName: profile?.firstName || "",
+                        surname: profile?.surname || "",
+                        company: profile?.company || "",
+                      },
+                    }).control}
                     name="company"
                     render={({ field }) => (
                       <FormItem>
