@@ -8,27 +8,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Force development mode and disable all caching
-const isDev = true; // Force development mode
-process.env.NODE_ENV = 'development';
+const isDev = process.env.NODE_ENV !== 'production';
+process.env.NODE_ENV = isDev ? 'development' : 'production';
 log(`Starting server in ${process.env.NODE_ENV} mode with timestamp ${Date.now()}`);
-log('Development mode detected - enforcing no-cache policy');
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Force no caching in development
-app.use((req, res, next) => {
-  res.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.header('Pragma', 'no-cache');
-  res.header('Expires', '0');
-  res.header('Surrogate-Control', 'no-store');
-  next();
+// Enhanced error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('Error occurred:', err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(status).json({ 
+    message, 
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+  });
 });
 
-// Enhanced debug logging
+// Enhanced logging middleware
 app.use((req, res, next) => {
-  log(`${process.env.NODE_ENV} :: ${req.method} ${req.path} :: ${Date.now()}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    log(`${process.env.NODE_ENV} :: ${req.method} ${req.path} :: ${res.statusCode} :: ${duration}ms`);
+  });
   next();
 });
 
@@ -36,53 +41,80 @@ app.use((req, res, next) => {
   try {
     const server = registerRoutes(app);
 
-    // Development error handling with full details
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || 'Internal Server Error';
-      res.status(status).json({ message, stack: err.stack });
-      console.error('Error:', err);
-    });
+    if (isDev) {
+      // Development mode: Use Vite middleware
+      await setupVite(app, server);
+    } else {
+      // Production mode: Serve static files
+      serveStatic(app);
+    }
 
-    // Always use Vite in development mode
-    await setupVite(app, server);
+    const port = Number(process.env.PORT) || 5000;
+    let currentPort = port;
 
-    const port = Number(process.env.PORT) || 5000; // Changed to match .replit configuration
+    // Enhanced error handling for server startup
+    const startServer = (port: number): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        try {
+          server.listen(port, "0.0.0.0", () => {
+            log(`Server running at http://0.0.0.0:${port}`);
+            log(`Environment: ${process.env.NODE_ENV}`);
+            log(`Timestamp: ${Date.now()}`);
+            resolve();
+          });
 
-    // Add error handling for port conflicts
-    server.on('error', (error: any) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use.`);
-        // Try the next available port
-        const nextPort = port + 1;
-        console.log(`Attempting to use port ${nextPort}...`);
-        server.listen(nextPort, "0.0.0.0");
-      } else {
-        console.error('Server error:', error);
-        process.exit(1);
+          server.on('error', (error: any) => {
+            if (error.code === 'EADDRINUSE') {
+              log(`Port ${port} is in use, trying next port...`);
+              reject(error);
+            } else {
+              console.error('Server error:', error);
+              reject(error);
+            }
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    };
+
+    // Try to start server with port fallback
+    while (currentPort < port + 10) {
+      try {
+        await startServer(currentPort);
+        break;
+      } catch (error) {
+        if (error.code === 'EADDRINUSE') {
+          currentPort++;
+        } else {
+          throw error;
+        }
       }
-    });
+    }
 
-    server.listen(port, "0.0.0.0", () => {
-      log(`Development server starting...`);
-      log(`Server running at http://0.0.0.0:${port}`);
-      log(`Environment: ${process.env.NODE_ENV}`);
-      log(`Timestamp: ${Date.now()}`);
-      log('Press Ctrl+C to stop the server');
-    });
-
-    // Handle process termination
+    // Graceful shutdown handling
     const cleanup = () => {
+      log('Shutting down server gracefully...');
       server.close(() => {
-        console.log('Server closed');
+        log('Server closed');
         process.exit(0);
       });
+
+      // Force shutdown after 10 seconds
+      setTimeout(() => {
+        log('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
     };
 
     process.on('SIGTERM', cleanup);
     process.on('SIGINT', cleanup);
     process.on('uncaughtException', (err) => {
       console.error('Uncaught exception:', err);
+      cleanup();
+    });
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
       cleanup();
     });
 
