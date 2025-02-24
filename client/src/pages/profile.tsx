@@ -206,6 +206,15 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             {isEditing ? (
+              const form = useForm<ProfileFormData>({
+                resolver: zodResolver(profileSchema),
+                defaultValues: {
+                  firstName: profile?.firstName || "",
+                  surname: profile?.surname || "",
+                  company: profile?.company || "",
+                },
+              });
+
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
