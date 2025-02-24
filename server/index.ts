@@ -87,18 +87,18 @@ app.get('/health', (_req, res) => {
         });
         break;
       } catch (error: any) {
-        log(`Failed to start server: ${error.message}`);
         if (error.code === 'EADDRINUSE') {
           log(`Port ${port} is in use, attempting to free it...`);
           try {
             const { exec } = await import('child_process');
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
               exec(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9`, (err) => {
                 if (err) {
-                  reject(new Error(`Failed to free port ${port}: ${err.message}`));
+                  log(`Failed to free port ${port}: ${err.message}`);
+                  reject(err);
                 } else {
                   log(`Successfully freed port ${port}`);
-                  resolve(true);
+                  resolve();
                 }
               });
             });
