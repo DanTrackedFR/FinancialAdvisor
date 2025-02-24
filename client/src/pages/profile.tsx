@@ -152,9 +152,9 @@ export default function Profile() {
     updateProfile(data);
   };
 
-  function formatDate(dateStr: string | null) {
-    if (!dateStr) return "";
-    return new Date(dateStr).toLocaleDateString("en-US", {
+  function formatDate(date: Date | null) {
+    if (!date) return "";
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -206,16 +206,14 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             {isEditing ? (
-              const form = useForm<ProfileFormData>({
+              <Form {...useForm<ProfileFormData>({
                 resolver: zodResolver(profileSchema),
                 defaultValues: {
                   firstName: profile?.firstName || "",
                   surname: profile?.surname || "",
                   company: profile?.company || "",
                 },
-              });
-
-              <Form {...form}>
+              })}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"

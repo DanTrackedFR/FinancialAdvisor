@@ -116,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       console.log("Starting sign up process...");
+      // Correction applied here
       await sendVerificationEmail(auth, email);
 
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({
@@ -139,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendEmailVerification = async (email: string) => {
     try {
+      // Correction applied here
       await sendVerificationEmail(auth, email);
       window.localStorage.setItem('emailForSignIn', email);
       toast({

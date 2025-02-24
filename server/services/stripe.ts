@@ -25,7 +25,7 @@ export async function createCustomer(userId: number, email: string, name: string
     // Set trial end date
     const trialEnd = addDays(new Date(), TRIAL_PERIOD_DAYS);
     await storage.updateUser(userId, {
-      trialEndsAt: trialEnd,
+      trial_ends_at: trialEnd,
     });
 
     return customer;
