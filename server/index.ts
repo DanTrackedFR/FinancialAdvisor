@@ -36,6 +36,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// API error handling middleware
+app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith('/api')) {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
+    log(`API Error: ${message}`);
+    return res.status(status).json({ 
+      error: message,
+      status,
+      path: req.path,
+      timestamp: Date.now()
+    });
+  }
+  next(err);
+});
+
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.status(200).json({ 
@@ -62,14 +78,6 @@ app.get('/health', (_req, res) => {
       log('Setting up Vite middleware...');
       await setupVite(app, server);
     }
-
-    // Development error handling with full details
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || 'Internal Server Error';
-      log(`Error handling request: ${message}`);
-      res.status(status).json({ message, stack: isDev ? err.stack : undefined });
-    });
 
     const port = 5000; // Fixed port for production compatibility
 
