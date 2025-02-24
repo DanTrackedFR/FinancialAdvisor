@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
@@ -9,7 +9,6 @@ import { queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
-import { UploadButton } from "@/components/upload-button";
 import { Analysis } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,8 +36,6 @@ export default function AnalysisPage() {
   const location = window.location.pathname;
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -244,38 +241,6 @@ export default function AnalysisPage() {
     }
   };
 
-  const handleContentExtracted = async (content: string) => {
-    if (!analysisId) return;
-
-    updateContent(content);
-
-    try {
-      const response = await fetch(`/api/analysis/${analysisId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "firebase-uid": user?.uid || "",
-        },
-        body: JSON.stringify({
-          content: "Document uploaded for analysis. Please confirm you can access the content.",
-          role: "user",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to process document");
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
-    } catch (error) {
-      toast({
-        title: "Error Processing Document",
-        description: "Failed to process the document. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (!analysisId) {
     if (isLoadingAnalyses) {
       return (
@@ -366,7 +331,7 @@ export default function AnalysisPage() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Upload additional documents or update content
+                    Update content and analyze
                   </CardDescription>
                 </div>
                 {currentAnalysis && (
@@ -385,18 +350,6 @@ export default function AnalysisPage() {
                   </Select>
                 )}
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Removed UploadArea */}
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <Progress value={uploadProgress} className="w-full" />
-                )}
-                {isAnalyzing && (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analyzing document...</span>
-                  </div>
-                )}
-              </CardContent>
             </Card>
 
             <Card className="min-h-[calc(100vh-24rem)]">
@@ -415,16 +368,10 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* Fixed Input Area */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4 items-center">
-              <UploadButton
-                onContentExtracted={handleContentExtracted}
-                onProgress={setUploadProgress}
-                onAnalyzing={setIsAnalyzing}
-              />
+            <div className="flex gap-4">
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -448,12 +395,6 @@ export default function AnalysisPage() {
                 )}
               </Button>
             </div>
-            {isAnalyzing && (
-              <div className="flex items-center gap-2 mt-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Analyzing document...</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
