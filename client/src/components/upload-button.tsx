@@ -51,20 +51,20 @@ export function UploadButton({
   });
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div {...getRootProps()}>
+    <div {...getRootProps()}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <input {...getInputProps()} />
               <Paperclip className="h-5 w-5" />
             </Button>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Please upload financial statements (or any finance document) for review and feedback</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>Please upload financial statements (or any finance document) for review and feedback</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
   );
 }
