@@ -7,9 +7,11 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ensure NODE_ENV is explicitly set
 const isDev = process.env.NODE_ENV !== 'production';
 process.env.NODE_ENV = isDev ? 'development' : 'production';
-log(`Starting server in ${process.env.NODE_ENV} mode with timestamp ${Date.now()}`);
+
+log(`Starting server in ${process.env.NODE_ENV} mode`);
 
 const app = express();
 app.use(express.json());
@@ -38,9 +40,12 @@ app.use((req, res, next) => {
   try {
     const server = registerRoutes(app);
 
+    // In production, always serve from dist
     if (isDev) {
+      log('Development mode: Setting up Vite middleware');
       await setupVite(app, server);
     } else {
+      log('Production mode: Serving static files from dist');
       serveStatic(app);
     }
 
