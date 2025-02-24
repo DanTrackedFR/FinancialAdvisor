@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
 
 const currentDomain = window.location.hostname;
+const isProduction = import.meta.env.PROD;
 
 // Firebase configuration object
 const firebaseConfig = {
@@ -12,27 +13,30 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Add authorized domains for Firebase Auth
-const authorizedDomains = [
-  'trackedfr.com',
-  'www.trackedfr.com',
-  currentDomain
-];
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
-// Email verification link configuration for custom domain
+// Email verification link configuration
 export const actionCodeSettings = {
-  url: `https://trackedfr.com/auth?email=${encodeURIComponent(window.location.search)}`,
+  // Use current domain in development, trackedfr.com in production
+  url: isProduction 
+    ? `https://trackedfr.com/auth${window.location.search}`
+    : `${window.location.protocol}//${currentDomain}/auth${window.location.search}`,
   handleCodeInApp: true,
-  dynamicLinkDomain: 'trackedfr.com'
+  // Only set dynamicLinkDomain in production
+  ...(isProduction && { dynamicLinkDomain: 'trackedfr.com' })
 };
 
 // Function to send email verification link
 export async function sendVerificationEmail(email: string) {
-  return sendSignInLinkToEmail(auth, email, actionCodeSettings);
+  try {
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    return true;
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw error;
+  }
 }
