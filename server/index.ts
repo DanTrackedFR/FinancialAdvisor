@@ -26,10 +26,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enhanced debug logging
+// Enhanced request logging
 app.use((req, res, next) => {
-  log(`${process.env.NODE_ENV} :: ${req.method} ${req.path} :: ${Date.now()}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    log(`${process.env.NODE_ENV} :: ${req.method} ${req.path} :: ${res.statusCode} :: ${duration}ms`);
+  });
   next();
+});
+
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: Date.now(),
+    env: process.env.NODE_ENV,
+    port: 5000
+  });
 });
 
 (async () => {
@@ -40,8 +54,8 @@ app.use((req, res, next) => {
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || 'Internal Server Error';
-      res.status(status).json({ message, stack: err.stack });
-      console.error('Error:', err);
+      log(`Error handling request: ${message}`);
+      res.status(status).json({ message, stack: isDev ? err.stack : undefined });
     });
 
     // Always use Vite in development mode
@@ -49,40 +63,66 @@ app.use((req, res, next) => {
 
     const port = 5000; // Fixed port for production compatibility
 
-    function startServer(retries = 3) {
-      server.listen(port, "0.0.0.0", () => {
-        log(`Development server starting...`);
-        log(`Server running at http://0.0.0.0:${port}`);
-        log(`Environment: ${process.env.NODE_ENV}`);
-        log(`Timestamp: ${Date.now()}`);
-        log('Press Ctrl+C to stop the server');
-      }).on('error', (error: any) => {
-        if (error.code === 'EADDRINUSE' && retries > 0) {
-          log(`Port ${port} is in use. Attempting to terminate existing process...`);
-          // Try to force close the port and retry
-          import('child_process').then(({ exec }) => {
-            exec(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9`, (err) => {
-              if (err) {
-                log(`Failed to free port ${port}. Please manually terminate the process using it.`);
-                process.exit(1);
-              }
-              log(`Successfully freed port ${port}. Retrying server start...`);
-              setTimeout(() => startServer(retries - 1), 1000);
-            });
-          });
-        } else {
-          console.error('Server error:', error);
-          process.exit(1);
-        }
+    // Initialize server with retry mechanism
+    async function startServer(): Promise<boolean> {
+      return new Promise((resolve) => {
+        const serverInstance = server.listen(port, "0.0.0.0", () => {
+          log(`Server started successfully on port ${port}`);
+          log(`Environment: ${process.env.NODE_ENV}`);
+          log(`Timestamp: ${Date.now()}`);
+          resolve(true);
+        });
+
+        serverInstance.on('error', async (error: any) => {
+          if (error.code === 'EADDRINUSE') {
+            log(`Port ${port} is in use, attempting to free it...`);
+            try {
+              const { exec } = await import('child_process');
+              exec(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9`, async (err) => {
+                if (err) {
+                  log(`Failed to free port ${port}: ${err.message}`);
+                  resolve(false);
+                } else {
+                  log(`Successfully freed port ${port}`);
+                  // Wait briefly before retry
+                  await new Promise(r => setTimeout(r, 1000));
+                  resolve(await startServer());
+                }
+              });
+            } catch (err) {
+              log(`Error freeing port: ${err}`);
+              resolve(false);
+            }
+          } else {
+            log(`Server error: ${error.message}`);
+            resolve(false);
+          }
+        });
       });
     }
 
-    startServer();
+    // Attempt to start server with retries
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    // Handle process termination
+    while (attempts < maxAttempts) {
+      log(`Attempting to start server (attempt ${attempts + 1}/${maxAttempts})`);
+      if (await startServer()) {
+        break;
+      }
+      attempts++;
+      if (attempts === maxAttempts) {
+        throw new Error(`Failed to start server after ${maxAttempts} attempts`);
+      }
+      // Wait between attempts
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // Graceful shutdown handling
     const cleanup = () => {
+      log('Shutting down server...');
       server.close(() => {
-        console.log('Server closed');
+        log('Server closed');
         process.exit(0);
       });
     };
@@ -90,12 +130,12 @@ app.use((req, res, next) => {
     process.on('SIGTERM', cleanup);
     process.on('SIGINT', cleanup);
     process.on('uncaughtException', (err) => {
-      console.error('Uncaught exception:', err);
+      log(`Uncaught exception: ${err.message}`);
       cleanup();
     });
 
   } catch (error) {
-    console.error('Failed to start server:', error);
+    log(`Failed to start server: ${error}`);
     process.exit(1);
   }
 })();
