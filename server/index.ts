@@ -47,29 +47,37 @@ app.use((req, res, next) => {
     // Always use Vite in development mode
     await setupVite(app, server);
 
-    const port = Number(process.env.PORT) || 5000; // Changed to match .replit configuration
+    const port = 5000; // Fixed port for production compatibility
 
-    // Add error handling for port conflicts
-    server.on('error', (error: any) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use.`);
-        // Try the next available port
-        const nextPort = port + 1;
-        console.log(`Attempting to use port ${nextPort}...`);
-        server.listen(nextPort, "0.0.0.0");
-      } else {
-        console.error('Server error:', error);
-        process.exit(1);
-      }
-    });
+    function startServer(retries = 3) {
+      server.listen(port, "0.0.0.0", () => {
+        log(`Development server starting...`);
+        log(`Server running at http://0.0.0.0:${port}`);
+        log(`Environment: ${process.env.NODE_ENV}`);
+        log(`Timestamp: ${Date.now()}`);
+        log('Press Ctrl+C to stop the server');
+      }).on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE' && retries > 0) {
+          log(`Port ${port} is in use. Attempting to terminate existing process...`);
+          // Try to force close the port and retry
+          import('child_process').then(({ exec }) => {
+            exec(`lsof -i :${port} | grep LISTEN | awk '{print $2}' | xargs kill -9`, (err) => {
+              if (err) {
+                log(`Failed to free port ${port}. Please manually terminate the process using it.`);
+                process.exit(1);
+              }
+              log(`Successfully freed port ${port}. Retrying server start...`);
+              setTimeout(() => startServer(retries - 1), 1000);
+            });
+          });
+        } else {
+          console.error('Server error:', error);
+          process.exit(1);
+        }
+      });
+    }
 
-    server.listen(port, "0.0.0.0", () => {
-      log(`Development server starting...`);
-      log(`Server running at http://0.0.0.0:${port}`);
-      log(`Environment: ${process.env.NODE_ENV}`);
-      log(`Timestamp: ${Date.now()}`);
-      log('Press Ctrl+C to stop the server');
-    });
+    startServer();
 
     // Handle process termination
     const cleanup = () => {
