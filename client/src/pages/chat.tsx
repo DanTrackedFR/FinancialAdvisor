@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 import { queryClient } from "@/lib/queryClient";
@@ -180,13 +180,27 @@ export default function ChatPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4">
+            <div className="flex gap-4 relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 bottom-2 hover:bg-transparent"
+                onClick={() => {
+                  // TODO: Implement attachment functionality
+                  toast({
+                    title: "Coming Soon",
+                    description: "Attachment functionality will be available soon!",
+                  });
+                }}
+              >
+                <Paperclip className="h-5 w-5 text-muted-foreground" />
+              </Button>
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
-                className="flex-1"
+                className="flex-1 pl-12"
                 disabled={isSending}
               />
               <Button
