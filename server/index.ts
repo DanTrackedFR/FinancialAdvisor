@@ -38,6 +38,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    log('Initializing server...');
     const server = registerRoutes(app);
 
     // In production, always serve from dist
@@ -50,25 +51,44 @@ app.use((req, res, next) => {
     }
 
     const port = Number(process.env.PORT) || 5000;
-    server.listen(port, "0.0.0.0", () => {
-      log(`Server running at http://0.0.0.0:${port}`);
-      log(`Environment: ${process.env.NODE_ENV}`);
+
+    // Add error handling for the server
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use. Please free up the port and try again.`);
+        process.exit(1);
+      } else {
+        log(`Failed to start server: ${error.message}`);
+        process.exit(1);
+      }
     });
 
-    // Graceful shutdown
+    // Graceful shutdown handler
     const shutdown = () => {
       log('Shutting down gracefully...');
       server.close(() => {
         log('Server closed');
         process.exit(0);
       });
+
+      // Force shutdown after 5 seconds if graceful shutdown fails
+      setTimeout(() => {
+        log('Force shutting down...');
+        process.exit(1);
+      }, 5000);
     };
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
 
+    // Start the server
+    server.listen(port, "0.0.0.0", () => {
+      log(`Server running at http://0.0.0.0:${port}`);
+      log(`Environment: ${process.env.NODE_ENV}`);
+    });
+
   } catch (error) {
-    console.error('Failed to start server:', error);
+    log(`Critical error during server startup: ${error}`);
     process.exit(1);
   }
 })();
