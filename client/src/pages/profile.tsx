@@ -152,9 +152,11 @@ export default function Profile() {
     updateProfile(data);
   };
 
-  function formatDate(date: Date | null) {
+  function formatDate(date: Date | string | null) {
     if (!date) return "";
-    return date.toLocaleDateString("en-US", {
+    // Parse the date string into a Date object if it's a string
+    const dateObject = typeof date === 'string' ? new Date(date) : date;
+    return dateObject.toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
