@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Navigation } from "@/components/navigation";
+import { Paperclip } from "lucide-react";
 
 interface Message {
   id: number;
@@ -37,6 +38,7 @@ export default function AnalysisPage() {
   const location = window.location.pathname;
   const analysisId = parseInt(location.split('/').pop() || '') || undefined;
   const [message, setMessage] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
@@ -334,7 +336,7 @@ export default function AnalysisPage() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Upload additional documents or update content
+                    Upload documents or update content
                   </CardDescription>
                 </div>
                 {currentAnalysis && (
@@ -353,21 +355,36 @@ export default function AnalysisPage() {
                   </Select>
                 )}
               </CardHeader>
-              <CardContent className="space-y-4">
-                <UploadArea
-                  onContentExtracted={(content) => updateContent(content)}
-                  onProgress={setUploadProgress}
-                  onAnalyzing={setIsAnalyzing}
-                />
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <Progress value={uploadProgress} className="w-full" />
-                )}
-                {isAnalyzing && (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analyzing document...</span>
+              <CardContent>
+                {showUpload && (
+                  <div className="space-y-4">
+                    <UploadArea
+                      onContentExtracted={(content) => updateContent(content)}
+                      onProgress={setUploadProgress}
+                      onAnalyzing={setIsAnalyzing}
+                    />
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <Progress value={uploadProgress} className="w-full" />
+                    )}
+                    {isAnalyzing && (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Analyzing document...</span>
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowUpload(false)}
+                    >
+                      Cancel Upload
+                    </Button>
                   </div>
                 )}
+                <Button
+                  onClick={() => setShowUpload(true)}
+                >
+                  Upload Document
+                </Button>
               </CardContent>
             </Card>
 
@@ -391,13 +408,21 @@ export default function AnalysisPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4">
+            <div className="flex gap-4 relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 bottom-2 hover:bg-transparent"
+                onClick={() => setShowUpload(true)}
+              >
+                <Paperclip className="h-5 w-5 text-muted-foreground" />
+              </Button>
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Ask a question about the analysis..."
-                className="flex-1"
+                className="flex-1 pl-12"
                 disabled={isSending}
               />
               <Button
