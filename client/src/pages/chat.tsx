@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 import { queryClient } from "@/lib/queryClient";
 import { Navigation } from "@/components/navigation";
+import { UploadArea } from "@/components/upload-area";
+import { Progress } from "@/components/ui/progress";
 
 interface Message {
   id: number;
@@ -21,6 +23,9 @@ export default function ChatPage() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
   const [message, setMessage] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { data: messages = [] } = useQuery({
     queryKey: ["chat-messages"],
@@ -50,6 +55,41 @@ export default function ChatPage() {
       });
     }
   }, [user]);
+
+  const handleContentExtracted = async (content: string) => {
+    try {
+      if (!user) throw new Error("You must be logged in to chat");
+
+      const response = await fetch('/api/chat', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "firebase-uid": user.uid
+        },
+        body: JSON.stringify({ 
+          message: "Document uploaded for analysis. Please confirm you can access the content.",
+          fileContent: content 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to process document");
+      }
+
+      const result = await response.json();
+      if (Array.isArray(result) && result.length > 0) {
+        queryClient.setQueryData(["chat-messages"], [...messages, ...result]);
+      }
+
+      setShowUpload(false);
+    } catch (error: any) {
+      toast({
+        title: "Error Processing Document",
+        description: error.message || "Failed to process the document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
@@ -180,44 +220,64 @@ export default function ChatPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4 relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-2 bottom-2 hover:bg-transparent"
-                onClick={() => {
-                  // TODO: Implement attachment functionality
-                  toast({
-                    title: "Coming Soon",
-                    description: "Attachment functionality will be available soon!",
-                  });
-                }}
-              >
-                <Paperclip className="h-5 w-5 text-muted-foreground" />
-              </Button>
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
-                className="flex-1 pl-12"
-                disabled={isSending}
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!message.trim() || isSending}
-                className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isSending ? (
-                  <div className="flex items-center">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </div>
-                ) : (
-                  'Send'
+            {showUpload ? (
+              <div className="mb-4">
+                <UploadArea
+                  onContentExtracted={handleContentExtracted}
+                  onProgress={setUploadProgress}
+                  onAnalyzing={setIsAnalyzing}
+                />
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <Progress value={uploadProgress} className="w-full mt-2" />
                 )}
-              </Button>
-            </div>
+                {isAnalyzing && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing document...</span>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => setShowUpload(false)}
+                >
+                  Cancel Upload
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-4 relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 bottom-2 hover:bg-transparent"
+                  onClick={() => setShowUpload(true)}
+                >
+                  <Paperclip className="h-5 w-5 text-muted-foreground" />
+                </Button>
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Type your message... (Press Enter to send, Alt+Enter for new line)"
+                  className="flex-1 pl-12"
+                  disabled={isSending}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || isSending}
+                  className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isSending ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </div>
+                  ) : (
+                    'Send'
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
