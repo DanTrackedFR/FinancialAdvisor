@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
 import { UploadArea } from "@/components/upload-area";
@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Navigation } from "@/components/navigation";
-import { Paperclip } from "lucide-react";
 
 interface Message {
   id: number;
@@ -310,8 +309,8 @@ export default function AnalysisPage() {
         <Navigation />
       </div>
 
-      <div className="flex-1 pt-16 pb-[180px]">
-        <div className="container mx-auto px-4 py-8">
+      <div className="flex-1 pt-16 pb-24">
+        <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
               <Button
@@ -336,7 +335,7 @@ export default function AnalysisPage() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Upload documents or update content
+                    Analysis status and details
                   </CardDescription>
                 </div>
                 {currentAnalysis && (
@@ -355,37 +354,6 @@ export default function AnalysisPage() {
                   </Select>
                 )}
               </CardHeader>
-              <CardContent>
-                {showUpload && (
-                  <div className="space-y-4">
-                    <UploadArea
-                      onContentExtracted={(content) => updateContent(content)}
-                      onProgress={setUploadProgress}
-                      onAnalyzing={setIsAnalyzing}
-                    />
-                    {uploadProgress > 0 && uploadProgress < 100 && (
-                      <Progress value={uploadProgress} className="w-full" />
-                    )}
-                    {isAnalyzing && (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Analyzing document...</span>
-                      </div>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowUpload(false)}
-                    >
-                      Cancel Upload
-                    </Button>
-                  </div>
-                )}
-                <Button
-                  onClick={() => setShowUpload(true)}
-                >
-                  Upload Document
-                </Button>
-              </CardContent>
             </Card>
 
             <Card className="min-h-[calc(100vh-24rem)]">
@@ -408,38 +376,64 @@ export default function AnalysisPage() {
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex gap-4 relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-2 bottom-2 hover:bg-transparent"
-                onClick={() => setShowUpload(true)}
-              >
-                <Paperclip className="h-5 w-5 text-muted-foreground" />
-              </Button>
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Ask a question about the analysis..."
-                className="flex-1 pl-12"
-                disabled={isSending}
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!message.trim() || !analysisId || isSending}
-                className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isSending ? (
-                  <div className="flex items-center">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </div>
-                ) : (
-                  'Send'
+            {showUpload ? (
+              <div className="mb-4">
+                <UploadArea
+                  onContentExtracted={(content) => updateContent(content)}
+                  onProgress={setUploadProgress}
+                  onAnalyzing={setIsAnalyzing}
+                />
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <Progress value={uploadProgress} className="w-full mt-2" />
                 )}
-              </Button>
-            </div>
+                {isAnalyzing && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing document...</span>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => setShowUpload(false)}
+                >
+                  Cancel Upload
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-4 relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 bottom-2 hover:bg-transparent"
+                  onClick={() => setShowUpload(true)}
+                >
+                  <Paperclip className="h-5 w-5 text-muted-foreground" />
+                </Button>
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ask a question about the analysis..."
+                  className="flex-1 pl-12"
+                  disabled={isSending}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || isSending}
+                  className={`bg-blue-600 hover:bg-blue-700 text-white ${(!message.trim() || isSending) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isSending ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </div>
+                  ) : (
+                    'Send'
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
