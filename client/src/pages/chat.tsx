@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,8 +26,10 @@ export default function ChatPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [isLocalUpdate, setIsLocalUpdate] = useState(false);
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
     queryKey: ["chat-messages"],
     queryFn: async () => {
       const storedMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
@@ -37,6 +39,13 @@ export default function ChatPage() {
     gcTime: Infinity,
     initialData: [],
   });
+
+  // Sync server messages with local optimistic messages
+  useEffect(() => {
+    if (!isLocalUpdate) {
+      setLocalMessages(messages);
+    }
+  }, [messages, isLocalUpdate]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -60,6 +69,24 @@ export default function ChatPage() {
     try {
       if (!user) throw new Error("You must be logged in to chat");
 
+      // Show optimistic message
+      const optimisticUserMessage = {
+        id: Date.now(),
+        role: "user" as const,
+        content: "Document uploaded for analysis. Please confirm you can access the content.",
+        analysisId: -1,
+      };
+
+      const optimisticAiMessage = {
+        id: Date.now() + 1,
+        role: "assistant" as const,
+        content: "Processing your document...",
+        analysisId: -1,
+      };
+
+      setIsLocalUpdate(true);
+      setLocalMessages(prev => [...prev, optimisticUserMessage, optimisticAiMessage]);
+
       const response = await fetch('/api/chat', {
         method: "POST",
         headers: {
@@ -78,17 +105,32 @@ export default function ChatPage() {
 
       const result = await response.json();
       if (Array.isArray(result) && result.length > 0) {
-        queryClient.setQueryData(["chat-messages"], [...messages, ...result]);
+        // Replace the optimistic messages with actual response
+        setLocalMessages(prev => [...prev.slice(0, prev.length - 2), ...result]);
+        queryClient.setQueryData(["chat-messages"], 
+          [...(queryClient.getQueryData<Message[]>(["chat-messages"]) || []), ...result]
+        );
       }
 
+      setIsLocalUpdate(false);
       setShowUpload(false);
     } catch (error: any) {
+      setIsLocalUpdate(false);
       toast({
         title: "Error Processing Document",
         description: error.message || "Failed to process the document. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  // Debounce function to prevent multiple rapid submissions
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
   };
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
@@ -121,24 +163,48 @@ export default function ChatPage() {
         analysisId: -1,
       };
 
-      const previousMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
-      queryClient.setQueryData(["chat-messages"], [...previousMessages, optimisticUserMessage]);
+      const optimisticAiMessage = {
+        id: Date.now() + 1,
+        role: "assistant" as const,
+        content: "Thinking...",
+        analysisId: -1,
+      };
 
+      setIsLocalUpdate(true);
+      setLocalMessages(prev => [...prev, optimisticUserMessage, optimisticAiMessage]);
       setMessage("");
-      return { optimisticUserMessage, previousMessages };
+
+      return { 
+        optimisticUserMessage, 
+        optimisticAiMessage,
+        previousMessages: queryClient.getQueryData<Message[]>(["chat-messages"]) || []
+      };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, _, context) => {
       if (Array.isArray(data) && data.length > 0) {
-        const previousMessages = queryClient.getQueryData<Message[]>(["chat-messages"]) || [];
+        // Replace the optimistic messages with actual response
+        setLocalMessages(prev => {
+          const withoutOptimistic = prev.slice(0, prev.length - 2);
+          return [...withoutOptimistic, ...data];
+        });
+
         queryClient.setQueryData(
           ["chat-messages"],
-          [...previousMessages.slice(0, -1), ...data]
+          [...context!.previousMessages, ...data]
         );
       }
+      setIsLocalUpdate(false);
     },
     onError: (error: Error, _, context) => {
+      setIsLocalUpdate(false);
       if (context) {
-        queryClient.setQueryData(["chat-messages"], context.previousMessages);
+        // Remove the optimistic messages on error
+        setLocalMessages(prev => 
+          prev.filter(msg => 
+            msg.id !== context.optimisticUserMessage.id && 
+            msg.id !== context.optimisticAiMessage.id
+          )
+        );
       }
       setMessage(context?.optimisticUserMessage.content || "");
       toast({
@@ -165,10 +231,18 @@ export default function ChatPage() {
     }
   };
 
+  // Debounced send message to prevent duplicate submissions
+  const debouncedSendMessage = useCallback(
+    debounce((content: string) => {
+      sendMessage(content);
+    }, 300),
+    [sendMessage]
+  );
+
   const handleSendMessage = () => {
     const trimmedMessage = message.trim();
     if (trimmedMessage && !isSending) {
-      sendMessage(trimmedMessage);
+      debouncedSendMessage(trimmedMessage);
     }
   };
 
@@ -210,8 +284,8 @@ export default function ChatPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <ConversationThread
-              messages={messages}
-              isLoading={isSending}
+              messages={localMessages}
+              isLoading={isSending || isLoadingMessages}
             />
           </div>
         </div>

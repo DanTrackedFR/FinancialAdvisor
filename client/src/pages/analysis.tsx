@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ export default function AnalysisPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [isLocalUpdate, setIsLocalUpdate] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -67,11 +69,6 @@ export default function AnalysisPage() {
     retry: 1,
   });
 
-  useEffect(() => {
-    console.log("Analysis ID:", analysisId);
-    console.log("Current analysis:", currentAnalysis);
-  }, [analysisId, currentAnalysis]);
-
   // Fetch user's analyses for the list view
   const { data: analyses = [], isLoading: isLoadingAnalyses } = useQuery<Analysis[]>({
     queryKey: ["/api/user/analyses"],
@@ -96,12 +93,12 @@ export default function AnalysisPage() {
     },
   });
 
-  // Add debug logging for messages
+  // Sync server messages with local optimistic messages
   useEffect(() => {
-    console.log("Current analysisId:", analysisId);
-    console.log("Messages loaded:", messages);
-  }, [analysisId, messages]);
-
+    if (!isLocalUpdate) {
+      setLocalMessages(messages);
+    }
+  }, [messages, isLocalUpdate]);
 
   const { mutate: updateContent } = useMutation({
     mutationFn: async (content: string) => {
@@ -172,12 +169,20 @@ export default function AnalysisPage() {
     },
   });
 
+  // Debounce function to prevent multiple rapid submissions
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
   const { mutate: sendMessage, isPending: isSending } = useMutation({
     mutationFn: async (content: string) => {
       if (!analysisId) throw new Error("No active analysis");
       if (!user) throw new Error("You must be logged in to send messages");
 
-      console.log("Sending message to analysis:", analysisId);
       const response = await fetch(`/api/analysis/${analysisId}/messages`, {
         method: "POST",
         headers: {
@@ -204,13 +209,59 @@ export default function AnalysisPage() {
 
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async (content) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
+
+      // Create optimistic user message
+      const optimisticUserMessage: Message = {
+        id: Date.now(),
+        role: "user",
+        content,
+        analysisId: analysisId || -1,
+      };
+
+      // Create optimistic AI response
+      const optimisticAiMessage: Message = {
+        id: Date.now() + 1,
+        role: "assistant",
+        content: "Thinking...",
+        analysisId: analysisId || -1,
+      };
+
+      // Get current messages from cache
+      const previousMessages = queryClient.getQueryData<Message[]>([
+        "/api/analysis", analysisId, "messages"
+      ]) || [];
+
+      // Add optimistic messages to local state
+      setIsLocalUpdate(true);
+      setLocalMessages([...previousMessages, optimisticUserMessage, optimisticAiMessage]);
       setMessage("");
-      console.log("Invalidating messages query for analysis:", analysisId);
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
+
+      return { 
+        previousMessages,
+        optimisticUserMessage,
+        optimisticAiMessage
+      };
     },
-    onError: (error: Error) => {
-      console.error("Error sending message:", error);
+    onSuccess: (data) => {
+      // We don't need to update the cache here, as we'll invalidate
+      // the query, which will trigger a refetch with the latest data
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
+      setIsLocalUpdate(false);
+    },
+    onError: (error: Error, _, context) => {
+      setIsLocalUpdate(false);
+      // Revert to previous messages on error
+      if (context) {
+        setLocalMessages(context.previousMessages);
+        queryClient.setQueryData(
+          ["/api/analysis", analysisId, "messages"], 
+          context.previousMessages
+        );
+      }
+      setMessage(_); // Restore the message that failed to send
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -238,10 +289,18 @@ export default function AnalysisPage() {
     }
   };
 
+  // Debounced send message to prevent duplicate submissions
+  const debouncedSendMessage = useCallback(
+    debounce((content: string) => {
+      sendMessage(content);
+    }, 300),
+    [sendMessage]
+  );
+
   const handleSendMessage = () => {
     const trimmedMessage = message.trim();
     if (trimmedMessage && !isSending) {
-      sendMessage(trimmedMessage);
+      debouncedSendMessage(trimmedMessage);
     }
   };
 
@@ -363,7 +422,7 @@ export default function AnalysisPage() {
               </CardHeader>
               <CardContent className="h-[calc(100vh-32rem)] overflow-y-auto">
                 <ConversationThread
-                  messages={messages}
+                  messages={localMessages}
                   isLoading={isLoadingMessages}
                 />
               </CardContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,7 @@ export default function NewAnalysis() {
   const handleContentExtracted = async (content: string) => {
     setFileContent(content);
 
+    // Create optimistic loading message
     const processingMessage = {
       id: Date.now(),
       role: "assistant" as const,
@@ -104,6 +105,14 @@ export default function NewAnalysis() {
     setMessages(prev => [...prev, processingMessage]);
 
     try {
+      // Show optimistic message immediately
+      const optimisticUserMessage = {
+        id: Date.now(),
+        role: "user" as const,
+        content: "Document uploaded for analysis. Please confirm you can access the content.",
+        analysisId: -1,
+      };
+
       const response = await fetch('/api/chat', {
         method: "POST",
         headers: {
@@ -121,8 +130,7 @@ export default function NewAnalysis() {
         throw new Error("Failed to process document");
       }
 
-      const result = await response.json();
-
+      // Replace loading message with confirmation
       const confirmationMessage = {
         id: Date.now() + 1,
         role: "assistant" as const,
@@ -130,13 +138,25 @@ export default function NewAnalysis() {
         analysisId: -1,
       };
       setMessages(prev => [...prev.slice(0, -1), confirmationMessage]);
+      setShowUpload(false);
     } catch (error) {
+      // Remove loading message on error
+      setMessages(prev => prev.slice(0, -1));
       toast({
         title: "Error Processing Document",
         description: "Failed to process the document. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  // Debounce function to prevent multiple rapid submissions
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
   };
 
   const { mutate: sendMessage, isPending: isSending } = useMutation({
@@ -169,30 +189,49 @@ export default function NewAnalysis() {
       return response.json();
     },
     onMutate: async (newMessage) => {
+      // Create optimistic messages immediately
       const optimisticUserMessage = {
         id: Date.now(),
         role: "user" as const,
         content: newMessage,
         analysisId: -1,
       };
-      setMessages(prev => [...prev, optimisticUserMessage]);
+
+      const optimisticAiMessage = {
+        id: Date.now() + 1,
+        role: "assistant" as const,
+        content: "Thinking...",
+        analysisId: -1,
+      };
+
+      // Show optimistic messages immediately
+      setMessages(prev => [...prev, optimisticUserMessage, optimisticAiMessage]);
       setMessage("");
-      return { optimisticUserMessage };
+
+      return { 
+        optimisticUserMessage,
+        optimisticAiMessage,
+        previousMessages: [...messages]
+      };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, _, context) => {
       if (Array.isArray(data) && data.length > 0) {
-        setMessages(prevMessages =>
-          [...prevMessages.slice(0, -1), ...data]
-        );
+        // Replace the optimistic messages with the actual server response
+        setMessages(prevMessages => {
+          const withoutOptimistic = prevMessages.filter(
+            msg => msg.id !== context.optimisticUserMessage.id && msg.id !== context.optimisticAiMessage.id
+          );
+          return [...withoutOptimistic, ...data];
+        });
       }
     },
     onError: (error: Error, _, context) => {
-      if (context?.optimisticUserMessage) {
-        setMessages(prev =>
-          prev.filter(msg => msg.id !== context.optimisticUserMessage.id)
-        );
+      // Revert to previous state on error
+      if (context) {
+        setMessages(context.previousMessages);
+        setMessage(context.optimisticUserMessage.content);
       }
-      setMessage(context?.optimisticUserMessage.content || "");
+
       toast({
         title: "Error Sending Message",
         description: error.message || "Failed to send message. Please try again.",
@@ -217,10 +256,18 @@ export default function NewAnalysis() {
     }
   };
 
+  // Debounced send message to prevent duplicate submissions
+  const debouncedSendMessage = useCallback(
+    debounce((content: string) => {
+      sendMessage(content);
+    }, 300),
+    [sendMessage]
+  );
+
   const handleSendMessage = () => {
     const trimmedMessage = message.trim();
     if (trimmedMessage && !isSending) {
-      sendMessage(trimmedMessage);
+      debouncedSendMessage(trimmedMessage);
     }
   };
 
