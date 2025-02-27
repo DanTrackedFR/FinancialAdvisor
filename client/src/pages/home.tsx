@@ -67,8 +67,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Non-authenticated landing page */}
       {!user ? (
         <div className="pt-16">
+          {/* Landing page header */}
           <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
             <div className="container mx-auto px-4">
               <div className="flex items-center justify-between h-16">
@@ -93,6 +95,7 @@ export default function Home() {
             </div>
           </header>
 
+          {/* Hero Section with mobile optimization */}
           <section className="container mx-auto px-4 py-8 md:py-16">
             <div className="max-w-3xl mx-auto">
               <div className="flex flex-col items-center mb-6 md:mb-8">
@@ -105,6 +108,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Hero section with responsive text */}
               <div className="text-center space-y-6 md:space-y-8">
                 <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500 leading-tight">
                   Automated Financial Reporting
@@ -125,6 +129,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Features Section with mobile optimization */}
           <section className="py-8 md:py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
@@ -175,14 +180,16 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Our Roadmap Section - Replaces Enhanced Financial Understanding */}
           <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-8">
                 Our Roadmap
               </h2>
               <div className="max-w-5xl mx-auto">
-                <div className="grid grid-cols-7 gap-2 md:gap-4">
-                  <Card className="border-blue-600 border-2 col-span-7 md:col-span-1">
+                <div className="grid md:grid-cols-4 gap-4 md:gap-8">
+                  {/* Current Live Feature */}
+                  <Card className="border-blue-600 border-2">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">LIVE NOW</span>
@@ -197,11 +204,11 @@ export default function Home() {
                     </CardContent>
                   </Card>
 
-                  <div className="hidden md:flex items-center justify-center">
-                    <ArrowRight className="h-6 w-6 text-blue-400" />
-                  </div>
-
-                  <Card className="col-span-7 md:col-span-1">
+                  {/* Phase 1 */}
+                  <Card className="relative">
+                    <div className="absolute -left-4 top-1/2 hidden md:block">
+                      <ArrowRight className="h-6 w-6 text-blue-400" />
+                    </div>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">PHASE 1</span>
@@ -216,11 +223,11 @@ export default function Home() {
                     </CardContent>
                   </Card>
 
-                  <div className="hidden md:flex items-center justify-center">
-                    <ArrowRight className="h-6 w-6 text-blue-400" />
-                  </div>
-
-                  <Card className="col-span-7 md:col-span-1">
+                  {/* Phase 2 */}
+                  <Card className="relative">
+                    <div className="absolute -left-4 top-1/2 hidden md:block">
+                      <ArrowRight className="h-6 w-6 text-blue-400" />
+                    </div>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">PHASE 2</span>
@@ -235,11 +242,11 @@ export default function Home() {
                     </CardContent>
                   </Card>
 
-                  <div className="hidden md:flex items-center justify-center">
-                    <ArrowRight className="h-6 w-6 text-blue-400" />
-                  </div>
-
-                  <Card className="col-span-7 md:col-span-1">
+                  {/* Phase 3 */}
+                  <Card className="relative">
+                    <div className="absolute -left-4 top-1/2 hidden md:block">
+                      <ArrowRight className="h-6 w-6 text-blue-400" />
+                    </div>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">PHASE 3</span>
@@ -271,6 +278,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* About Tracked Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">
@@ -311,6 +319,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Partners Section with responsive logos */}
           <section className="py-8 md:py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
@@ -336,6 +345,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Customers Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">
@@ -366,6 +376,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Testimonials Section with mobile optimization */}
           <section className="py-8 md:py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
@@ -406,6 +417,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* CTA Section */}
           <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-3xl font-bold mb-4">
@@ -420,6 +432,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* Footer with mobile optimization */}
           <footer className="py-6 md:py-8 border-t">
             <div className="container mx-auto px-4">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
@@ -451,6 +464,7 @@ export default function Home() {
           </footer>
         </div>
       ) : (
+        // Authenticated user dashboard
         <div className="container mx-auto px-4 py-8">
           {isLoadingProfile ? (
             <div className="flex items-center justify-center">
