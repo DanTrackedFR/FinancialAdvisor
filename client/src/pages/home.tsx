@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Menu, Loader2 } from "lucide-react";
+import { Menu, Loader2, CheckCircle2, Clock, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -180,19 +180,101 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Enhanced Financial Understanding Section */}
+          {/* Our Roadmap Section - Replaces Enhanced Financial Understanding */}
           <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-center mb-12">
-                Enhanced Financial Understanding
+              <h2 className="text-3xl font-bold text-center mb-8">
+                Our Roadmap
               </h2>
-              <Card className="max-w-3xl mx-auto">
-                <CardContent className="p-8">
-                  <p className="text-lg text-muted-foreground">
-                    Deepen your understanding of financial statements and their impact on your business. Our tool provides valuable insights to help you make informed financial decisions.
+              <div className="max-w-5xl mx-auto">
+                <div className="grid md:grid-cols-4 gap-4 md:gap-8">
+                  {/* Current Live Feature */}
+                  <Card className="border-blue-600 border-2">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">LIVE NOW</span>
+                        <CheckCircle2 className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <CardTitle>Review & Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        Upload financial statement drafts for immediate review points, feedback, and talking points from our AI-powered platform.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Phase 1 */}
+                  <Card className="relative">
+                    <div className="absolute -left-4 top-1/2 hidden md:block">
+                      <ArrowRight className="h-6 w-6 text-blue-400" />
+                    </div>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">PHASE 1</span>
+                        <Clock className="h-6 w-6 text-slate-500" />
+                      </div>
+                      <CardTitle>Instant Drafts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        Upload prior-year financial statements and current year trial balance to receive instant financial statement drafts.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Phase 2 */}
+                  <Card className="relative">
+                    <div className="absolute -left-4 top-1/2 hidden md:block">
+                      <ArrowRight className="h-6 w-6 text-blue-400" />
+                    </div>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">PHASE 2</span>
+                        <Clock className="h-6 w-6 text-slate-500" />
+                      </div>
+                      <CardTitle>ERP Integration</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        Tracked FR will plug directly into your ERP, allowing financial statements and drafts to be prepared with one click.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Phase 3 */}
+                  <Card className="relative">
+                    <div className="absolute -left-4 top-1/2 hidden md:block">
+                      <ArrowRight className="h-6 w-6 text-blue-400" />
+                    </div>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-sm font-medium">PHASE 3</span>
+                        <Clock className="h-6 w-6 text-slate-500" />
+                      </div>
+                      <CardTitle>Automated Filing</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        Seamlessly submit finalized financial statements to the relevant companies office via automated filing systems such as iXBRL.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="mt-10 text-center">
+                  <p className="text-lg text-muted-foreground mb-6 max-w-3xl mx-auto">
+                    Join us on our journey to revolutionize financial reporting. Start with our current tools while we build towards a completely automated future.
                   </p>
-                </CardContent>
-              </Card>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Link to="/auth?mode=signup">Get Started Today</Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           </section>
 
