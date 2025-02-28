@@ -48,6 +48,7 @@ export default function AnalysisPage() {
   const initializedRef = useRef(false);
 
   // Only show in development mode, not in production
+  // Force to false in production to ensure it's always hidden
   const isDevelopment = import.meta.env.DEV;
 
   // Initialize WebSocket connection
@@ -456,7 +457,7 @@ export default function AnalysisPage() {
               </Button>
 
               {/* WebSocket Connection Indicator - Only shown in development mode */}
-              {isDevelopment && (
+              {isDevelopment && import.meta.env.DEV && !import.meta.env.PROD && (
                 <div className="flex items-center gap-2 p-2 border rounded-lg">
                   {isConnected ? (
                     <>

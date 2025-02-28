@@ -22,12 +22,15 @@ import { useAuth } from "@/hooks/use-auth";
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
+  // Only show WebSocketDebugger in development mode, never in production
+  const isDevelopment = import.meta.env.DEV;
+
   return (
     <div className="min-h-screen bg-background">
       {user && <Navigation />}
       {children}
-      {/* Add WebSocket debugger only when logged in */}
-      {user && <WebSocketDebugger />}
+      {/* Add WebSocket debugger only when in development AND logged in */}
+      {isDevelopment && user && <WebSocketDebugger />}
     </div>
   );
 }

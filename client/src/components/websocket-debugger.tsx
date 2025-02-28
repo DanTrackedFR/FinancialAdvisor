@@ -10,7 +10,8 @@ export const WebSocketDebugger = () => {
   const isDevelopment = import.meta.env.DEV;
 
   // If not in development mode, don't render anything
-  if (!isDevelopment) {
+  // Double-check with process.env to make absolutely sure we never show in production
+  if (!isDevelopment || import.meta.env.PROD) {
     return null;
   }
 

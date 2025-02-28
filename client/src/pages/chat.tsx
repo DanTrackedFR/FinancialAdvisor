@@ -32,6 +32,7 @@ export default function ChatPage() {
   const initializedRef = useRef(false);
 
   // Only show WebSocket debugging in development mode
+  // Force to false in production to ensure it's always hidden
   const isDevelopment = import.meta.env.DEV;
 
   // Initialize WebSocket connection
@@ -368,7 +369,7 @@ export default function ChatPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             {/* WebSocket Connection Indicator - Only shown in development mode */}
-            {isDevelopment && (
+            {isDevelopment && import.meta.env.DEV && !import.meta.env.PROD && (
               <div className="flex items-center justify-end gap-2 mb-4 p-2 border rounded-lg">
                 {isConnected ? (
                   <>
