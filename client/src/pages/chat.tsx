@@ -31,9 +31,8 @@ export default function ChatPage() {
   const [isLocalUpdate, setIsLocalUpdate] = useState(false);
   const initializedRef = useRef(false);
 
-  // Only show WebSocket debugging in development mode - using a more robust check
-  // This should be false in production builds
-  const isDevelopment = false;
+  // Only show WebSocket debugging in development mode
+  const isDevelopment = import.meta.env.DEV;
 
   // Initialize WebSocket connection
   const { 
@@ -369,7 +368,7 @@ export default function ChatPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             {/* WebSocket Connection Indicator - Only shown in development mode */}
-            {false && (
+            {isDevelopment && (
               <div className="flex items-center justify-end gap-2 mb-4 p-2 border rounded-lg">
                 {isConnected ? (
                   <>

@@ -6,8 +6,8 @@ import { Wifi, WifiOff, RotateCw, CheckCircle, XCircle } from "lucide-react";
 import { useWebSocket } from "@/hooks/use-websocket";
 
 export const WebSocketDebugger = () => {
-  // Force hide in production - hardcoded to false to ensure it never shows in production
-  const isDevelopment = false;
+  // Only show in development mode, not in production
+  const isDevelopment = import.meta.env.DEV;
 
   // If not in development mode, don't render anything
   if (!isDevelopment) {

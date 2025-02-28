@@ -47,6 +47,8 @@ export default function AnalysisPage() {
   const { user } = useAuth();
   const initializedRef = useRef(false);
 
+  // Only show in development mode, not in production
+  const isDevelopment = import.meta.env.DEV;
 
   // Initialize WebSocket connection
   const { isConnected, connectionDetails, subscribe, sendMessage: sendWsMessage, getConnectionStatus } = useWebSocket({
@@ -454,7 +456,7 @@ export default function AnalysisPage() {
               </Button>
 
               {/* WebSocket Connection Indicator - Only shown in development mode */}
-              {false && (
+              {isDevelopment && (
                 <div className="flex items-center gap-2 p-2 border rounded-lg">
                   {isConnected ? (
                     <>
