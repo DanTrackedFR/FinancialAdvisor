@@ -13,6 +13,7 @@ import { UploadArea } from "@/components/upload-area";
 import { Analysis } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
 import {
   Select,
   SelectContent,
@@ -45,10 +46,55 @@ export default function AnalysisPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Initialize WebSocket connection
+  const { isConnected, subscribe, sendMessage: sendWsMessage } = useWebSocket({
+    onOpen: () => {
+      console.log("WebSocket connected");
+    },
+    onClose: () => {
+      console.log("WebSocket disconnected");
+    },
+    onError: (error) => {
+      console.error("WebSocket error:", error);
+    },
+    autoReconnect: true
+  });
+
   // Add scroll to top effect
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Subscribe to analysis update messages
+  useEffect(() => {
+    if (isConnected && analysisId) {
+      // Subscribe to analysis_update messages for this analysis ID
+      const unsubscribe = subscribe('analysis_update', (data: any) => {
+        if (data.analysisId === analysisId) {
+          // Show notification for status change
+          toast({
+            title: "Analysis Updated",
+            description: `Status changed to: ${data.status}`,
+            duration: 5000,
+          });
+
+          // Update the UI by invalidating queries
+          queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
+        }
+      });
+
+      // Send message to indicate we're viewing this analysis
+      sendWsMessage({
+        type: 'viewing_analysis',
+        analysisId,
+        userId: user?.uid
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [isConnected, analysisId, subscribe, sendWsMessage, user, toast]);
 
   // Fetch current analysis data
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
@@ -152,9 +198,20 @@ export default function AnalysisPage() {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, newStatus) => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
+
+      // Send WebSocket message to notify other clients about the status change
+      if (isConnected) {
+        sendWsMessage({
+          type: 'analysis_update',
+          analysisId,
+          status: newStatus,
+          userId: user?.uid
+        });
+      }
+
       toast({
         title: "Status Updated",
         description: "Analysis status has been updated successfully.",
@@ -250,6 +307,15 @@ export default function AnalysisPage() {
       // the query, which will trigger a refetch with the latest data
       queryClient.invalidateQueries({ queryKey: ["/api/analysis", analysisId, "messages"] });
       setIsLocalUpdate(false);
+
+      // Notify other clients that there's a new message
+      if (isConnected) {
+        sendWsMessage({
+          type: 'new_message',
+          analysisId,
+          userId: user?.uid
+        });
+      }
     },
     onError: (error: Error, _, context) => {
       setIsLocalUpdate(false);
@@ -378,6 +444,14 @@ export default function AnalysisPage() {
               >
                 ← Back to Analysis List
               </Button>
+
+              {/* WebSocket Connection Indicator */}
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-xs text-muted-foreground">
+                  {isConnected ? 'Live updates active' : 'Connecting...'}
+                </span>
+              </div>
             </div>
 
             <Card className="sticky top-[80px] z-40 bg-background">

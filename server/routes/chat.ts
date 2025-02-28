@@ -15,11 +15,12 @@ const CACHE_EXPIRATION = 10 * 60 * 1000;
 // Clean up old cache entries periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [key, value] of responseCache.entries()) {
+  // Use Array.from to avoid TypeScript error with Map.entries() iterator
+  Array.from(responseCache.entries()).forEach(([key, value]) => {
     if (now - value.timestamp > CACHE_EXPIRATION) {
       responseCache.delete(key);
     }
-  }
+  });
 }, 60 * 1000); // Run cleanup every minute
 
 const router = Router();

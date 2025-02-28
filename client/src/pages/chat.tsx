@@ -11,6 +11,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Navigation } from "@/components/navigation";
 import { UploadArea } from "@/components/upload-area";
 import { Progress } from "@/components/ui/progress";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 interface Message {
   id: number;
@@ -28,6 +29,20 @@ export default function ChatPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [isLocalUpdate, setIsLocalUpdate] = useState(false);
+
+  // Initialize WebSocket connection
+  const { isConnected, subscribe, sendMessage: sendWsMessage } = useWebSocket({
+    onOpen: () => {
+      console.log("WebSocket connected");
+    },
+    onClose: () => {
+      console.log("WebSocket disconnected");
+    },
+    onError: (error) => {
+      console.error("WebSocket error:", error);
+    },
+    autoReconnect: true
+  });
 
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
     queryKey: ["chat-messages"],
@@ -50,6 +65,27 @@ export default function ChatPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Set up WebSocket subscription for chat updates
+  useEffect(() => {
+    if (isConnected && user) {
+      // Listen for chat messages
+      const unsubscribe = subscribe('chat', (data: any) => {
+        if (data.userId !== user.uid) {
+          // Show notification for new chat message
+          toast({
+            title: "New Message",
+            description: "You have a new message in the chat",
+            duration: 3000,
+          });
+        }
+      });
+
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [isConnected, user, subscribe, toast]);
 
   useEffect(() => {
     if (user) {
@@ -110,6 +146,15 @@ export default function ChatPage() {
         queryClient.setQueryData(["chat-messages"], 
           [...(queryClient.getQueryData<Message[]>(["chat-messages"]) || []), ...result]
         );
+
+        // Notify via WebSocket that a new message is available
+        if (isConnected) {
+          sendWsMessage({
+            type: 'chat',
+            userId: user.uid,
+            message: 'New document uploaded for analysis'
+          });
+        }
       }
 
       setIsLocalUpdate(false);
@@ -192,6 +237,15 @@ export default function ChatPage() {
           ["chat-messages"],
           [...context!.previousMessages, ...data]
         );
+
+        // Notify via WebSocket that a new message is available
+        if (isConnected && user) {
+          sendWsMessage({
+            type: 'chat',
+            userId: user.uid,
+            message: 'New chat message'
+          });
+        }
       }
       setIsLocalUpdate(false);
     },
@@ -283,6 +337,14 @@ export default function ChatPage() {
       <div className="flex-1 pt-16 pb-24">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
+            {/* WebSocket Connection Indicator */}
+            <div className="flex items-center justify-end gap-2 mb-4">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-xs text-muted-foreground">
+                {isConnected ? 'Live updates active' : 'Connecting...'}
+              </span>
+            </div>
+
             <ConversationThread
               messages={localMessages}
               isLoading={isSending || isLoadingMessages}
