@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Ensure NODE_ENV is explicitly set
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = process.env.NODE_ENV !== 'production' && process.env.REPLIT_ENVIRONMENT !== 'production';
 process.env.NODE_ENV = isDev ? 'development' : 'production';
 
 log(`Starting server in ${process.env.NODE_ENV} mode`);
@@ -39,6 +39,12 @@ app.use((req, res, next) => {
 (async () => {
   try {
     log('Initializing server...');
+    log('Environment variables:');
+    log(`- NODE_ENV: ${process.env.NODE_ENV}`);
+    log(`- PORT: ${process.env.PORT || 5000}`);
+    log(`- REPLIT_ENVIRONMENT: ${process.env.REPLIT_ENVIRONMENT || 'not set'}`);
+    log(`- REPL_ID: ${process.env.REPL_ID || 'not set'}`);
+    log(`- REPL_SLUG: ${process.env.REPL_SLUG || 'not set'}`);
 
     // More detailed logging for initialization steps
     log('Setting up Express application...');
@@ -62,6 +68,7 @@ app.use((req, res, next) => {
 
     const port = Number(process.env.PORT) || 5000;
     log(`Attempting to start server on port ${port}...`);
+    log(`Server will bind to host: 0.0.0.0 (all interfaces)`);
 
     // Add error handling for the server
     server.on('error', (error: any) => {
@@ -96,6 +103,45 @@ app.use((req, res, next) => {
     server.listen(port, "0.0.0.0", () => {
       log(`Server running at http://0.0.0.0:${port}`);
       log(`Environment: ${process.env.NODE_ENV}`);
+
+      // Add detailed server info logging
+      log(`Server is now listening with the following details:`);
+      log(`- Protocol: HTTP`);
+      log(`- Host: 0.0.0.0 (all interfaces)`);
+      log(`- Port: ${port}`);
+      log(`- Process ID: ${process.pid}`);
+      log(`- Date/Time: ${new Date().toISOString()}`);
+
+      // Check if we can access ourselves
+      setTimeout(() => {
+        try {
+          const http = require('http');
+          const options = {
+            hostname: 'localhost',
+            port: port,
+            path: '/',
+            method: 'HEAD',
+            timeout: 3000
+          };
+
+          const req = http.request(options, (res: any) => {
+            log(`Self-check request completed with status: ${res.statusCode}`);
+          });
+
+          req.on('error', (e: Error) => {
+            log(`Self-check request failed: ${e.message}`);
+          });
+
+          req.on('timeout', () => {
+            log(`Self-check request timed out`);
+            req.destroy();
+          });
+
+          req.end();
+        } catch (error) {
+          log(`Failed to perform self-check: ${error}`);
+        }
+      }, 1000);
     });
 
   } catch (error) {
