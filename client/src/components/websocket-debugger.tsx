@@ -6,6 +6,14 @@ import { Wifi, WifiOff, RotateCw, CheckCircle, XCircle } from "lucide-react";
 import { useWebSocket } from "@/hooks/use-websocket";
 
 export const WebSocketDebugger = () => {
+  // Only show in development mode, not in production
+  const isDevelopment = import.meta.env.DEV;
+
+  // If not in development mode, don't render anything
+  if (!isDevelopment) {
+    return null;
+  }
+
   const [expanded, setExpanded] = useState(false);
   const [pingResult, setPingResult] = useState<{ success: boolean; time?: number; error?: string } | null>(null);
   const [diagnosticResult, setDiagnosticResult] = useState<any>(null);

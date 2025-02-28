@@ -47,6 +47,9 @@ export default function AnalysisPage() {
   const { user } = useAuth();
   const initializedRef = useRef(false);
 
+  // Only show in development mode, not in production
+  const isDevelopment = import.meta.env.DEV;
+
   // Initialize WebSocket connection
   const { isConnected, connectionDetails, subscribe, sendMessage: sendWsMessage, getConnectionStatus } = useWebSocket({
     onOpen: () => {
@@ -452,29 +455,31 @@ export default function AnalysisPage() {
                 ← Back to Analysis List
               </Button>
 
-              {/* WebSocket Connection Indicator - Made more prominent */}
-              <div className="flex items-center gap-2 p-2 border rounded-lg">
-                {isConnected ? (
-                  <>
-                    <Wifi className="w-5 h-5 text-green-500" />
-                    <span className="text-sm font-medium text-green-500">
-                      Live updates active
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="w-5 h-5 text-red-500" />
-                    <span className="text-sm font-medium text-red-500">
-                      {getConnectionStatus() === "connecting"
-                        ? "Connecting..."
-                        : "Disconnected - Updates paused"}
-                    </span>
-                  </>
-                )}
-                <span className="text-xs text-muted-foreground ml-2">
-                  ({connectionDetails.attempts} attempts)
-                </span>
-              </div>
+              {/* WebSocket Connection Indicator - Only shown in development mode */}
+              {isDevelopment && (
+                <div className="flex items-center gap-2 p-2 border rounded-lg">
+                  {isConnected ? (
+                    <>
+                      <Wifi className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-medium text-green-500">
+                        Live updates active
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-5 h-5 text-red-500" />
+                      <span className="text-sm font-medium text-red-500">
+                        {getConnectionStatus() === "connecting"
+                          ? "Connecting..."
+                          : "Disconnected - Updates paused"}
+                      </span>
+                    </>
+                  )}
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({connectionDetails.attempts} attempts)
+                  </span>
+                </div>
+              )}
             </div>
 
             <Card className="sticky top-[80px] z-40 bg-background">
