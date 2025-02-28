@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Loader2, Paperclip } from "lucide-react";
+import { Loader2, Paperclip, Wifi, WifiOff } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
 import { UploadArea } from "@/components/upload-area";
@@ -45,17 +45,18 @@ export default function AnalysisPage() {
   const [isLocalUpdate, setIsLocalUpdate] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const initializedRef = useRef(false);
 
   // Initialize WebSocket connection
-  const { isConnected, subscribe, sendMessage: sendWsMessage } = useWebSocket({
+  const { isConnected, connectionDetails, subscribe, sendMessage: sendWsMessage, getConnectionStatus } = useWebSocket({
     onOpen: () => {
-      console.log("WebSocket connected");
+      console.log("WebSocket connected in analysis page");
     },
     onClose: () => {
-      console.log("WebSocket disconnected");
+      console.log("WebSocket disconnected in analysis page");
     },
     onError: (error) => {
-      console.error("WebSocket error:", error);
+      console.error("WebSocket error in analysis page:", error);
     },
     autoReconnect: true
   });
@@ -67,7 +68,10 @@ export default function AnalysisPage() {
 
   // Subscribe to analysis update messages
   useEffect(() => {
-    if (isConnected && analysisId) {
+    // Prevent subscribing multiple times on re-renders
+    if (!initializedRef.current && isConnected && analysisId && user) {
+      initializedRef.current = true;
+
       // Subscribe to analysis_update messages for this analysis ID
       const unsubscribe = subscribe('analysis_update', (data: any) => {
         if (data.analysisId === analysisId) {
@@ -92,8 +96,11 @@ export default function AnalysisPage() {
 
       return () => {
         unsubscribe();
+        initializedRef.current = false;
       };
     }
+
+    return () => {}; // Empty cleanup function for cases where we don't subscribe
   }, [isConnected, analysisId, subscribe, sendWsMessage, user, toast]);
 
   // Fetch current analysis data
@@ -203,7 +210,7 @@ export default function AnalysisPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
       // Send WebSocket message to notify other clients about the status change
-      if (isConnected) {
+      if (isConnected && user) {
         sendWsMessage({
           type: 'analysis_update',
           analysisId,
@@ -296,7 +303,7 @@ export default function AnalysisPage() {
       setLocalMessages([...previousMessages, optimisticUserMessage, optimisticAiMessage]);
       setMessage("");
 
-      return { 
+      return {
         previousMessages,
         optimisticUserMessage,
         optimisticAiMessage
@@ -309,7 +316,7 @@ export default function AnalysisPage() {
       setIsLocalUpdate(false);
 
       // Notify other clients that there's a new message
-      if (isConnected) {
+      if (isConnected && user) {
         sendWsMessage({
           type: 'new_message',
           analysisId,
@@ -323,7 +330,7 @@ export default function AnalysisPage() {
       if (context) {
         setLocalMessages(context.previousMessages);
         queryClient.setQueryData(
-          ["/api/analysis", analysisId, "messages"], 
+          ["/api/analysis", analysisId, "messages"],
           context.previousMessages
         );
       }
@@ -445,11 +452,27 @@ export default function AnalysisPage() {
                 ← Back to Analysis List
               </Button>
 
-              {/* WebSocket Connection Indicator */}
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="text-xs text-muted-foreground">
-                  {isConnected ? 'Live updates active' : 'Connecting...'}
+              {/* WebSocket Connection Indicator - Made more prominent */}
+              <div className="flex items-center gap-2 p-2 border rounded-lg">
+                {isConnected ? (
+                  <>
+                    <Wifi className="w-5 h-5 text-green-500" />
+                    <span className="text-sm font-medium text-green-500">
+                      Live updates active
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-medium text-red-500">
+                      {getConnectionStatus() === "connecting"
+                        ? "Connecting..."
+                        : "Disconnected - Updates paused"}
+                    </span>
+                  </>
+                )}
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({connectionDetails.attempts} attempts)
                 </span>
               </div>
             </div>

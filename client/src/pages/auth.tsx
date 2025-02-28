@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -44,7 +44,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, signUp, login } = useAuth();
-  const [, setLocation] = useLocation();
+  const [currentLocation, setLocation] = useLocation();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
   const loginForm = useForm<LoginFormData>({
@@ -81,6 +81,14 @@ export default function AuthPage() {
     }
   };
 
+  // Handle tab change safely with useCallback
+  const handleTabChange = useCallback((value: string) => {
+    setMode(value as "login" | "signup");
+    loginForm.reset();
+    signUpForm.reset();
+  }, [loginForm, signUpForm]);
+
+  // If loading, show spinner
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -89,8 +97,13 @@ export default function AuthPage() {
     );
   }
 
+  // If user is logged in, redirect to home
   if (user) {
-    setLocation("/");
+    // Use useEffect in the component body to handle navigation
+    // This prevents state updates during rendering
+    setTimeout(() => {
+      setLocation("/");
+    }, 0);
     return null;
   }
 
@@ -110,11 +123,7 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={mode} onValueChange={(v) => {
-              setMode(v as "login" | "signup");
-              loginForm.reset();
-              signUpForm.reset();
-            }}>
+            <Tabs value={mode} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -168,11 +177,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input
-                              onChange={(e) => signUpForm.setValue('firstName', e.target.value)}
-                              value={signUpForm.watch('firstName')}
-                              placeholder="Enter your first name"
-                            />
+                            <Input {...field} placeholder="Enter your first name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -185,11 +190,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input
-                              onChange={(e) => signUpForm.setValue('surname', e.target.value)}
-                              value={signUpForm.watch('surname')}
-                              placeholder="Enter your surname"
-                            />
+                            <Input {...field} placeholder="Enter your surname" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

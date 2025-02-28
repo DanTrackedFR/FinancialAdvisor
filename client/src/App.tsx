@@ -16,6 +16,7 @@ import NewAnalysis from "@/pages/new-analysis";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
+import { WebSocketDebugger } from "./components/websocket-debugger";
 import { useAuth } from "@/hooks/use-auth";
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,8 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {user && <Navigation />}
       {children}
+      {/* Add WebSocket debugger only when logged in */}
+      {user && <WebSocketDebugger />}
     </div>
   );
 }

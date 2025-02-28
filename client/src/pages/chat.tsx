@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Paperclip } from "lucide-react";
+import { Loader2, Paperclip, WifiOff, Wifi } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 import { queryClient } from "@/lib/queryClient";
@@ -29,17 +29,35 @@ export default function ChatPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [isLocalUpdate, setIsLocalUpdate] = useState(false);
+  const initializedRef = useRef(false);
 
   // Initialize WebSocket connection
-  const { isConnected, subscribe, sendMessage: sendWsMessage } = useWebSocket({
+  const { 
+    isConnected, 
+    subscribe, 
+    sendMessage: sendWsMessage,
+    getConnectionStatus,
+    connectionDetails
+  } = useWebSocket({
     onOpen: () => {
-      console.log("WebSocket connected");
+      console.log("WebSocket connected in chat page");
+      toast({
+        title: "Real-time updates activated",
+        description: "You will now receive live updates",
+        duration: 3000,
+      });
     },
     onClose: () => {
-      console.log("WebSocket disconnected");
+      console.log("WebSocket disconnected in chat page");
+      toast({
+        title: "Real-time updates disconnected",
+        description: "Attempting to reconnect...",
+        variant: "destructive",
+        duration: 5000,
+      });
     },
     onError: (error) => {
-      console.error("WebSocket error:", error);
+      console.error("WebSocket error in chat page:", error);
     },
     autoReconnect: true
   });
@@ -68,9 +86,14 @@ export default function ChatPage() {
 
   // Set up WebSocket subscription for chat updates
   useEffect(() => {
-    if (isConnected && user) {
+    // Prevent subscribing multiple times on re-renders
+    if (!initializedRef.current && isConnected && user) {
+      initializedRef.current = true;
+      console.log("Setting up WebSocket subscription for chat updates");
+
       // Listen for chat messages
       const unsubscribe = subscribe('chat', (data: any) => {
+        console.log("Received chat message via WebSocket:", data);
         if (data.userId !== user.uid) {
           // Show notification for new chat message
           toast({
@@ -82,9 +105,13 @@ export default function ChatPage() {
       });
 
       return () => {
+        console.log("Cleaning up WebSocket subscription");
         unsubscribe();
+        initializedRef.current = false;
       };
     }
+
+    return () => {}; // Empty cleanup function for cases where we don't subscribe
   }, [isConnected, user, subscribe, toast]);
 
   useEffect(() => {
@@ -148,7 +175,7 @@ export default function ChatPage() {
         );
 
         // Notify via WebSocket that a new message is available
-        if (isConnected) {
+        if (isConnected && user) {
           sendWsMessage({
             type: 'chat',
             userId: user.uid,
@@ -337,11 +364,27 @@ export default function ChatPage() {
       <div className="flex-1 pt-16 pb-24">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            {/* WebSocket Connection Indicator */}
-            <div className="flex items-center justify-end gap-2 mb-4">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-              <span className="text-xs text-muted-foreground">
-                {isConnected ? 'Live updates active' : 'Connecting...'}
+            {/* WebSocket Connection Indicator - Made more prominent */}
+            <div className="flex items-center justify-end gap-2 mb-4 p-2 border rounded-lg">
+              {isConnected ? (
+                <>
+                  <Wifi className="w-5 h-5 text-green-500" />
+                  <span className="text-sm font-medium text-green-500">
+                    Live updates active
+                  </span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-5 h-5 text-red-500" />
+                  <span className="text-sm font-medium text-red-500">
+                    {getConnectionStatus() === "connecting" 
+                      ? "Connecting..." 
+                      : "Disconnected - Updates paused"}
+                  </span>
+                </>
+              )}
+              <span className="text-xs text-muted-foreground ml-2">
+                ({connectionDetails.attempts} attempts)
               </span>
             </div>
 
