@@ -12,16 +12,19 @@ const responseCache = new Map<string, {
 // Cache expiration time in milliseconds (10 minutes)
 const CACHE_EXPIRATION = 10 * 60 * 1000;
 
-// Clean up old cache entries periodically
-setInterval(() => {
-  const now = Date.now();
-  // Use Array.from to avoid TypeScript error with Map.entries() iterator
-  Array.from(responseCache.entries()).forEach(([key, value]) => {
-    if (now - value.timestamp > CACHE_EXPIRATION) {
-      responseCache.delete(key);
-    }
-  });
-}, 60 * 1000); // Run cleanup every minute
+// Clean up old cache entries periodically - reduced frequency to 5 minutes
+setTimeout(() => {
+  // Delay initial cache cleanup to avoid slowing down server startup
+  setInterval(() => {
+    const now = Date.now();
+    // Use Array.from to avoid TypeScript error with Map.entries() iterator
+    Array.from(responseCache.entries()).forEach(([key, value]) => {
+      if (now - value.timestamp > CACHE_EXPIRATION) {
+        responseCache.delete(key);
+      }
+    });
+  }, 5 * 60 * 1000); // Run cleanup every 5 minutes instead of every minute
+}, 30000); // Delay initial cleanup by 30 seconds after server start
 
 const router = Router();
 

@@ -39,18 +39,29 @@ app.use((req, res, next) => {
 (async () => {
   try {
     log('Initializing server...');
+
+    // More detailed logging for initialization steps
+    log('Setting up Express application...');
     const server = registerRoutes(app);
+    log('Routes registered successfully');
 
     // In production, always serve from dist
     if (isDev) {
       log('Development mode: Setting up Vite middleware');
-      await setupVite(app, server);
+      try {
+        await setupVite(app, server);
+        log('Vite middleware setup complete');
+      } catch (error) {
+        log(`Failed to setup Vite middleware: ${error}`);
+        throw error;
+      }
     } else {
       log('Production mode: Serving static files from dist');
       serveStatic(app);
     }
 
     const port = Number(process.env.PORT) || 5000;
+    log(`Attempting to start server on port ${port}...`);
 
     // Add error handling for the server
     server.on('error', (error: any) => {
@@ -89,6 +100,12 @@ app.use((req, res, next) => {
 
   } catch (error) {
     log(`Critical error during server startup: ${error}`);
+    // Add more detailed error information
+    if (error instanceof Error) {
+      log(`Error name: ${error.name}`);
+      log(`Error message: ${error.message}`);
+      log(`Error stack: ${error.stack}`);
+    }
     process.exit(1);
   }
 })();

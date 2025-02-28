@@ -21,7 +21,7 @@ export const NotificationToast: FC<NotificationToastProps> = ({
     const toastOptions = {
       title,
       description,
-      variant: type === 'error' ? 'destructive' : 'default',
+      variant: type === 'error' ? 'destructive' as const : 'default' as const,
       duration,
     };
 
