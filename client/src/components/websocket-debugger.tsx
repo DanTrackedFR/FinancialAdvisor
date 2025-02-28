@@ -11,6 +11,8 @@ export const WebSocketDebugger = () => {
   const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Important: Use the exact same configuration as other components
+  // to ensure we're sharing the same global WebSocket connection
   const { 
     isConnected, 
     getConnectionStatus, 
@@ -19,19 +21,21 @@ export const WebSocketDebugger = () => {
     connect,
     connectionDetails
   } = useWebSocket({
-    enableDebugLogs: true,
-    reconnectInterval: 2000,
-    reconnectAttempts: 3
+    // Keep the same reconnect parameters as main app to stay in sync
+    reconnectInterval: 3000,
+    reconnectAttempts: 5,
+    autoReconnect: true,
+    enableDebugLogs: true
   });
 
   // Test ping-pong functionality
   const testPing = async () => {
     setPingResult(null);
     setIsLoading(true);
-    
+
     try {
       const startTime = Date.now();
-      
+
       // Set up a promise that will resolve when we get a pong back
       const pongPromise = new Promise<void>((resolve, reject) => {
         // Subscribe to pong messages
@@ -39,26 +43,26 @@ export const WebSocketDebugger = () => {
           unsubscribe(); // Clean up subscription
           resolve();
         });
-        
+
         // Set a timeout
         const timeout = setTimeout(() => {
           unsubscribe(); // Clean up subscription
           reject(new Error('Ping timed out after 5000ms'));
         }, 5000);
-        
+
         // Send ping message
         const success = sendMessage({ type: 'ping', timestamp: Date.now() });
-        
+
         if (!success) {
           clearTimeout(timeout);
           unsubscribe();
           reject(new Error('Failed to send ping - socket not connected'));
         }
       });
-      
+
       await pongPromise;
       const responseTime = Date.now() - startTime;
-      
+
       setPingResult({
         success: true,
         time: responseTime
@@ -72,12 +76,12 @@ export const WebSocketDebugger = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Fetch server-side diagnostic information
   const fetchDiagnostics = async () => {
     setDiagnosticResult(null);
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/ws-status');
       const data = await response.json();
@@ -161,7 +165,7 @@ export const WebSocketDebugger = () => {
               )}
             </Badge>
           </div>
-          
+
           {/* Connection Details */}
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -177,7 +181,7 @@ export const WebSocketDebugger = () => {
               <span className="font-mono">{connectionDetails.reconnectAttempts}</span>
             </div>
           </div>
-          
+
           {/* Ping Test */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -191,7 +195,7 @@ export const WebSocketDebugger = () => {
                 {isLoading ? <RotateCw className="h-3 w-3 animate-spin" /> : 'Test'}
               </Button>
             </div>
-            
+
             {pingResult && (
               <div className="flex items-center gap-2 text-xs">
                 {pingResult.success ? (
@@ -208,7 +212,7 @@ export const WebSocketDebugger = () => {
               </div>
             )}
           </div>
-          
+
           {/* Server Diagnostics */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -222,7 +226,7 @@ export const WebSocketDebugger = () => {
                 {isLoading ? <RotateCw className="h-3 w-3 animate-spin" /> : 'Check'}
               </Button>
             </div>
-            
+
             {diagnosticResult && (
               <div className="text-xs space-y-1">
                 {diagnosticResult.error ? (
@@ -247,7 +251,7 @@ export const WebSocketDebugger = () => {
               </div>
             )}
           </div>
-          
+
           {/* Reconnect Button */}
           <Button 
             variant="default" 

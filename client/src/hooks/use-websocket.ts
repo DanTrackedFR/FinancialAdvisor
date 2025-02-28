@@ -26,6 +26,18 @@ const globalMessageHandlers = new Map<string, Set<MessageHandler>>();
 let reconnectTimeout: NodeJS.Timeout | null = null;
 let isConnecting = false;
 
+// Create a common event system for connection status changes
+const connectionObservers = new Set<(connected: boolean) => void>();
+
+// Centralized function to update connection status
+const updateConnectionStatus = (connected: boolean) => {
+  if (globalIsConnected !== connected) {
+    globalIsConnected = connected;
+    // Notify all observers of the status change
+    connectionObservers.forEach(observer => observer(connected));
+  }
+};
+
 // Create a WebSocket connection
 const createWebSocketConnection = (
   onOpenCallbacks: Set<() => void>,
@@ -61,7 +73,7 @@ const createWebSocketConnection = (
 
     socket.onopen = () => {
       console.log("[WebSocket] Connection opened successfully");
-      globalIsConnected = true;
+      updateConnectionStatus(true);
       globalReconnectAttempts = 0;
       isConnecting = false;
 
@@ -107,7 +119,7 @@ const createWebSocketConnection = (
 
     socket.onclose = (event) => {
       console.log(`[WebSocket] Connection closed: code=${event.code}, reason=${event.reason}`);
-      globalIsConnected = false;
+      updateConnectionStatus(false);
       isConnecting = false;
 
       // Notify all subscribers
@@ -173,6 +185,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     enableDebugLogs = true
   } = options;
 
+  // Use local state that will be synchronized with global state
   const [isConnected, setIsConnected] = useState(globalIsConnected);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
 
@@ -196,22 +209,34 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const onCloseCallbacksRef = useRef<Set<() => void>>(new Set());
   const onErrorCallbacksRef = useRef<Set<(error: Event) => void>>(new Set());
 
-  // Update connection status from global state
+  // Subscribe to global connection status changes
   useEffect(() => {
-    const updateConnectionStatus = () => {
+    // Create observer function to update local state
+    const observer = (connected: boolean) => {
       if (mountedRef.current) {
-        setIsConnected(globalIsConnected);
+        setIsConnected(connected);
       }
     };
 
+    // Add our observer to global list
+    connectionObservers.add(observer);
+
+    // Initialize with current status
+    setIsConnected(globalIsConnected);
+
+    return () => {
+      connectionObservers.delete(observer);
+    };
+  }, []);
+
+  // Register event callbacks
+  useEffect(() => {
     // Add our connection status callbacks
     const onOpenCallback = () => {
-      updateConnectionStatus();
       if (onOpenRef.current) onOpenRef.current();
     };
 
     const onCloseCallback = () => {
-      updateConnectionStatus();
       if (onCloseRef.current) onCloseRef.current();
     };
 
@@ -232,13 +257,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         reconnectAttempts,
         reconnectInterval
       );
-    } else {
-      // If already connected, set state accordingly
-      setIsConnected(globalSocket.readyState === WebSocket.OPEN);
     }
-
-    // Initialize the component with the current connection status
-    updateConnectionStatus();
 
     // Cleanup function
     return () => {
@@ -279,10 +298,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     // Update the state
-    globalIsConnected = false;
-    if (mountedRef.current) {
-      setIsConnected(false);
-    }
+    updateConnectionStatus(false);
   }, []);
 
   // Send a message to the WebSocket server
