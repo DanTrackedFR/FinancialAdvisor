@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Loader2, Paperclip, Wifi, WifiOff } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { ConversationThread } from "@/components/conversation-thread";
 import { AnalysisTable } from "@/components/analysis-table";
 import { UploadArea } from "@/components/upload-area";
@@ -47,12 +47,8 @@ export default function AnalysisPage() {
   const { user } = useAuth();
   const initializedRef = useRef(false);
 
-  // Only show in development mode, not in production
-  // Force to false in production to ensure it's always hidden
-  const isDevelopment = import.meta.env.DEV;
-
-  // Initialize WebSocket connection
-  const { isConnected, connectionDetails, subscribe, sendMessage: sendWsMessage, getConnectionStatus } = useWebSocket({
+  // Initialize WebSocket connection - keep functionality but remove UI indicators
+  const { subscribe, sendMessage: sendWsMessage } = useWebSocket({
     onOpen: () => {
       console.log("WebSocket connected in analysis page");
     },
@@ -73,7 +69,7 @@ export default function AnalysisPage() {
   // Subscribe to analysis update messages
   useEffect(() => {
     // Prevent subscribing multiple times on re-renders
-    if (!initializedRef.current && isConnected && analysisId && user) {
+    if (!initializedRef.current && analysisId && user) {
       initializedRef.current = true;
 
       // Subscribe to analysis_update messages for this analysis ID
@@ -105,7 +101,7 @@ export default function AnalysisPage() {
     }
 
     return () => {}; // Empty cleanup function for cases where we don't subscribe
-  }, [isConnected, analysisId, subscribe, sendWsMessage, user, toast]);
+  }, [analysisId, subscribe, sendWsMessage, user, toast]);
 
   // Fetch current analysis data
   const { data: currentAnalysis, isLoading: isLoadingAnalysis } = useQuery<Analysis>({
@@ -214,7 +210,7 @@ export default function AnalysisPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/analyses"] });
 
       // Send WebSocket message to notify other clients about the status change
-      if (isConnected && user) {
+      if (user) {
         sendWsMessage({
           type: 'analysis_update',
           analysisId,
@@ -320,7 +316,7 @@ export default function AnalysisPage() {
       setIsLocalUpdate(false);
 
       // Notify other clients that there's a new message
-      if (isConnected && user) {
+      if (user) {
         sendWsMessage({
           type: 'new_message',
           analysisId,
@@ -456,31 +452,7 @@ export default function AnalysisPage() {
                 ← Back to Analysis List
               </Button>
 
-              {/* WebSocket Connection Indicator - Only shown in development mode */}
-              {isDevelopment && import.meta.env.DEV && !import.meta.env.PROD && (
-                <div className="flex items-center gap-2 p-2 border rounded-lg">
-                  {isConnected ? (
-                    <>
-                      <Wifi className="w-5 h-5 text-green-500" />
-                      <span className="text-sm font-medium text-green-500">
-                        Live updates active
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="w-5 h-5 text-red-500" />
-                      <span className="text-sm font-medium text-red-500">
-                        {getConnectionStatus() === "connecting"
-                          ? "Connecting..."
-                          : "Disconnected - Updates paused"}
-                      </span>
-                    </>
-                  )}
-                  <span className="text-xs text-muted-foreground ml-2">
-                    ({connectionDetails.attempts} attempts)
-                  </span>
-                </div>
-              )}
+              {/* WebSocket Connection Indicator has been completely removed */}
             </div>
 
             <Card className="sticky top-[80px] z-40 bg-background">

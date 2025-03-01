@@ -16,21 +16,17 @@ import NewAnalysis from "@/pages/new-analysis";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
-import { WebSocketDebugger } from "./components/websocket-debugger";
 import { useAuth } from "@/hooks/use-auth";
+// Removed WebSocketDebugger import
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-
-  // Only show WebSocketDebugger in development mode, never in production
-  const isDevelopment = import.meta.env.DEV;
 
   return (
     <div className="min-h-screen bg-background">
       {user && <Navigation />}
       {children}
-      {/* Add WebSocket debugger only when in development AND logged in */}
-      {isDevelopment && user && <WebSocketDebugger />}
+      {/* WebSocketDebugger has been removed completely */}
     </div>
   );
 }

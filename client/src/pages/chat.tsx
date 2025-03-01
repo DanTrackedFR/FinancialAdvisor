@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Paperclip, WifiOff, Wifi } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ConversationThread } from "@/components/conversation-thread";
 import { queryClient } from "@/lib/queryClient";
@@ -31,17 +31,11 @@ export default function ChatPage() {
   const [isLocalUpdate, setIsLocalUpdate] = useState(false);
   const initializedRef = useRef(false);
 
-  // Only show WebSocket debugging in development mode
-  // Force to false in production to ensure it's always hidden
-  const isDevelopment = import.meta.env.DEV;
-
-  // Initialize WebSocket connection
+  // Initialize WebSocket connection - keep functionality but remove UI indicators
   const { 
     isConnected, 
     subscribe, 
-    sendMessage: sendWsMessage,
-    getConnectionStatus,
-    connectionDetails
+    sendMessage: sendWsMessage
   } = useWebSocket({
     onOpen: () => {
       console.log("WebSocket connected in chat page");
@@ -368,31 +362,6 @@ export default function ChatPage() {
       <div className="flex-1 pt-16 pb-24">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            {/* WebSocket Connection Indicator - Only shown in development mode */}
-            {isDevelopment && import.meta.env.DEV && !import.meta.env.PROD && (
-              <div className="flex items-center justify-end gap-2 mb-4 p-2 border rounded-lg">
-                {isConnected ? (
-                  <>
-                    <Wifi className="w-5 h-5 text-green-500" />
-                    <span className="text-sm font-medium text-green-500">
-                      Live updates active
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="w-5 h-5 text-red-500" />
-                    <span className="text-sm font-medium text-red-500">
-                      {getConnectionStatus() === "connecting" 
-                        ? "Connecting..." 
-                        : "Disconnected - Updates paused"}
-                    </span>
-                  </>
-                )}
-                <span className="text-xs text-muted-foreground ml-2">
-                  ({connectionDetails.attempts} attempts)
-                </span>
-              </div>
-            )}
 
             <ConversationThread
               messages={localMessages}
