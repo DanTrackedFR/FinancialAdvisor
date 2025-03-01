@@ -1,8 +1,8 @@
-import { analyses, messages, users, subscriptions, pageViews, userSessions, userActions,
+import { analyses, messages, users, subscriptions, pageViews, userSessions, userActions, feedback,
   type Analysis, type InsertAnalysis, type Message, type InsertMessage, 
   type User, type InsertUser, type Subscription, type InsertSubscription,
   type PageView, type InsertPageView, type UserSession, type InsertUserSession,
-  type UserAction, type InsertUserAction } from "@shared/schema";
+  type UserAction, type InsertUserAction, type Feedback, type InsertFeedback } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, between, sql } from "drizzle-orm";
 
@@ -53,6 +53,12 @@ export interface IStorage {
   getDailyActiveUsers(startDate: Date, endDate: Date): Promise<{ date: string; count: number; }[]>;
   getPopularPages(startDate: Date, endDate: Date): Promise<{ path: string; views: number; }[]>;
   getAverageSessionDuration(): Promise<number>;
+
+  // Feedback methods
+  createFeedback(feedbackData: InsertFeedback): Promise<Feedback>;
+  getUserFeedback(userId: number): Promise<Feedback[]>;
+  getAllFeedback(): Promise<Feedback[]>;
+  updateFeedbackResolution(id: number, resolved: boolean, adminResponse?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -315,6 +321,40 @@ export class DatabaseStorage implements IStorage {
       WHERE end_time IS NOT NULL
     `);
     return Number(result.rows[0]?.avg_duration ?? 0);
+  }
+
+  // Feedback methods
+  async createFeedback(feedbackData: InsertFeedback): Promise<Feedback> {
+    const [result] = await db.insert(feedback).values(feedbackData).returning();
+    return result;
+  }
+
+  async getUserFeedback(userId: number): Promise<Feedback[]> {
+    return db.select()
+      .from(feedback)
+      .where(eq(feedback.userId, userId))
+      .orderBy(desc(feedback.createdAt));
+  }
+
+  async getAllFeedback(): Promise<Feedback[]> {
+    return db.select()
+      .from(feedback)
+      .orderBy(desc(feedback.createdAt));
+  }
+
+  async updateFeedbackResolution(id: number, resolved: boolean, adminResponse?: string): Promise<void> {
+    const updateData: any = { 
+      resolved,
+    };
+
+    if (adminResponse) {
+      updateData.adminResponse = adminResponse;
+      updateData.respondedAt = new Date();
+    }
+
+    await db.update(feedback)
+      .set(updateData)
+      .where(eq(feedback.id, id));
   }
 }
 

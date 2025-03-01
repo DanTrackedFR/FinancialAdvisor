@@ -56,6 +56,18 @@ export const messages = pgTable("messages", {
   metadata: jsonb("metadata"),
 });
 
+// New feedback table
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolved: boolean("resolved").default(false),
+  adminResponse: text("admin_response"),
+  respondedAt: timestamp("responded_at"),
+});
+
 // Schema for inserting users
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -84,6 +96,15 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
   role: true,
   metadata: true,
+});
+
+// Schema for inserting feedback
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({
+  id: true,
+  createdAt: true,
+  resolved: true,
+  adminResponse: true,
+  respondedAt: true,
 });
 
 export const pageViews = pgTable("page_views", {
@@ -139,6 +160,8 @@ export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 export type UserAction = typeof userActions.$inferSelect;
 export type InsertUserAction = z.infer<typeof insertUserActionSchema>;
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 
 // Keep existing exports
 export type User = typeof users.$inferSelect;

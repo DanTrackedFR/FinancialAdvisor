@@ -1,14 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MessageCircle, User, LogOut, BarChart2, Menu } from "lucide-react";
+import { MessageCircle, User, LogOut, BarChart2, Menu, Star } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { FeedbackDialog } from "./feedback-dialog";
 
 export function Navigation() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -39,6 +41,12 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
+            <Button variant="ghost" onClick={() => setFeedbackOpen(true)} asChild>
+              <div className="flex items-center cursor-pointer">
+                <Star className="h-4 w-4 mr-2" />
+                Feedback
+              </div>
+            </Button>
             <Button variant={location === "/chat" ? "default" : "ghost"} asChild>
               <Link to="/chat" className="flex items-center">
                 <MessageCircle className="h-4 w-4 mr-2" />
@@ -73,6 +81,18 @@ export function Navigation() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[75vw] sm:w-[350px]">
                 <nav className="flex flex-col gap-4">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start" 
+                    size="lg"
+                    onClick={() => {
+                      setFeedbackOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                    Feedback
+                  </Button>
                   <Link to="/chat" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start" size="lg">
                       <MessageCircle className="h-4 w-4 mr-2" />
@@ -111,6 +131,12 @@ export function Navigation() {
       </nav>
       {/* Add a spacer div that matches the height of the nav */}
       <div className="h-16" />
+
+      {/* Feedback Dialog */}
+      <FeedbackDialog 
+        open={feedbackOpen} 
+        onOpenChange={setFeedbackOpen} 
+      />
     </>
   );
 }
