@@ -96,6 +96,8 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
 
   const handleClose = () => {
     if (!isSubmitting) {
+      // Reset form when closing the dialog to clear all inputs
+      form.reset();
       setShowThankYou(false);
       onOpenChange(false);
     }
@@ -105,6 +107,13 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
     setShowThankYou(false);
     onOpenChange(false);
   };
+
+  // Reset form when the dialog opens
+  React.useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -156,7 +165,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
 
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="outline">
+                  <Button type="button" variant="outline" onClick={() => form.reset()}>
                     Cancel
                   </Button>
                 </DialogClose>
