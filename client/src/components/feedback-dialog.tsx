@@ -59,12 +59,12 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
 
     setIsSubmitting(true);
     try {
-      // Fix the API request call to use fetch directly, since we don't need to use the react-query hooks
+      // Fix: Use the uid field from user object instead of firebaseUid
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "firebase-uid": user.firebaseUid
+          "firebase-uid": user.uid // Changed from firebaseUid to uid which is the correct property
         },
         body: JSON.stringify({
           rating: data.rating,
