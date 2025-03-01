@@ -59,12 +59,14 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
 
     setIsSubmitting(true);
     try {
-      // Fix: Use the uid field from user object instead of firebaseUid
+      console.log("Submitting feedback with user ID:", user.uid);
+
+      // Fixed URL path - full path including /api
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "firebase-uid": user.uid // Changed from firebaseUid to uid which is the correct property
+          "firebase-uid": user.uid // Using uid from user object
         },
         body: JSON.stringify({
           rating: data.rating,
@@ -73,7 +75,9 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to submit feedback");
+        const errorData = await response.json().catch(() => null);
+        console.error("Feedback submission error:", errorData);
+        throw new Error(errorData?.error || "Failed to submit feedback");
       }
 
       setShowThankYou(true);

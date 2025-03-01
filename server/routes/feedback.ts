@@ -8,22 +8,43 @@ const router = Router();
 router.post("/feedback", async (req, res) => {
   try {
     const firebaseUid = req.headers["firebase-uid"] as string;
+    console.log("Feedback submission received with headers:", {
+      firebaseUid: firebaseUid ? "present" : "missing",
+      contentType: req.headers["content-type"]
+    });
+    console.log("Request body:", req.body);
+
     if (!firebaseUid) {
+      console.error("Feedback submission failed: Missing firebase-uid header");
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     const user = await storage.getUserByFirebaseUid(firebaseUid);
     if (!user) {
+      console.error(`Feedback submission failed: User not found for UID ${firebaseUid}`);
       return res.status(404).json({ error: "User not found" });
     }
 
-    const feedbackData = insertFeedbackSchema.parse({
-      ...req.body,
-      userId: user.id
-    });
+    console.log(`Found user with ID ${user.id} for feedback submission`);
 
-    const feedback = await storage.createFeedback(feedbackData);
-    res.status(201).json(feedback);
+    try {
+      const feedbackData = insertFeedbackSchema.parse({
+        ...req.body,
+        userId: user.id
+      });
+
+      console.log("Feedback data validated:", feedbackData);
+
+      const feedback = await storage.createFeedback(feedbackData);
+      console.log("Feedback created successfully with ID:", feedback.id);
+      res.status(201).json(feedback);
+    } catch (validationError) {
+      console.error("Validation error when parsing feedback data:", validationError);
+      res.status(400).json({ 
+        error: "Invalid feedback data", 
+        details: validationError instanceof Error ? validationError.message : "Unknown validation error" 
+      });
+    }
   } catch (error) {
     console.error("Error submitting feedback:", error);
     res.status(400).json({ 
