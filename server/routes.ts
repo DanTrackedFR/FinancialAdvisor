@@ -26,6 +26,15 @@ export function registerRoutes(app: Express) {
   app.use("/api", feedbackRoutes); // Add feedback routes
   app.use("/api", bigqueryRoutes); // Add BigQuery routes
 
+  // Debug endpoint to echo the routes
+  app.get("/api/debug/routes", (_req, res) => {
+    // Send information about registered routes
+    res.json({
+      message: "Routes are registered correctly",
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // User routes
   app.get("/api/users", async (_req, res) => {
     try {

@@ -35,9 +35,13 @@ router.post("/users", async (req, res) => {
   }
 });
 
+// Added logging to help debug the profile route
 router.get("/users/profile", async (req, res) => {
+  console.log("GET /api/users/profile endpoint hit");
   try {
     const firebaseUid = req.headers["firebase-uid"];
+    console.log("Firebase UID from headers:", firebaseUid);
+
     if (!firebaseUid || typeof firebaseUid !== "string") {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -47,6 +51,7 @@ router.get("/users/profile", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log("User found:", user.id);
     res.json(user);
   } catch (error: any) {
     console.error("Error fetching user profile:", error);
@@ -54,9 +59,14 @@ router.get("/users/profile", async (req, res) => {
   }
 });
 
+// Added logging to help debug the profile update route
 router.patch("/users/profile", async (req, res) => {
+  console.log("PATCH /api/users/profile endpoint hit");
   try {
     const firebaseUid = req.headers["firebase-uid"];
+    console.log("Firebase UID from headers:", firebaseUid);
+    console.log("Request body:", req.body);
+
     if (!firebaseUid || typeof firebaseUid !== "string") {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -66,6 +76,7 @@ router.patch("/users/profile", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log("User found, updating user:", user.id);
     const updatedUser = await storage.updateUser(user.id, req.body);
     res.json(updatedUser);
   } catch (error: any) {
