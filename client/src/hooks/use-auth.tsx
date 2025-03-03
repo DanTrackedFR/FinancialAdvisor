@@ -9,7 +9,7 @@ import {
   sendSignInLinkToEmail,
   ActionCodeSettings
 } from "firebase/auth";
-import { auth, sendVerificationEmail } from "@/lib/firebase";
+import { auth, sendVerificationEmail, actionCodeSettings, handleEmailSignInLink } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -118,6 +118,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Check if there's an email verification link
+    try {
+      const emailSignInResult = handleEmailSignInLink();
+      if (emailSignInResult) {
+        // If we're handling an email sign-in link, wait for it to complete
+        setIsLoading(true);
+
+        emailSignInResult
+          .then(async (user) => {
+            console.log("Email verification successful", user);
+            toast({
+              title: "Email Verified",
+              description: "Your email has been verified. You are now signed in.",
+            });
+            // Fetch user profile and set it
+            const extendedUser = await fetchUserProfile(user);
+            setUser(extendedUser);
+          })
+          .catch((error) => {
+            console.error("Email verification error:", error);
+            toast({
+              title: "Verification Failed",
+              description: error.message || "Failed to verify email",
+              variant: "destructive",
+            });
+          })
+          .finally(() => setIsLoading(false));
+
+        // Return early since we're handling the verification
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking for email sign-in link:", error);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
       if (firebaseUser) {
@@ -218,18 +253,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       console.log("Starting sign up process...");
-      //Incomplete change - needs proper actionCodeSettings and email link handling
-      const actionCodeSettings = {
-        url: 'http://localhost:3000/verify-email', //Update with your URL
-        handleCodeInApp: true,
-      };
+
+      // Store email in localStorage for later verification
+      window.localStorage.setItem('emailForSignIn', email);
+
+      // Send sign-in link to email - this is the email verification process
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 
+      // Store user details for later use (after verification)
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({
         firstName,
         surname,
         company
       }));
+
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email to complete the sign-up process",
+      });
 
     } catch (error: any) {
       console.error("Authentication error:", error);
