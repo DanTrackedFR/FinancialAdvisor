@@ -56,12 +56,6 @@ export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
-  const [formValues, setFormValues] = useState({
-    firstName: "",
-    surname: "",
-    company: "",
-    email: "",
-  });
 
   // Initialize URL search params to set initial mode
   useEffect(() => {
@@ -93,17 +87,6 @@ export default function AuthPage() {
     },
     mode: "onChange",
   });
-
-  // Debug logging - uncomment if needed to debug form state
-  useEffect(() => {
-    // Log form state when it changes
-    const subscription = signUpForm.watch((value) => {
-      console.log("Form values changed:", value);
-      setFormValues(value);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [signUpForm]);
 
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
@@ -222,52 +205,44 @@ export default function AuthPage() {
               ) : (
                 <Form {...signUpForm}>
                   <form onSubmit={signUpForm.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={signUpForm.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your first name" 
-                              value={field.value} 
-                              onChange={(e) => {
-                                console.log("firstName changed:", e.target.value);
-                                field.onChange(e);
-                              }} 
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signUpForm.control}
-                      name="surname"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Surname</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Enter your surname" 
-                              value={field.value} 
-                              onChange={(e) => {
-                                console.log("surname changed:", e.target.value);
-                                field.onChange(e);
-                              }} 
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                          First Name
+                        </label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          placeholder="Enter your first name"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                          {...signUpForm.register("firstName")}
+                        />
+                        {signUpForm.formState.errors.firstName && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {signUpForm.formState.errors.firstName.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="surname" className="block text-sm font-medium text-gray-700">
+                          Surname
+                        </label>
+                        <input
+                          type="text"
+                          id="surname"
+                          placeholder="Enter your surname"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                          {...signUpForm.register("surname")}
+                        />
+                        {signUpForm.formState.errors.surname && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {signUpForm.formState.errors.surname.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
                     <FormField
                       control={signUpForm.control}
                       name="company"
