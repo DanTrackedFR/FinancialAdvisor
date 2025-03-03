@@ -242,7 +242,13 @@ export default function Profile() {
                       <FormItem>
                         <FormLabel>First Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input 
+                            {...field} 
+                            onChange={(e) => {
+                              console.log("firstName changed:", e.target.value);
+                              field.onChange(e);
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -255,7 +261,13 @@ export default function Profile() {
                       <FormItem>
                         <FormLabel>Surname</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input 
+                            {...field}
+                            onChange={(e) => {
+                              console.log("surname changed:", e.target.value);
+                              field.onChange(e);
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -268,14 +280,27 @@ export default function Profile() {
                       <FormItem>
                         <FormLabel>Company (Optional)</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input 
+                            {...field}
+                            onChange={(e) => {
+                              console.log("company changed:", e.target.value);
+                              field.onChange(e);
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <div className="flex space-x-2">
-                    <Button type="submit" disabled={isPending}>
+                    <Button 
+                      type="submit" 
+                      disabled={isPending}
+                      onClick={() => {
+                        console.log("Save button clicked");
+                        console.log("Current form values:", form.getValues());
+                      }}
+                    >
                       {isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (

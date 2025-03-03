@@ -191,11 +191,7 @@ export default function AuthPage() {
                             <Input 
                               id="firstName"
                               placeholder="Enter your first name" 
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              value={field.value}
-                              name={field.name}
-                              ref={field.ref}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -212,11 +208,7 @@ export default function AuthPage() {
                             <Input 
                               id="surname"
                               placeholder="Enter your surname"
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              value={field.value}
-                              name={field.name}
-                              ref={field.ref}
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
