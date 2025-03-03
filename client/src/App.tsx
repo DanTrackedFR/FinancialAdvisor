@@ -13,9 +13,11 @@ import Users from "@/pages/users";
 import Chat from "@/pages/chat";
 import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
-import BigQueryAdmin from "@/pages/admin/bigquery"; // Import the BigQuery admin page
+import BigQueryAdmin from "@/pages/admin/bigquery";
+import AdminLogin from "@/pages/admin/login"; // Import the new admin login page
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
+import { AdminProtectedRoute } from "./components/admin-protected-route"; // Import admin protected route
 import { Navigation } from "./components/navigation";
 import { useAuth } from "@/hooks/use-auth";
 // Removed WebSocketDebugger import
@@ -47,7 +49,11 @@ function Router() {
         <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
-        <ProtectedRoute path="/admin/bigquery" component={BigQueryAdmin} /> {/* Add BigQuery admin route */}
+
+        {/* Admin routes with special protection */}
+        <Route path="/admin/login" component={AdminLogin} />
+        <AdminProtectedRoute path="/admin/bigquery" component={BigQueryAdmin} />
+
         <Route component={NotFound} />
       </Switch>
     </Layout>

@@ -4,34 +4,10 @@ import {
   initializeBigQueryResources, 
   generateServiceAccountKeyFile 
 } from '../services/bigquery';
-import { storage } from '../storage';
+import { isAdmin } from '../middleware/admin-auth';
 
 const router = express.Router();
 
-// Admin emails list - should be moved to a configuration file in production
-const ADMIN_EMAILS = [
-  'admin@trackedfr.com',
-  'support@trackedfr.com'
-  // Add other admin emails here
-];
-
-// Middleware to check if the user is an admin
-async function isAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const firebaseUid = req.headers['firebase-uid'] as string;
-
-  if (!firebaseUid) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const user = await storage.getUserByFirebaseUid(firebaseUid);
-
-  // Check if user exists and has an admin email
-  if (!user || !ADMIN_EMAILS.includes(user.email)) {
-    return res.status(403).json({ error: 'Forbidden: Admin access required' });
-  }
-
-  next();
-}
 
 // Route to initialize BigQuery resources (dataset and tables)
 router.post('/bigquery/initialize', isAdmin, async (req, res) => {
