@@ -94,6 +94,10 @@ export default function AuthPage() {
         const { confirmPassword, acceptTerms, ...signUpData } = data as SignUpFormData;
         // Store the email for the verification dialog
         setVerificationEmail(signUpData.email);
+
+        // Save email in localStorage for verification process
+        localStorage.setItem("emailForSignIn", signUpData.email);
+
         console.log("Submitting signup form with data:", signUpData);
         await signUp(signUpData);
         // Show verification dialog after successful signup
