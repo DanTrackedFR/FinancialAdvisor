@@ -37,7 +37,20 @@ const signUpSchema = z.object({
   surname: z.string().min(1, "Surname is required"),
   company: z.string().optional(),
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .refine(
+      (password) => /[A-Z]/.test(password),
+      "Password must contain at least one uppercase letter"
+    )
+    .refine(
+      (password) => /[a-z]/.test(password),
+      "Password must contain at least one lowercase letter"
+    )
+    .refine(
+      (password) => /[0-9]/.test(password),
+      "Password must contain at least one number"
+    ),
   confirmPassword: z.string().min(1, "Please confirm your password"),
   acceptTerms: z.boolean().refine((val) => val === true, {
     message: "You must accept the Terms & Conditions"
