@@ -18,6 +18,14 @@ import { useState, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -44,8 +52,10 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const { user, isLoading, signUp, login } = useAuth();
-  const [currentLocation, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [mode, setMode] = useState<"login" | "signup">("login");
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   // Initialize URL search params to set initial mode
   useEffect(() => {
@@ -82,7 +92,11 @@ export default function AuthPage() {
     try {
       if (mode === "signup") {
         const { confirmPassword, acceptTerms, ...signUpData } = data as SignUpFormData;
+        // Store the email for the verification dialog
+        setVerificationEmail(signUpData.email);
         await signUp(signUpData);
+        // Show verification dialog after successful signup
+        setShowVerificationDialog(true);
       } else {
         await login(data.email, data.password);
       }
@@ -98,6 +112,15 @@ export default function AuthPage() {
     loginForm.reset();
     signUpForm.reset();
   }, [loginForm, signUpForm]);
+
+  // Handle verification dialog close
+  const handleVerificationDialogClose = () => {
+    setShowVerificationDialog(false);
+    // Reset signup form
+    signUpForm.reset();
+    // Switch to login mode
+    setMode("login");
+  };
 
   // If loading, show spinner
   if (isLoading) {
@@ -313,6 +336,32 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Email Verification Dialog */}
+      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Your Email</DialogTitle>
+            <DialogDescription>
+              We've sent a verification email to <span className="font-medium">{verificationEmail}</span>. 
+              Please click the link in that email to verify your account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 text-sm text-muted-foreground">
+            <p className="mb-2">
+              If you don't see the email in your inbox, please check your spam or junk folder.
+            </p>
+            <p>
+              Once your email is verified, you can sign in to your account using your credentials.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleVerificationDialogClose}>
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="hidden lg:block bg-slate-50">
         <div className="h-full flex items-center justify-center p-8">
