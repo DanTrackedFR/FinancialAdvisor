@@ -280,19 +280,24 @@ export default function AuthPage() {
                       </div>
                     </div>
 
-                    <FormField
-                      control={signUpForm.control}
-                      name="company"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company (Optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter your company name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <div>
+                      <label htmlFor="company" className="block text-sm font-medium text-gray-700">
+                        Company (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        id="company"
+                        placeholder="Enter your company name"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                        {...signUpForm.register("company")}
+                      />
+                      {signUpForm.formState.errors.company && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {signUpForm.formState.errors.company.message}
+                        </p>
                       )}
-                    />
+                    </div>
+
                     <FormField
                       control={signUpForm.control}
                       name="email"
