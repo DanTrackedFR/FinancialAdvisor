@@ -85,7 +85,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-4">
                   <Button variant="ghost" asChild>
-                    <Link to="/auth?mode=signup">Sign Up</Link>
+                    <Link to="/auth?mode=signup">Sign up now for a free trial!</Link>
                   </Button>
                   <Button asChild>
                     <Link to="/auth?mode=login">Login</Link>
@@ -122,7 +122,7 @@ export default function Home() {
                     size="lg"
                     className="w-full md:w-auto px-4 md:px-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   >
-                    <Link to="/auth?mode=signup">Sign Up Now</Link>
+                    <Link to="/auth?mode=signup">Sign up now for a free trial!</Link>
                   </Button>
                 </div>
               </div>
@@ -218,7 +218,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground">
-                        Upload prior-year financial statements and current year trial balance to receive instant financial statement drafts.
+                        Upload prior-year financial statements and current year trial balance to receive instant fully compliant financial statement drafts.
                       </p>
                     </CardContent>
                   </Card>
@@ -237,7 +237,7 @@ export default function Home() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground">
-                        Tracked FR will plug directly into your ERP, allowing financial statements and drafts to be prepared with one click.
+                        Tracked FR will plug directly into your ERP, allowing fully compliant financial statement drafts to be prepared with one click.
                       </p>
                     </CardContent>
                   </Card>
@@ -271,7 +271,7 @@ export default function Home() {
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    <Link to="/auth?mode=signup">Get Started Today</Link>
+                    <Link to="/auth?mode=signup">Get Started Today with a free trial!</Link>
                   </Button>
                 </div>
               </div>
@@ -427,7 +427,7 @@ export default function Home() {
                 Start using our AI-powered platform today
               </p>
               <Button asChild size="lg" className="px-8">
-                <Link to="/auth?mode=signup">Sign Up Now</Link>
+                <Link to="/auth?mode=signup">Sign up now for a free trial!</Link>
               </Button>
             </div>
           </section>

@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +47,15 @@ export default function AuthPage() {
   const [currentLocation, setLocation] = useLocation();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
+  // Initialize URL search params to set initial mode
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "login" || modeParam === "signup") {
+      setMode(modeParam);
+    }
+  }, []);
+
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -66,6 +75,7 @@ export default function AuthPage() {
       confirmPassword: "",
       acceptTerms: false,
     },
+    mode: "onChange",
   });
 
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
@@ -78,6 +88,7 @@ export default function AuthPage() {
       }
     } catch (error) {
       // Error handling is done in useAuth
+      console.error("Form submission error:", error);
     }
   };
 
@@ -177,7 +188,15 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Enter your first name" />
+                            <Input 
+                              id="firstName"
+                              placeholder="Enter your first name" 
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              value={field.value}
+                              name={field.name}
+                              ref={field.ref}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -190,7 +209,15 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Enter your surname" />
+                            <Input 
+                              id="surname"
+                              placeholder="Enter your surname"
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              value={field.value}
+                              name={field.name}
+                              ref={field.ref}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
