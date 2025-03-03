@@ -56,6 +56,12 @@ export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
+  const [formValues, setFormValues] = useState({
+    firstName: "",
+    surname: "",
+    company: "",
+    email: "",
+  });
 
   // Initialize URL search params to set initial mode
   useEffect(() => {
@@ -88,12 +94,24 @@ export default function AuthPage() {
     mode: "onChange",
   });
 
+  // Debug logging - uncomment if needed to debug form state
+  useEffect(() => {
+    // Log form state when it changes
+    const subscription = signUpForm.watch((value) => {
+      console.log("Form values changed:", value);
+      setFormValues(value);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [signUpForm]);
+
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
         const { confirmPassword, acceptTerms, ...signUpData } = data as SignUpFormData;
         // Store the email for the verification dialog
         setVerificationEmail(signUpData.email);
+        console.log("Submitting signup form with data:", signUpData);
         await signUp(signUpData);
         // Show verification dialog after successful signup
         setShowVerificationDialog(true);
@@ -211,7 +229,17 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your first name" {...field} />
+                            <Input 
+                              placeholder="Enter your first name" 
+                              value={field.value} 
+                              onChange={(e) => {
+                                console.log("firstName changed:", e.target.value);
+                                field.onChange(e);
+                              }} 
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -224,7 +252,17 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your surname" {...field} />
+                            <Input 
+                              placeholder="Enter your surname" 
+                              value={field.value} 
+                              onChange={(e) => {
+                                console.log("surname changed:", e.target.value);
+                                field.onChange(e);
+                              }} 
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
