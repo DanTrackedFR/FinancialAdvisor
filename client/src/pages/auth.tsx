@@ -184,19 +184,23 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <div>
+                      <label htmlFor="loginPassword" className="block text-sm font-medium text-gray-700">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        id="loginPassword"
+                        placeholder="Enter your password"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                        {...loginForm.register("password")}
+                      />
+                      {loginForm.formState.errors.password && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {loginForm.formState.errors.password.message}
+                        </p>
                       )}
-                    />
+                    </div>
                     <Button type="submit" className="w-full">
                       {loginForm.formState.isSubmitting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -273,36 +277,40 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={signUpForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <div>
+                      <label htmlFor="signupPassword" className="block text-sm font-medium text-gray-700">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        id="signupPassword"
+                        placeholder="Enter your password"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                        {...signUpForm.register("password")}
+                      />
+                      {signUpForm.formState.errors.password && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {signUpForm.formState.errors.password.message}
+                        </p>
                       )}
-                    />
-                    <FormField
-                      control={signUpForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Confirm your password"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    </div>
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                        Confirm Password
+                      </label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        placeholder="Confirm your password"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                        {...signUpForm.register("confirmPassword")}
+                      />
+                      {signUpForm.formState.errors.confirmPassword && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {signUpForm.formState.errors.confirmPassword.message}
+                        </p>
                       )}
-                    />
+                    </div>
                     <FormField
                       control={signUpForm.control}
                       name="acceptTerms"
