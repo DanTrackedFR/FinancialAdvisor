@@ -21,13 +21,28 @@ export default function VerifyEmailPage() {
           // Get email from localStorage (we stored it during sign-up)
           let email = localStorage.getItem("emailForSignIn");
 
+          console.log("Retrieved email from localStorage:", email);
+
+          // If not in localStorage, try to extract from URL query parameters
           if (!email) {
-            // If we can't find the email in localStorage, prompt user
+            try {
+              const urlParams = new URLSearchParams(window.location.search);
+              email = urlParams.get('email');
+              console.log("Email extracted from URL:", email);
+            } catch (e) {
+              console.error("Error extracting email from URL:", e);
+            }
+          }
+
+          if (!email) {
+            // If we can't find the email in localStorage or URL, prompt user
             email = window.prompt("Please provide your email for confirmation");
+            console.log("User provided email:", email);
           }
 
           if (email) {
             // Complete the sign-in process
+            console.log("Attempting to sign in with email link:", email);
             await signInWithEmailLink(auth, email, window.location.href);
 
             // Clear the email from localStorage

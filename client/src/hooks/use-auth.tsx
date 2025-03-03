@@ -257,8 +257,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store email in localStorage for later verification
       window.localStorage.setItem('emailForSignIn', email);
 
+      // Create a custom actionCodeSettings with the email as a URL parameter
+      const customActionCodeSettings = {
+        ...actionCodeSettings,
+        url: `${actionCodeSettings.url}?email=${encodeURIComponent(email)}`
+      };
+
       // Send sign-in link to email - this is the email verification process
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      await sendSignInLinkToEmail(auth, email, customActionCodeSettings);
 
       // Store user details for later use (after verification)
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({

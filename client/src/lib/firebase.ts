@@ -29,7 +29,7 @@ export const actionCodeSettings = {
   ...(isProduction && { dynamicLinkDomain: 'trackedfr.com' })
 };
 
-// Function to send email verification link - updated to accept User object
+// Function to send email verification link with email parameter
 export async function sendVerificationEmail(user: User) {
   try {
     if (!user.email) {
@@ -53,8 +53,19 @@ export function handleEmailSignInLink() {
     // Get the email from localStorage (we stored it when sending the link)
     let email = window.localStorage.getItem('emailForSignIn');
 
+    // If not in localStorage, try to extract from URL query parameters
     if (!email) {
-      // If email is not in localStorage, prompt the user for it
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        email = urlParams.get('email');
+        console.log("Email extracted from URL:", email);
+      } catch (e) {
+        console.error("Error extracting email from URL:", e);
+      }
+    }
+
+    if (!email) {
+      // If email is not in localStorage or URL, prompt the user for it
       email = window.prompt('Please provide your email for confirmation');
     }
 
