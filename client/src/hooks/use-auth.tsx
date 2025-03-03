@@ -7,6 +7,7 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink,
   sendSignInLinkToEmail,
+  createUserWithEmailAndPassword,
   ActionCodeSettings
 } from "firebase/auth";
 import { auth, sendVerificationEmail, actionCodeSettings, handleEmailSignInLink } from "@/lib/firebase";
@@ -253,6 +254,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       console.log("Starting sign up process...");
+
+      // Create Firebase account with email and password first
+      // This ensures the password is properly stored for future login
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      console.log("Firebase account created:", firebaseUser.uid);
 
       // Store email in localStorage for later verification
       window.localStorage.setItem('emailForSignIn', email);
