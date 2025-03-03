@@ -36,6 +36,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   sendEmailVerification: (email: string) => Promise<void>;
+  updateUserFirebaseUid: (email: string, uid: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Function to fetch user profile data from our backend
   const fetchUserProfile = async (firebaseUser: User) => {
     try {
+      console.log("Fetching profile for Firebase UID:", firebaseUser.uid);
       const response = await fetch('/api/users/profile', {
         headers: {
           'firebase-uid': firebaseUser.uid
@@ -56,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const userData = await response.json();
+        console.log("User profile fetched:", userData);
         // Merge Firebase user with our database user
         return {
           ...firebaseUser,
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           company: userData.company
         } as ExtendedUser;
       }
+      console.log("No user profile found in database for UID:", firebaseUser.uid);
       return firebaseUser;
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -72,10 +76,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Function to update a user's Firebase UID in the database
+  const updateUserFirebaseUid = async (email: string, uid: string): Promise<boolean> => {
+    try {
+      console.log(`Updating Firebase UID for ${email} to ${uid}`);
+      const response = await fetch('/api/users/update-firebase-uid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, firebaseUid: uid }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Firebase UID update result:", result);
+        toast({
+          title: "User account updated",
+          description: "The Firebase UID has been successfully updated",
+        });
+        return true;
+      } else {
+        const error = await response.json();
+        console.error("Error updating Firebase UID:", error);
+        toast({
+          title: "Update failed",
+          description: error.error || "Failed to update Firebase UID",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error: any) {
+      console.error("Error in updateUserFirebaseUid:", error);
+      toast({
+        title: "Update error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
       if (firebaseUser) {
+        console.log("Firebase user info:", {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          emailVerified: firebaseUser.emailVerified
+        });
+
         // If we have a new sign up with stored details, create the user profile
         const storedDetails = window.localStorage.getItem('pendingUserDetails');
         if (storedDetails) {
@@ -118,11 +169,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("Starting login process...");
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Login successful");
+      console.log("Login successful for UID:", result.user.uid);
 
       // Fetch user profile data including isAdmin status
       const extendedUser = await fetchUserProfile(result.user);
       setUser(extendedUser);
+
+      // Update Firebase UID in database if necessary.  This assumes the placeholder UID is in the database before login.
+      if (email === 'support@trackedfr.com' && extendedUser.uid !== 'admin-support-placeholder-uid') {
+        await updateUserFirebaseUid(email, result.user.uid);
+      }
 
       toast({
         title: "Welcome back!",
@@ -221,6 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         sendEmailVerification,
+        updateUserFirebaseUid,
       }}
     >
       {children}

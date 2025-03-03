@@ -85,6 +85,49 @@ router.patch("/users/profile", async (req, res) => {
   }
 });
 
+// New endpoint to update a user's Firebase UID by email
+router.post("/users/update-firebase-uid", async (req, res) => {
+  console.log("POST /api/users/update-firebase-uid endpoint hit");
+  try {
+    const { email, firebaseUid } = req.body;
+    console.log("Request to update Firebase UID:", { email, firebaseUid });
+
+    if (!email || !firebaseUid) {
+      return res.status(400).json({ error: "Email and Firebase UID are required" });
+    }
+
+    // Find the user by email
+    const users = await storage.getAllUsers();
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!user) {
+      console.error(`User not found with email: ${email}`);
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log(`Updating Firebase UID for user ${user.id} (${user.email}) from ${user.firebaseUid} to ${firebaseUid}`);
+
+    // Update the Firebase UID with the correct column name in the database
+    // Changed from { firebaseUid } to { firebase_uid: firebaseUid } to match database column name
+    const updatedUser = await storage.updateUser(user.id, { firebase_uid: firebaseUid });
+
+    console.log("Update successful:", { id: updatedUser.id, firebaseUid: updatedUser.firebaseUid });
+
+    res.json({ 
+      success: true, 
+      message: "Firebase UID updated successfully",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firebaseUid: updatedUser.firebaseUid
+      }
+    });
+  } catch (error: any) {
+    console.error("Error updating Firebase UID:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // New endpoint to set admin status (admin-only)
 router.patch("/users/:id/admin-status", isAdmin, async (req, res) => {
   try {

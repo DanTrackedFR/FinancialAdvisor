@@ -15,6 +15,7 @@ import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
 import BigQueryAdmin from "@/pages/admin/bigquery";
 import AdminLogin from "@/pages/admin/login"; // Import the new admin login page
+import ManageUsers from "@/pages/admin/manage-users"; // Import the user management page
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { AdminProtectedRoute } from "./components/admin-protected-route"; // Import admin protected route
@@ -53,6 +54,7 @@ function Router() {
         {/* Admin routes with special protection */}
         <Route path="/admin/login" component={AdminLogin} />
         <AdminProtectedRoute path="/admin/bigquery" component={BigQueryAdmin} />
+        <AdminProtectedRoute path="/admin/manage-users" component={ManageUsers} />
 
         <Route component={NotFound} />
       </Switch>
