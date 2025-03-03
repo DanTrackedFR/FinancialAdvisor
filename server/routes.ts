@@ -7,6 +7,7 @@ import chatRoutes from "./routes/chat";
 import authRoutes from "./routes/auth";
 import analyticsRoutes from "./routes/analytics";
 import feedbackRoutes from "./routes/feedback";
+import bigqueryRoutes from "./routes/bigquery"; // Import BigQuery routes
 import { WebSocketServer, WebSocket } from "ws";
 
 // Declare global type for the WebSocket server
@@ -23,6 +24,7 @@ export function registerRoutes(app: Express) {
   app.use("/api", authRoutes);
   app.use("/api", analyticsRoutes); // Add analytics routes
   app.use("/api", feedbackRoutes); // Add feedback routes
+  app.use("/api", bigqueryRoutes); // Add BigQuery routes
 
   // User routes
   app.get("/api/users", async (_req, res) => {
@@ -170,7 +172,7 @@ export function registerRoutes(app: Express) {
       }));
     });
 
-    // Function declaration moved outside of blocks to avoid strict mode error
+    // Function to broadcast messages to all connected clients
     function broadcastMessage(data: any) {
       const message = JSON.stringify(data);
       let sentCount = 0;

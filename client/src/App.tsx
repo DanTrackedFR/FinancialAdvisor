@@ -13,6 +13,7 @@ import Users from "@/pages/users";
 import Chat from "@/pages/chat";
 import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
+import BigQueryAdmin from "@/pages/admin/bigquery"; // Import the BigQuery admin page
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
 import { Navigation } from "./components/navigation";
@@ -46,6 +47,7 @@ function Router() {
         <ProtectedRoute path="/new-analysis" component={NewAnalysis} />
         <ProtectedRoute path="/profile" component={Profile} />
         <ProtectedRoute path="/users" component={Users} />
+        <ProtectedRoute path="/admin/bigquery" component={BigQueryAdmin} /> {/* Add BigQuery admin route */}
         <Route component={NotFound} />
       </Switch>
     </Layout>
