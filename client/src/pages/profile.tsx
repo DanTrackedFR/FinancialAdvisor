@@ -54,12 +54,14 @@ export default function Profile() {
     queryKey: ["/api/users/profile"],
     queryFn: async () => {
       if (!user) return null;
+      console.log("Fetching profile for user:", user.uid);
       const response = await fetch("/api/users/profile", {
         headers: {
           "firebase-uid": user.uid,
         },
       });
       if (!response.ok) {
+        console.error("Profile fetch failed:", response.status, response.statusText);
         throw new Error("Failed to fetch profile");
       }
       return response.json();
@@ -81,6 +83,7 @@ export default function Profile() {
   const { mutate: updateProfile, isPending } = useMutation({
     mutationFn: async (data: ProfileFormData) => {
       if (!user) throw new Error("Not authenticated");
+      console.log("Updating profile with data:", data);
 
       const response = await fetch("/api/users/profile", {
         method: "PATCH",
@@ -92,6 +95,7 @@ export default function Profile() {
       });
 
       if (!response.ok) {
+        console.error("Profile update failed:", response.status, response.statusText);
         throw new Error("Failed to update profile");
       }
 

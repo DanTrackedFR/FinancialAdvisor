@@ -35,7 +35,7 @@ router.post("/users", async (req, res) => {
   }
 });
 
-// Added logging to help debug the profile route
+// Added explicit console logs for debugging the profile endpoint
 router.get("/users/profile", async (req, res) => {
   console.log("GET /api/users/profile endpoint hit");
   try {
@@ -59,7 +59,7 @@ router.get("/users/profile", async (req, res) => {
   }
 });
 
-// Added logging to help debug the profile update route
+// Added explicit console logs for debugging the profile update endpoint
 router.patch("/users/profile", async (req, res) => {
   console.log("PATCH /api/users/profile endpoint hit");
   try {

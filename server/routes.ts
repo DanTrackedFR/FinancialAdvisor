@@ -45,22 +45,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
-    try {
-      const data = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByFirebaseUid(data.firebaseUid);
-
-      if (existingUser) {
-        res.status(400).json({ error: "User already exists" });
-        return;
-      }
-
-      const user = await storage.createUser(data);
-      res.json(user);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+  // Remove the duplicate POST /api/users route because it's already defined in auth.ts
 
   app.get("/api/user/analyses", async (req, res) => {
     try {
@@ -182,7 +167,7 @@ export function registerRoutes(app: Express) {
     });
 
     // Function to broadcast messages to all connected clients
-    function broadcastMessage(data: any) {
+    const broadcastMessage = (data: any) => {
       const message = JSON.stringify(data);
       let sentCount = 0;
 
@@ -194,7 +179,7 @@ export function registerRoutes(app: Express) {
       });
 
       console.log(`Broadcast message sent to ${sentCount} clients:`, data.type);
-    }
+    };
 
     // Heartbeat interval to keep connections alive
     setInterval(() => {
