@@ -12,13 +12,6 @@ import { Loader2, CheckCircle, XCircle, Upload, Database, RefreshCw } from 'luci
 import { useAuth } from '@/hooks/use-auth';
 import { Redirect } from "wouter";
 
-// Admin emails list - should be moved to a configuration file in production
-const ADMIN_EMAILS = [
-  'admin@trackedfr.com',
-  'support@trackedfr.com'
-  // Add other admin emails here
-];
-
 interface BigQueryStatus {
   configured: boolean;
   credentials: string | null;
@@ -31,8 +24,8 @@ export default function BigQueryAdminPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('status');
 
-  // Check if current user is an admin
-  const isAdmin = user && user.email && ADMIN_EMAILS.includes(user.email);
+  // Check if current user is an admin using isAdmin field
+  const isAdmin = user && user.isAdmin === true;
 
   // Redirect non-admins
   if (!isAdmin) {

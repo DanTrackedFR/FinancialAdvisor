@@ -27,12 +27,6 @@ import {
 import { Shield, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Admin emails list - should be consistent with server-side
-const ADMIN_EMAILS = [
-  'admin@trackedfr.com',
-  'support@trackedfr.com'
-];
-
 // Form validation schema
 const adminLoginSchema = z.object({
   email: z.string().email('Valid email is required'),
@@ -49,7 +43,7 @@ export default function AdminLogin() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Check if user is already logged in and is an admin
-  if (user && user.email && ADMIN_EMAILS.includes(user.email)) {
+  if (user && user.isAdmin) {
     // Parse the intended destination from query params or default to BigQuery admin
     const params = new URLSearchParams(window.location.search);
     const destination = params.get('redirect') || '/admin/bigquery';
@@ -70,26 +64,24 @@ export default function AdminLogin() {
   });
 
   const onSubmit = async (data: AdminLoginFormData) => {
-    if (!ADMIN_EMAILS.includes(data.email)) {
-      setLoginError('This email is not authorized for admin access');
-      return;
-    }
-
     setIsLoading(true);
     setLoginError(null);
-    
+
     try {
       await login(data.email, data.password);
+
+      // The login process should fetch the user profile with the isAdmin field
+      // If the user is not an admin, they will be redirected to the home page
+      // by the code above that checks user.isAdmin
+
       toast({
         title: 'Admin login successful',
         description: 'Welcome to the admin interface',
         variant: 'default',
       });
-      
-      // Parse the intended destination from query params or default to BigQuery admin
-      const params = new URLSearchParams(window.location.search);
-      const destination = params.get('redirect') || '/admin/bigquery';
-      setLocation(destination);
+
+      // We don't need to manually redirect here as the component will re-render
+      // and the condition at the top will handle the redirect for admin users
     } catch (error) {
       console.error('Login error:', error);
       setLoginError(
@@ -134,7 +126,7 @@ export default function AdminLogin() {
                       <FormLabel>Admin Email</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="admin@trackedfr.com" 
+                          placeholder="Enter your admin email" 
                           type="email" 
                           autoComplete="email"
                           {...field} 

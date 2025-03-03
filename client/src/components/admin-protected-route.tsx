@@ -2,13 +2,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Redirect, Route, useLocation } from "wouter";
 
-// Admin emails list - should be kept in sync with server-side
-const ADMIN_EMAILS = [
-  'admin@trackedfr.com',
-  'support@trackedfr.com'
-  // Add other admin emails here
-];
-
 export function AdminProtectedRoute({
   path,
   component: Component,
@@ -37,7 +30,7 @@ export function AdminProtectedRoute({
         }
 
         // If user is logged in but not an admin, redirect to home
-        if (!user.email || !ADMIN_EMAILS.includes(user.email)) {
+        if (!user.isAdmin) {
           return (
             <div className="flex flex-col items-center justify-center min-h-screen">
               <ShieldAlert className="h-16 w-16 text-destructive mb-4" />

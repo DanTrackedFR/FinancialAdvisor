@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   subscriptionStatus: text("subscription_status", { enum: subscriptionStatus }).notNull().default("trial"),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
   trialEndsAt: timestamp("trial_ends_at"),
+  isAdmin: boolean("is_admin").default(false), // New field for admin privileges
 });
 
 export const subscriptions = pgTable("subscriptions", {
@@ -77,6 +78,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   subscriptionStatus: true,
   subscriptionEndsAt: true,
   trialEndsAt: true,
+  isAdmin: true, // Omitting isAdmin from insertion schema for security
 });
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({

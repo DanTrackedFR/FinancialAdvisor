@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
+import { getAuth, sendSignInLinkToEmail, User } from "firebase/auth";
 
 const currentDomain = window.location.hostname;
 const isProduction = import.meta.env.PROD;
@@ -30,10 +30,13 @@ export const actionCodeSettings = {
   ...(isProduction && { dynamicLinkDomain: 'trackedfr.com' })
 };
 
-// Function to send email verification link
-export async function sendVerificationEmail(email: string) {
+// Function to send email verification link - updated to accept User object
+export async function sendVerificationEmail(user: User) {
   try {
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    if (!user.email) {
+      throw new Error("User email is missing");
+    }
+    await sendSignInLinkToEmail(auth, user.email, actionCodeSettings);
     return true;
   } catch (error) {
     console.error('Error sending verification email:', error);

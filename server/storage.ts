@@ -10,7 +10,8 @@ export interface IStorage {
   // User methods
   createUser(user: InsertUser): Promise<User>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
-  updateUser(id: number, data: Partial<InsertUser>): Promise<User>;
+  getUser(id: number): Promise<User | undefined>; // Add method to get user by ID
+  updateUser(id: number, data: Partial<InsertUser> & { isAdmin?: boolean }): Promise<User>; // Add isAdmin to allowed properties
   updateLastLogin(id: number): Promise<void>;
   getAllUsers(): Promise<User[]>;
 
@@ -73,7 +74,13 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async updateUser(id: number, data: Partial<InsertUser>): Promise<User> {
+  // Add method to get user by ID
+  async getUser(id: number): Promise<User | undefined> {
+    const [result] = await db.select().from(users).where(eq(users.id, id));
+    return result;
+  }
+
+  async updateUser(id: number, data: Partial<InsertUser> & { isAdmin?: boolean }): Promise<User> {
     const [result] = await db.update(users)
       .set(data)
       .where(eq(users.id, id))

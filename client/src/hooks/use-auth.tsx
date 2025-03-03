@@ -21,8 +21,16 @@ type SignUpData = {
   company?: string;
 };
 
+// Extended user type that includes our custom fields from the database
+type ExtendedUser = User & {
+  isAdmin?: boolean;
+  firstName?: string;
+  surname?: string;
+  company?: string;
+};
+
 type AuthContextType = {
-  user: User | null;
+  user: ExtendedUser | null;
   isLoading: boolean;
   signUp: (data: SignUpData) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
@@ -33,14 +41,41 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Function to fetch user profile data from our backend
+  const fetchUserProfile = async (firebaseUser: User) => {
+    try {
+      const response = await fetch('/api/users/profile', {
+        headers: {
+          'firebase-uid': firebaseUser.uid
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        // Merge Firebase user with our database user
+        return {
+          ...firebaseUser,
+          isAdmin: userData.isAdmin || false,
+          firstName: userData.firstName,
+          surname: userData.surname,
+          company: userData.company
+        } as ExtendedUser;
+      }
+      return firebaseUser;
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return firebaseUser;
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Auth state changed:", user ? "User logged in" : "User logged out");
-      if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
+      if (firebaseUser) {
         // If we have a new sign up with stored details, create the user profile
         const storedDetails = window.localStorage.getItem('pendingUserDetails');
         if (storedDetails) {
@@ -50,14 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'firebase-uid': user.uid
+                'firebase-uid': firebaseUser.uid
               },
               body: JSON.stringify({
-                firebaseUid: user.uid,
+                firebaseUid: firebaseUser.uid,
                 firstName: details.firstName,
                 surname: details.surname,
                 company: details.company,
-                email: user.email!,
+                email: firebaseUser.email!,
               }),
             });
             window.localStorage.removeItem('pendingUserDetails');
@@ -65,8 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Error creating user profile:', error);
           }
         }
+
+        // Fetch user profile data including isAdmin status
+        const extendedUser = await fetchUserProfile(firebaseUser);
+        setUser(extendedUser);
+      } else {
+        setUser(null);
       }
-      setUser(user);
       setIsLoading(false);
     });
 
@@ -79,7 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Starting login process...");
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log("Login successful");
-      setUser(result.user);
+
+      // Fetch user profile data including isAdmin status
+      const extendedUser = await fetchUserProfile(result.user);
+      setUser(extendedUser);
+
       toast({
         title: "Welcome back!",
         description: "Successfully signed in",
@@ -146,13 +190,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendEmailVerification = async (email: string) => {
     try {
-      // Correction applied here
-      await sendVerificationEmail(auth.currentUser);
-      window.localStorage.setItem('emailForSignIn', email);
-      toast({
-        title: "Verification email sent",
-        description: "Please check your email to complete the sign-up process",
-      });
+      // Send verification email to the user
+      if (auth.currentUser) {
+        await sendVerificationEmail(auth.currentUser);
+        window.localStorage.setItem('emailForSignIn', email);
+        toast({
+          title: "Verification email sent",
+          description: "Please check your email to complete the sign-up process",
+        });
+      } else {
+        throw new Error("No authenticated user found");
+      }
     } catch (error: any) {
       console.error("Email verification error:", error);
       toast({

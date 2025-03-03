@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { createCustomer, createCheckoutSession } from "../services/stripe";
 import { insertUserSchema } from "@shared/schema";
+import { isAdmin } from "../middleware/admin-auth";
 
 const router = Router();
 
@@ -69,6 +70,30 @@ router.patch("/users/profile", async (req, res) => {
     res.json(updatedUser);
   } catch (error: any) {
     console.error("Error updating user profile:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// New endpoint to set admin status (admin-only)
+router.patch("/users/:id/admin-status", isAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { isAdmin } = req.body;
+
+    if (typeof isAdmin !== 'boolean') {
+      return res.status(400).json({ error: "isAdmin must be a boolean value" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Update admin status
+    const updatedUser = await storage.updateUser(userId, { isAdmin });
+    res.json(updatedUser);
+  } catch (error: any) {
+    console.error("Error updating admin status:", error);
     res.status(500).json({ error: error.message });
   }
 });
