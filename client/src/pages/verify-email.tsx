@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { isSignInWithEmailLink, signInWithEmailLink, getAuth } from "firebase/auth";
+import { isSignInWithEmailLink, signInWithEmailLink, getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function VerifyEmailPage() {
@@ -45,8 +45,15 @@ export default function VerifyEmailPage() {
             console.log("Attempting to sign in with email link:", email);
             await signInWithEmailLink(auth, email, window.location.href);
 
-            // Clear the email from localStorage
+            // Get the temporarily stored password (if any)
+            const tempPassword = localStorage.getItem("tempPassword");
+            console.log("Found temporary password:", tempPassword ? "Yes" : "No");
+
+            // Clear the email and temp password from localStorage
             localStorage.removeItem("emailForSignIn");
+            if (tempPassword) {
+              localStorage.removeItem("tempPassword");
+            }
 
             // Set success status
             setStatus("success");
@@ -54,7 +61,7 @@ export default function VerifyEmailPage() {
             // Show toast notification
             toast({
               title: "Email Verified",
-              description: "Your email has been verified successfully",
+              description: "Your email has been verified successfully. You can now log in to your account.",
             });
 
             // Redirect after 3 seconds

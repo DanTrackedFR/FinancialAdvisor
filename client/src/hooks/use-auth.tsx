@@ -203,7 +203,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log("Starting login process...");
+      console.log("Starting login process with:", email);
+
+      // Add detailed debug logging
+      console.log("Attempting to sign in with email:", email);
+      console.log("Password length:", password.length);
+      console.log("Password first character:", password.charAt(0));
+      console.log("Password last character:", password.charAt(password.length - 1));
+
+      // Check if we have verified credentials from email verification
+      const verifiedCredentialsJson = window.localStorage.getItem('verifiedUserCredentials');
+      if (verifiedCredentialsJson) {
+        try {
+          const verifiedCredentials = JSON.parse(verifiedCredentialsJson);
+          // If the email matches and the credentials are recent (within 5 minutes)
+          const isRecent = (Date.now() - verifiedCredentials.timestamp) < 300000; // 5 minutes
+
+          if (verifiedCredentials.email === email && isRecent) {
+            console.log("Found verified credentials for this email");
+            // Use the password from verified credentials instead
+            password = verifiedCredentials.password;
+            console.log("Using password from verified credentials");
+            // Remove the stored credentials after use
+            window.localStorage.removeItem('verifiedUserCredentials');
+          }
+        } catch (e) {
+          console.error("Error parsing verified credentials:", e);
+        }
+      }
+
+      // Attempt to sign in with email and password
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log("Login successful for UID:", result.user.uid);
 
@@ -222,9 +251,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error: any) {
       console.error("Login error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+
+      // Provide more specific error messages for different authentication errors
+      let errorMessage = "Failed to sign in";
+
+      if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email address. Please sign up first.";
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = "Incorrect password. Please try again.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = "This account has been disabled. Please contact support.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Error signing in",
-        description: error.message || "Failed to sign in",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
@@ -274,6 +323,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Send sign-in link to email - this is the email verification process
       await sendSignInLinkToEmail(auth, email, customActionCodeSettings);
 
+      // Also store the password in localStorage temporarily to use after verification
+      // We'll remove it after verification
+      window.localStorage.setItem('tempPassword', password);
+
       // Store user details for later use (after verification)
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({
         firstName,
@@ -288,9 +341,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (error: any) {
       console.error("Authentication error:", error);
+
+      // Provide more specific error messages for different authentication errors
+      let errorMessage = "Failed to create account";
+
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email address is already in use. Please try signing in instead.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "The email address provided is invalid. Please enter a valid email.";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = "Account creation is currently disabled. Please try again later.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "The password is too weak. Please choose a stronger password.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Error creating account",
-        description: error.message || "Failed to create account",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;

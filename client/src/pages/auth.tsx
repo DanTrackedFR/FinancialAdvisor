@@ -26,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -69,15 +71,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
-
-  // Initialize URL search params to set initial mode
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const modeParam = searchParams.get("mode");
-    if (modeParam === "login" || modeParam === "signup") {
-      setMode(modeParam);
-    }
-  }, []);
+  const { toast } = useToast();
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -98,10 +92,9 @@ export default function AuthPage() {
       confirmPassword: "",
       acceptTerms: false,
     },
-    mode: "onChange", // Validate on change for immediate feedback
+    mode: "onChange", 
   });
 
-  // Debug logging for validation errors
   useEffect(() => {
     const subscription = signUpForm.watch(() => {
       if (Object.keys(signUpForm.formState.errors).length > 0) {
@@ -114,49 +107,56 @@ export default function AuthPage() {
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
-        // Only proceed if the form is valid
         if (!signUpForm.formState.isValid) {
           console.log("Form is invalid, cannot submit");
           return;
         }
 
         const { confirmPassword, acceptTerms, ...signUpData } = data as SignUpFormData;
-        // Store the email for the verification dialog
         setVerificationEmail(signUpData.email);
-
-        // Save email in localStorage for verification process
         localStorage.setItem("emailForSignIn", signUpData.email);
-
         console.log("Submitting signup form with data:", signUpData);
         await signUp(signUpData);
-        // Show verification dialog after successful signup
         setShowVerificationDialog(true);
       } else {
         await login(data.email, data.password);
       }
     } catch (error) {
-      // Error handling is done in useAuth
       console.error("Form submission error:", error);
     }
   };
 
-  // Handle tab change safely with useCallback
   const handleTabChange = useCallback((value: string) => {
     setMode(value as "login" | "signup");
     loginForm.reset();
     signUpForm.reset();
   }, [loginForm, signUpForm]);
 
-  // Handle verification dialog close
   const handleVerificationDialogClose = () => {
     setShowVerificationDialog(false);
-    // Reset signup form
     signUpForm.reset();
-    // Switch to login mode
     setMode("login");
   };
 
-  // If loading, show spinner
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "login" || modeParam === "signup") {
+      setMode(modeParam);
+    }
+
+    const verifiedEmail = window.localStorage.getItem('emailForSignIn');
+    if (verifiedEmail && modeParam === "login") {
+      loginForm.setValue("email", verifiedEmail);
+      window.localStorage.removeItem('emailForSignIn');
+      toast({
+        title: "Email Pre-filled",
+        description: "Your verified email has been filled in. Please enter your password to log in.",
+      });
+    }
+  }, [loginForm, toast]);
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -165,10 +165,7 @@ export default function AuthPage() {
     );
   }
 
-  // If user is logged in, redirect to home
   if (user) {
-    // Use useEffect in the component body to handle navigation
-    // This prevents state updates during rendering
     setTimeout(() => {
       setLocation("/");
     }, 0);
@@ -323,7 +320,6 @@ export default function AuthPage() {
                         {...signUpForm.register("password")}
                         onChange={(e) => {
                           signUpForm.register("password").onChange(e);
-                          // Trigger validation on password field immediately
                           signUpForm.trigger("password");
                         }}
                       />
@@ -354,7 +350,6 @@ export default function AuthPage() {
                         {...signUpForm.register("confirmPassword")}
                         onChange={(e) => {
                           signUpForm.register("confirmPassword").onChange(e);
-                          // Trigger validation on confirmPassword field immediately
                           signUpForm.trigger("confirmPassword");
                         }}
                       />
@@ -387,8 +382,8 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full"
                       disabled={!signUpForm.formState.isValid || signUpForm.formState.isSubmitting}
                     >
@@ -406,13 +401,12 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      {/* Email Verification Dialog */}
       <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Verify Your Email</DialogTitle>
             <DialogDescription>
-              We've sent a verification email to <span className="font-medium">{verificationEmail}</span>. 
+              We've sent a verification email to <span className="font-medium">{verificationEmail}</span>.
               Please click the link in that email to verify your account.
             </DialogDescription>
           </DialogHeader>

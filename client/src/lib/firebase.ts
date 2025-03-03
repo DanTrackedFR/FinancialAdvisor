@@ -75,6 +75,22 @@ export function handleEmailSignInLink() {
         .then((result) => {
           // Clear the email from localStorage
           window.localStorage.removeItem('emailForSignIn');
+
+          // Get the temporary password (if any)
+          const tempPassword = window.localStorage.getItem('tempPassword');
+
+          // Store it in a new key that we'll check during login
+          // This ensures the password is available for the actual login attempt
+          if (tempPassword) {
+            console.log("Storing verified email/password for login:", email);
+            window.localStorage.setItem('verifiedUserCredentials', JSON.stringify({
+              email,
+              password: tempPassword,
+              timestamp: Date.now()
+            }));
+            window.localStorage.removeItem('tempPassword');
+          }
+
           return result.user;
         })
         .catch((error) => {
