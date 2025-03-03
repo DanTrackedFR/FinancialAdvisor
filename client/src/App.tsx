@@ -8,20 +8,20 @@ import Privacy from "@/pages/privacy";
 import Cookies from "@/pages/cookies";
 import Terms from "@/pages/terms";
 import Auth from "@/pages/auth";
+import VerifyEmail from "@/pages/verify-email"; // Import the new verify-email page
 import Profile from "@/pages/profile";
 import Users from "@/pages/users";
 import Chat from "@/pages/chat";
 import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
 import BigQueryAdmin from "@/pages/admin/bigquery";
-import AdminLogin from "@/pages/admin/login"; // Import the new admin login page
-import ManageUsers from "@/pages/admin/manage-users"; // Import the user management page
+import AdminLogin from "@/pages/admin/login"; 
+import ManageUsers from "@/pages/admin/manage-users"; 
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./components/protected-route";
-import { AdminProtectedRoute } from "./components/admin-protected-route"; // Import admin protected route
+import { AdminProtectedRoute } from "./components/admin-protected-route"; 
 import { Navigation } from "./components/navigation";
 import { useAuth } from "@/hooks/use-auth";
-// Removed WebSocketDebugger import
 
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -30,7 +30,6 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {user && <Navigation />}
       {children}
-      {/* WebSocketDebugger has been removed completely */}
     </div>
   );
 }
@@ -41,6 +40,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/auth" component={Auth} />
+        <Route path="/verify-email" component={VerifyEmail} /> {/* Add the verify-email route */}
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />

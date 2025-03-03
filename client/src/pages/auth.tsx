@@ -211,11 +211,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input 
-                              id="firstName"
-                              placeholder="Enter your first name" 
-                              {...field}
-                            />
+                            <Input placeholder="Enter your first name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -228,11 +224,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Surname</FormLabel>
                           <FormControl>
-                            <Input 
-                              id="surname"
-                              placeholder="Enter your surname"
-                              {...field}
-                            />
+                            <Input placeholder="Enter your surname" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -288,11 +280,6 @@ export default function AuthPage() {
                               type="password"
                               placeholder="Confirm your password"
                               {...field}
-                              className={
-                                signUpForm.formState.errors.confirmPassword
-                                  ? "border-red-500 focus-visible:ring-red-500"
-                                  : ""
-                              }
                             />
                           </FormControl>
                           <FormMessage />

@@ -23,7 +23,7 @@ export const auth = getAuth(app);
 export const actionCodeSettings = {
   // URL you want to redirect back to after email verification
   // Use current domain to ensure it works in all environments
-  url: `${window.location.protocol}//${currentDomain}/auth?mode=login`,
+  url: `${window.location.protocol}//${currentDomain}/verify-email`,
   handleCodeInApp: true,
   // Only set dynamicLinkDomain in production
   ...(isProduction && { dynamicLinkDomain: 'trackedfr.com' })
