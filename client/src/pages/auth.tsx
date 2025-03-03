@@ -98,12 +98,28 @@ export default function AuthPage() {
       confirmPassword: "",
       acceptTerms: false,
     },
-    mode: "onChange",
+    mode: "onChange", // Validate on change for immediate feedback
   });
+
+  // Debug logging for validation errors
+  useEffect(() => {
+    const subscription = signUpForm.watch(() => {
+      if (Object.keys(signUpForm.formState.errors).length > 0) {
+        console.log("Form validation errors:", signUpForm.formState.errors);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [signUpForm]);
 
   const onSubmit = async (data: LoginFormData | SignUpFormData) => {
     try {
       if (mode === "signup") {
+        // Only proceed if the form is valid
+        if (!signUpForm.formState.isValid) {
+          console.log("Form is invalid, cannot submit");
+          return;
+        }
+
         const { confirmPassword, acceptTerms, ...signUpData } = data as SignUpFormData;
         // Store the email for the verification dialog
         setVerificationEmail(signUpData.email);
@@ -300,12 +316,26 @@ export default function AuthPage() {
                         placeholder="Enter your password"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
                         {...signUpForm.register("password")}
+                        onChange={(e) => {
+                          signUpForm.register("password").onChange(e);
+                          // Trigger validation on password field immediately
+                          signUpForm.trigger("password");
+                        }}
                       />
                       {signUpForm.formState.errors.password && (
                         <p className="text-red-500 text-sm mt-1">
                           {signUpForm.formState.errors.password.message}
                         </p>
                       )}
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Password must:
+                        <ul className="list-disc pl-5 space-y-1 mt-1">
+                          <li>Be at least 6 characters long</li>
+                          <li>Include at least one uppercase letter</li>
+                          <li>Include at least one lowercase letter</li>
+                          <li>Include at least one number</li>
+                        </ul>
+                      </div>
                     </div>
                     <div>
                       <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
@@ -317,6 +347,11 @@ export default function AuthPage() {
                         placeholder="Confirm your password"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
                         {...signUpForm.register("confirmPassword")}
+                        onChange={(e) => {
+                          signUpForm.register("confirmPassword").onChange(e);
+                          // Trigger validation on confirmPassword field immediately
+                          signUpForm.trigger("confirmPassword");
+                        }}
                       />
                       {signUpForm.formState.errors.confirmPassword && (
                         <p className="text-red-500 text-sm mt-1">
@@ -347,7 +382,11 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full">
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={!signUpForm.formState.isValid || signUpForm.formState.isSubmitting}
+                    >
                       {signUpForm.formState.isSubmitting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
