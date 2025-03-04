@@ -1,8 +1,8 @@
 
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
+if (!admin.apps || admin.apps.length === 0) {
   try {
     // Check for environment variables
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -11,9 +11,9 @@ if (!admin.apps.length) {
 
     // Basic validation
     if (!privateKey || !clientEmail || !projectId) {
-      console.warn('Firebase Admin environment variables missing. Using service account file if available.');
+      console.warn('Firebase Admin environment variables missing. Using application default credentials if available.');
       
-      // Try to use service account file if environment variables are not set
+      // Try to use application default credentials if environment variables are not set
       admin.initializeApp({
         credential: admin.credential.applicationDefault(),
       });
@@ -31,7 +31,8 @@ if (!admin.apps.length) {
     console.log('Firebase Admin initialized successfully');
   } catch (error) {
     console.error('Firebase Admin initialization error:', error);
-    throw new Error('Failed to initialize Firebase Admin');
+    // Don't throw here, just log the error
+    console.error('Continuing without Firebase Admin, some features may not work');
   }
 }
 

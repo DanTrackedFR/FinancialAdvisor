@@ -22,12 +22,8 @@ export function registerRoutes(app: Express) {
 
   // Use the firebase-admin module imported from lib folder which is already configured
   try {
-    // Only initialize if not already initialized
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-      });
-    }
+    // Import and use the pre-configured firebase-admin from our lib folder
+    const firebaseAdmin = require('./lib/firebase-admin').default;
     console.log('Firebase Admin SDK initialized successfully.');
   } catch (error) {
     console.error('Failed to initialize Firebase Admin SDK:', error);

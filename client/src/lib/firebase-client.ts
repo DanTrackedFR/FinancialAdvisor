@@ -1,5 +1,5 @@
 
-import { initializeApp } from "firebase/auth";
+import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 // This is safe to expose in client-side code
