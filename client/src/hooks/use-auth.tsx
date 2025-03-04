@@ -304,10 +304,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("Starting sign up process...");
 
-      // Create Firebase account with email and password first
-      // This ensures the password is properly stored for future login
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
+      // Create user with email and password
+      console.log("Creating user with data:", { email, password, firstName, surname, company });
+      // Store credentials for later use after verification
+      window.localStorage.setItem('verifiedUserCredentials', JSON.stringify({
+        email: email,
+        password: password,
+        timestamp: Date.now()
+      }));
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = result.user;
 
       console.log("Firebase account created:", firebaseUser.uid);
 
@@ -323,9 +329,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Send sign-in link to email - this is the email verification process
       await sendSignInLinkToEmail(auth, email, customActionCodeSettings);
 
-      // Also store the password in localStorage temporarily to use after verification
-      // We'll remove it after verification
-      window.localStorage.setItem('tempPassword', password);
 
       // Store user details for later use (after verification)
       window.localStorage.setItem('pendingUserDetails', JSON.stringify({

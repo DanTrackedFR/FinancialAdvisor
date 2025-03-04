@@ -58,6 +58,9 @@ export default function VerifyEmailPage() {
             // Set success status
             setStatus("success");
 
+            // Store email in localStorage for login form auto-fill
+            localStorage.setItem("emailForSignIn", email);
+            
             // Show toast notification
             toast({
               title: "Email Verified",
