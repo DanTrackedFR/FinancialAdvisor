@@ -51,7 +51,7 @@ try {
 }
 console.log(`\nFirebase Admin SDK: ${firebaseAdminStatus}`);
 
-// Check if port 5000 is available
+// Check if port is available
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -66,8 +66,35 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
+// Release port if needed
+async function releasePort(port: number): Promise<boolean> {
+  try {
+    console.log(`Attempting to release port ${port}...`);
+    // Try to kill any process using the port
+    await import('child_process').then(({ execSync }) => {
+      try {
+        execSync(`fuser -k ${port}/tcp`, { stdio: 'ignore' });
+      } catch (e) {
+        // Command may fail if port not in use or fuser not available
+      }
+    });
+    
+    // Check if port is now available
+    return await isPortAvailable(port);
+  } catch (error) {
+    console.error(`Error releasing port ${port}:`, error);
+    return false;
+  }
+}
+
 const port = Number(process.env.PORT) || 5000;
-const isPortFree = await isPortAvailable(port);
+let isPortFree = await isPortAvailable(port);
+
+if (!isPortFree) {
+  console.log(`Port ${port} is in use. Attempting to release...`);
+  isPortFree = await releasePort(port);
+}
+
 console.log(`\nPort ${port} status: ${isPortFree ? '✅ Available' : '❌ In use'}`);
 
 // Summary and recommendations

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   getAuth,
@@ -13,12 +12,30 @@ import {
   signInWithEmailLink,
   isSignInWithEmailLink,
   sendSignInLinkToEmail,
+  getApps,
+  initializeApp
 } from "firebase/auth";
 import { useToast } from "./use-toast";
 import { initializeFirebase } from "@/lib/firebase-client";
+import firebaseConfig from "@/lib/firebaseConfig"; // Assuming firebaseConfig is imported correctly
 
-// Initialize Firebase
-const { auth } = initializeFirebase();
+// Initialize Firebase if not already initialized
+let auth;
+try {
+  if (!getApps().length) {
+    initializeApp(firebaseConfig);
+  }
+  auth = getAuth();
+} catch (error) {
+  console.error("Firebase initialization error:", error);
+  // Provide a fallback auth object to prevent null reference errors
+  auth = { 
+    onAuthStateChanged: () => {}, 
+    signOut: async () => {}, 
+    createUserWithEmailAndPassword: async () => ({})
+  } as any;
+}
+
 
 // Define the authentication context type
 interface AuthContextType {
@@ -60,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncUserWithBackend = async (firebaseUser: FirebaseUser) => {
     try {
       const idToken = await firebaseUser.getIdToken();
-      
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -76,11 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         })
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to synchronize user with backend");
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error("Error syncing user with backend:", error);
@@ -94,10 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (firebaseUser) {
           console.log("Auth state changed:", "User logged in");
-          
+
           // Synchronize with backend
           await syncUserWithBackend(firebaseUser);
-          
+
           setUser(firebaseUser);
         } else {
           console.log("Auth state changed:", "User logged out");
@@ -115,14 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (isSignInWithEmailLink(auth, window.location.href)) {
           let email = localStorage.getItem("emailForSignIn");
-          
+
           if (!email) {
             email = window.prompt("Please provide your email for confirmation");
           }
-          
+
           if (email) {
             const userCredential = await signInWithEmailLink(auth, email, window.location.href);
-            
+
             // Store credentials for login after verification
             if (userCredential.user) {
               localStorage.setItem('verifiedUserCredentials', JSON.stringify({
@@ -130,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 timestamp: Date.now()
               }));
             }
-            
+
             localStorage.removeItem("emailForSignIn");
           }
         }
@@ -154,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
+
       if (!userCredential.user.emailVerified) {
         toast({
           title: "Email Not Verified",
@@ -164,26 +181,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await firebaseSignOut(auth);
         throw new Error("Email not verified");
       }
-      
+
       await syncUserWithBackend(userCredential.user);
-      
+
       return userCredential.user;
     } catch (error: any) {
       console.error("Login error:", error);
-      
+
       const errorMessage = 
         error.code === "auth/user-not-found" || error.code === "auth/wrong-password" 
           ? "Invalid email or password"
           : error.code === "auth/too-many-requests"
           ? "Too many failed login attempts. Please try again later."
           : "Failed to sign in. Please try again.";
-          
+
       toast({
         title: "Login Failed",
         description: errorMessage,
         variant: "destructive",
       });
-      
+
       throw error;
     } finally {
       setIsLoading(false);
@@ -194,53 +211,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (userData: SignUpData): Promise<void> => {
     try {
       setIsLoading(true);
-      
+
       // Create the user in Firebase
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         userData.email,
         userData.password
       );
-      
+
       // Update the user's profile
       await updateProfile(userCredential.user, {
         displayName: `${userData.firstName} ${userData.surname}`,
       });
-      
+
       // Send email verification
       await sendEmailVerification(userCredential.user, actionCodeSettings);
-      
+
       // Store email for verification process
       localStorage.setItem("emailForSignIn", userData.email);
-      
+
       // Store data for after verification process
       localStorage.setItem('verifiedUserCredentials', JSON.stringify({
         email: userData.email,
         timestamp: Date.now()
       }));
-      
+
       // Log the user out - they need to verify email first
       await firebaseSignOut(auth);
       setUser(null);
-      
+
       toast({
         title: "Verification Email Sent",
         description: "Please check your email to complete the sign-up process",
       });
     } catch (error: any) {
       console.error("Signup error:", error);
-      
+
       const errorMessage = 
         error.code === "auth/email-already-in-use"
           ? "Email is already in use"
           : "Failed to create account. Please try again.";
-          
+
       toast({
         title: "Sign Up Failed",
         description: errorMessage,
         variant: "destructive",
       });
-      
+
       throw error;
     } finally {
       setIsLoading(false);
@@ -253,13 +270,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      
+
       await syncUserWithBackend(userCredential.user);
-      
+
       return userCredential.user;
     } catch (error: any) {
       console.error("Google sign-in error:", error);
-      
+
       // Don't show error for user cancellation
       if (error.code !== "auth/popup-closed-by-user") {
         toast({
@@ -268,7 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
       }
-      
+
       throw error;
     } finally {
       setIsLoading(false);
@@ -280,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await sendEmailVerification(user, actionCodeSettings);
       localStorage.setItem("emailForSignIn", user.email || "");
-      
+
       toast({
         title: "Verification Email Sent",
         description: "Please check your email to verify your account.",
@@ -300,15 +317,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyEmail = async (email: string): Promise<FirebaseUser> => {
     try {
       setIsLoading(true);
-      
+
       if (!isSignInWithEmailLink(auth, window.location.href)) {
         throw new Error("Invalid verification link");
       }
-      
+
       const userCredential = await signInWithEmailLink(auth, email, window.location.href);
-      
+
       await syncUserWithBackend(userCredential.user);
-      
+
       return userCredential.user;
     } catch (error) {
       console.error("Email verification error:", error);
