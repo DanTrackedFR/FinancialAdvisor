@@ -6,6 +6,9 @@ const hasEnvCredentials = process.env.FIREBASE_PROJECT_ID &&
                           process.env.FIREBASE_CLIENT_EMAIL && 
                           process.env.FIREBASE_PRIVATE_KEY;
 
+// Initialize Firebase Admin once
+let firebaseAdmin: typeof admin | null = null;
+
 try {
   if (hasEnvCredentials) {
     // Initialize with environment variables
@@ -21,15 +24,19 @@ try {
   } else {
     console.log('Firebase Admin environment variables missing. Using default config.');
     
-    // Initialize with a default empty config for development
+    // Initialize with a minimal default configuration without credential for development
     admin.initializeApp({
       projectId: 'trackedfr-prod',
     });
     console.log('Firebase Admin SDK initialized with default configuration');
   }
+  
+  // Store the initialized admin instance
+  firebaseAdmin = admin;
 } catch (error) {
   console.error('Firebase Admin initialization error:', error);
   console.log('Continuing without Firebase Admin, some features may not work');
 }
 
-export { admin };
+// Export the initialized Firebase Admin SDK
+export { firebaseAdmin as admin };

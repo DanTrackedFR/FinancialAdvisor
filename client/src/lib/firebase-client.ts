@@ -1,5 +1,5 @@
 
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 
 // Firebase configuration object with Vite environment variables and fallbacks
@@ -20,46 +20,45 @@ console.log("Firebase Config Debug:", {
 });
 
 // Get current domain to help with configuration
-const currentDomain = window.location.host;
+const currentDomain = typeof window !== 'undefined' ? window.location.host : '';
 console.log("Current domain:", currentDomain);
 
 // Initialize Firebase
 let app;
 let auth;
 
-export const initializeFirebase = () => {
+const initializeFirebase = () => {
   try {
-    // Only initialize once
-    if (!app) {
+    if (getApps().length === 0) {
+      console.log("Firebase configuration:", {
+        projectId: firebaseConfig.projectId,
+        authDomain: firebaseConfig.authDomain
+      });
       app = initializeApp(firebaseConfig);
-      console.log("Firebase app initialized");
+    } else {
+      app = getApp();
     }
     
-    if (!auth) {
-      auth = getAuth(app);
-      console.log("Firebase auth initialized");
-    }
-
-    // Only connect to auth emulator in development
-    if (import.meta.env.DEV || window.location.hostname === 'localhost') {
+    auth = getAuth(app);
+    
+    // If running in development, connect to the Firebase emulator
+    if (process.env.NODE_ENV === 'development' || currentDomain.includes('localhost') || currentDomain.includes('.replit.dev')) {
       try {
-        connectAuthEmulator(auth, "http://localhost:9099");
-        console.log("Connected to Firebase Auth emulator");
+        // Check for emulator environment before connecting
+        if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+          connectAuthEmulator(auth, `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`);
+          console.log("Connected to Firebase Auth emulator");
+        }
       } catch (emulatorError) {
-        console.warn("Failed to connect to Auth emulator:", emulatorError);
+        console.error("Error connecting to Auth emulator:", emulatorError);
       }
     }
-
-    console.log("Firebase configuration:", {
-      projectId: firebaseConfig.projectId,
-      authDomain: firebaseConfig.authDomain,
-    });
-
+    
     console.log("Firebase initialized successfully");
     return { app, auth };
   } catch (error) {
     console.error("Firebase initialization error:", error);
-    return { app: null, auth: null };
+    throw error;
   }
 };
 
@@ -68,7 +67,7 @@ try {
   const { auth: initializedAuth } = initializeFirebase();
   auth = initializedAuth;
 } catch (error) {
-  console.error("Firebase auto-initialization error:", error);
+  console.error("Error during Firebase initialization:", error);
 }
 
-export { auth };
+export { auth, initializeFirebase };

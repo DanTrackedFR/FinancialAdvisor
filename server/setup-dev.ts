@@ -50,13 +50,25 @@ try {
   const port = process.env.PORT || 5000;
   console.log(`Server Port: ${port}`);
   
-  // This would be better with netstat but using a simple check:
-  try {
-    console.log(`Port ${port} status: Checking...`);
-    // This would typically check if the port is in use
-  } catch (e) {
-    console.log("Could not check port status");
-  }
+  // Check if port is in use using Node.js
+  const net = require('net');
+  const server = net.createServer();
+  
+  server.once('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️ Port ${port} is already in use. Server might need an alternative port.`);
+    } else {
+      console.log(`Error checking port: ${err.message}`);
+    }
+    server.close();
+  });
+  
+  server.once('listening', () => {
+    console.log(`✅ Port ${port} is available`);
+    server.close();
+  });
+  
+  server.listen(port);
 } catch (error) {
   console.error("Error checking network status:", error);
 }

@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: false }));
 // Error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Error occurred:', err);
-  
+
   // Add more detailed logging for Firebase errors
   if (err.code && err.code.includes('firebase')) {
     console.error('Firebase error details:', {
@@ -29,7 +29,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       context: err.context || 'unknown'
     });
   }
-  
+
   res.status(err.status || 500).json({ 
     message: err.message || 'Internal Server Error',
     ...(isDev ? { stack: err.stack } : {})
@@ -73,16 +73,25 @@ app.use((req, res, next) => {
     const port = Number(process.env.PORT) || 5000;
     log(`Attempting to start server on port ${port}...`);
 
-    // Add error handling for the server
+    //Improved Error Handling based on provided snippet
     server.on('error', (error: any) => {
+      const timeStamp = new Date().toISOString(); // Added timestamp for better logging
       if (error.code === 'EADDRINUSE') {
-        log(`Port ${port} is already in use. Please free up the port and try again.`);
-        process.exit(1);
+        log(`${timeStamp} [express] ❌ Port ${port} is already in use. Try another port or stop the current process.`);
+        // Attempt to use an alternative port (simplified approach)
+        const alternativePort = port + 1;
+        log(`${timeStamp} [express] 🔄 Attempting to use alternative port: ${alternativePort}`);
+        server.listen(alternativePort, "0.0.0.0", () => {
+          log(`${timeStamp} [express] Server started successfully on alternative port ${alternativePort}`);
+          log(`${timeStamp} [express] 🚀 API running at http://0.0.0.0:${alternativePort}/api`);
+        });
+
       } else {
-        log(`Failed to start server: ${error.message}`);
-        process.exit(1);
+        log(`${timeStamp} [express] ❌ Failed to start server:`, error);
+        process.exit(1); //Ensure process exits on other errors
       }
     });
+
 
     // Graceful shutdown handler
     const shutdown = () => {
