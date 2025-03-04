@@ -1,73 +1,113 @@
 
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendEmailVerification,
+  User,
+  UserCredential,
+} from "firebase/auth";
 
-// Firebase configuration object with Vite environment variables and fallbacks
+// Log Firebase configuration for debugging (without exposing sensitive values)
+const debugConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY ? "Present" : "Missing",
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID ? "Present" : "Missing",
+  appId: process.env.VITE_FIREBASE_APP_ID ? "Present" : "Missing",
+};
+console.log("Firebase Config Debug:", debugConfig);
+
+// Check domain for debugging
+console.log("Current domain:", window.location.hostname);
+
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDlGZDKiXkljNzYkK2Ry9SbX4J6bqZUqFI",
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "trackedfr-prod"}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "trackedfr-prod",
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "trackedfr-prod"}.appspot.com`,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "857363648999",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:857363648999:web:ec2fe37eeab2258defed42",
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${process.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${process.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: process.env.VITE_FIREBASE_APP_ID,
 };
 
-// Debug output for troubleshooting
-console.log("Firebase Config Debug:", {
-  apiKey: firebaseConfig.apiKey ? "Present" : "Missing",
-  projectId: firebaseConfig.projectId ? "Present" : "Missing",
-  appId: firebaseConfig.appId ? "Present" : "Missing"
+// Log configuration for debugging (without sensitive values)
+console.log("Firebase configuration:", {
+  projectId: firebaseConfig.appId,
+  authDomain: firebaseConfig.authDomain,
 });
 
-// Get current domain to help with configuration
-const currentDomain = typeof window !== 'undefined' ? window.location.host : '';
-console.log("Current domain:", currentDomain);
+// Initialize Firebase - prevent duplicate initializations
+let app: FirebaseApp;
 
-// Initialize Firebase
-let app;
-let auth;
+try {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  console.log("Firebase initialized successfully");
+} catch (error) {
+  console.error("Firebase initialization error:", error);
+  throw error;
+}
 
-const initializeFirebase = () => {
+// Export the auth for use throughout the app
+export const auth = getAuth(app);
+
+// Set persistence to local (browser session) to improve user experience
+// setPersistence(auth, browserLocalPersistence)
+//   .catch((error) => {
+//     console.error("Error setting persistence:", error);
+//   });
+
+// Handle Google authentication
+const googleProvider = new GoogleAuthProvider();
+
+// Export authentication functions
+export const signIn = (email: string, password: string): Promise<UserCredential> => {
+  return signInWithEmailAndPassword(auth, email, password);
+};
+
+export const register = async (email: string, password: string): Promise<UserCredential> => {
   try {
-    if (getApps().length === 0) {
-      console.log("Firebase configuration:", {
-        projectId: firebaseConfig.projectId,
-        authDomain: firebaseConfig.authDomain
-      });
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApp();
-    }
-    
-    auth = getAuth(app);
-    
-    // If running in development, connect to the Firebase emulator
-    if (process.env.NODE_ENV === 'development' || currentDomain.includes('localhost') || currentDomain.includes('.replit.dev')) {
-      try {
-        // Check for emulator environment before connecting
-        if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
-          connectAuthEmulator(auth, `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`);
-          console.log("Connected to Firebase Auth emulator");
-        }
-      } catch (emulatorError) {
-        console.error("Error connecting to Auth emulator:", emulatorError);
-      }
-    }
-    
-    console.log("Firebase initialized successfully");
-    return { app, auth };
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Send verification email
+    await sendEmailVerification(userCredential.user);
+    return userCredential;
   } catch (error) {
-    console.error("Firebase initialization error:", error);
+    console.error("Registration error:", error);
     throw error;
   }
 };
 
-// Initialize Firebase on module import
-try {
-  const { auth: initializedAuth } = initializeFirebase();
-  auth = initializedAuth;
-} catch (error) {
-  console.error("Error during Firebase initialization:", error);
-}
+export const logOut = (): Promise<void> => {
+  return signOut(auth);
+};
 
-export { auth, initializeFirebase };
+export const signInWithGoogle = (): Promise<UserCredential> => {
+  return signInWithPopup(auth, googleProvider);
+};
+
+export const onAuthChange = (callback: (user: User | null) => void): (() => void) => {
+  return onAuthStateChanged(auth, (user) => {
+    if (user) {
+      console.log("Auth state changed:", "User logged in");
+    } else {
+      console.log("Auth state changed:", "User logged out");
+    }
+    callback(user);
+  });
+};
+
+export default {
+  signIn,
+  register,
+  logOut,
+  signInWithGoogle,
+  onAuthChange,
+  auth,
+};

@@ -1,8 +1,10 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { initializeFirebaseAdmin } from "./lib/firebase-admin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,9 +48,44 @@ app.use((req, res, next) => {
   next();
 });
 
+// Function to find an available port
+async function findAvailablePort(startPort: number, maxAttempts: number = 10): Promise<number> {
+  let currentPort = startPort;
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const server = await new Promise<any>((resolve, reject) => {
+        const server = require('http').createServer();
+        server.listen(currentPort, '0.0.0.0');
+        server.once('listening', () => {
+          server.close();
+          resolve(server);
+        });
+        server.once('error', reject);
+      });
+      return currentPort;
+    } catch (err) {
+      attempts++;
+      log(`Port ${currentPort} is in use, trying ${currentPort + 1}...`);
+      currentPort++;
+    }
+  }
+  
+  throw new Error(`Could not find an available port after ${maxAttempts} attempts`);
+}
+
 (async () => {
   try {
     log('Initializing server...');
+    
+    // Try to initialize Firebase Admin
+    try {
+      await initializeFirebaseAdmin();
+    } catch (error) {
+      log(`Warning: Firebase Admin initialization failed: ${error}`);
+      log('Continuing without Firebase Admin, some features may not work');
+    }
 
     // More detailed logging for initialization steps
     log('Setting up Express application...');
@@ -70,28 +107,37 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const port = Number(process.env.PORT) || 5000;
-    log(`Attempting to start server on port ${port}...`);
+    // Find an available port
+    const requestedPort = Number(process.env.PORT) || 5000;
+    let port;
+    
+    try {
+      port = await findAvailablePort(requestedPort);
+      log(`Found available port: ${port}`);
+    } catch (error) {
+      log(`Error finding available port: ${error}`);
+      port = requestedPort; // Fall back to the requested port and let the error handling deal with it
+    }
 
-    //Improved Error Handling based on provided snippet
+    // Improved Error Handling
     server.on('error', (error: any) => {
-      const timeStamp = new Date().toISOString(); // Added timestamp for better logging
+      const timeStamp = new Date().toISOString();
       if (error.code === 'EADDRINUSE') {
         log(`${timeStamp} [express] ❌ Port ${port} is already in use. Try another port or stop the current process.`);
-        // Attempt to use an alternative port (simplified approach)
+        
+        // Try again with a different port
         const alternativePort = port + 1;
         log(`${timeStamp} [express] 🔄 Attempting to use alternative port: ${alternativePort}`);
+        
         server.listen(alternativePort, "0.0.0.0", () => {
           log(`${timeStamp} [express] Server started successfully on alternative port ${alternativePort}`);
           log(`${timeStamp} [express] 🚀 API running at http://0.0.0.0:${alternativePort}/api`);
         });
-
       } else {
         log(`${timeStamp} [express] ❌ Failed to start server:`, error);
-        process.exit(1); //Ensure process exits on other errors
+        process.exit(1);
       }
     });
-
 
     // Graceful shutdown handler
     const shutdown = () => {
@@ -115,7 +161,7 @@ app.use((req, res, next) => {
     server.listen(port, "0.0.0.0", () => {
       log(`Server running at http://0.0.0.0:${port}`);
       log(`Environment: ${process.env.NODE_ENV}`);
-      log(`⚡️ All systems ready - development server is now live`);
+      log(`⚡️ All systems ready - ${isDev ? 'development' : 'production'} server is now live`);
     });
 
   } catch (error) {
