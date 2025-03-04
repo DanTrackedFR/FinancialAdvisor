@@ -203,21 +203,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      console.log("Starting login process with:", email);
+      console.log("Starting login process for:", email);
 
-      // Add detailed debug logging
-      console.log("Attempting to sign in with email:", email);
-      console.log("Password length:", password.length);
-      console.log("Password first character:", password.charAt(0));
-      console.log("Password last character:", password.charAt(password.length - 1));
-
-      // Check if we have verified credentials from email verification
+      // Check if we have verified credentials stored
       const verifiedCredentialsJson = window.localStorage.getItem('verifiedUserCredentials');
       if (verifiedCredentialsJson) {
         try {
           const verifiedCredentials = JSON.parse(verifiedCredentialsJson);
-          // If the email matches and the credentials are recent (within 5 minutes)
-          const isRecent = (Date.now() - verifiedCredentials.timestamp) < 300000; // 5 minutes
+          // Check if the credentials are for this email and still recent (within 1 hour)
+          const isRecent = verifiedCredentials.timestamp && 
+                          (Date.now() - verifiedCredentials.timestamp) < 3600000;
 
           if (verifiedCredentials.email === email && isRecent) {
             console.log("Found verified credentials for this email");
