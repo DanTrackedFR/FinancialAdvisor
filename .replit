@@ -20,7 +20,7 @@ externalPort = 80
 
 [[ports]]
 localPort = 5001
-externalPort = 3000
+externalPort = 5001
 
 [workflows]
 runButton = "Pre-deployment Check"
