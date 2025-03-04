@@ -91,7 +91,7 @@ export function registerRoutes(app: Express) {
 
   try {
     const wss = new WebSocketServer({
-      server: httpServer,
+      server: httpServer, // This ensures WebSocket uses the same port as Express
       path: '/ws',
       clientTracking: true,
       // Add production-friendly settings

@@ -106,16 +106,16 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       serveStatic(app);
     }
 
-    // In production, use fixed port 5000; in development, find available port
+    // Use PORT environment variable in production, or find available port in development
     let port;
     if (process.env.NODE_ENV === 'production') {
-      port = 5000; // Use fixed port for production deployment
-      console.log(`[express] Production mode: Using fixed port ${port}`);
+      port = Number(process.env.PORT) || 8080; // Use port from environment variable
+      console.log(`[express] Production mode: Using port ${port}`);
     } else {
       // Find an available port (Improved Port Selection)
       const requestedPort = Number(process.env.PORT) || 5000;
       try {
-        port = await findAvailablePort(requestedPort, 10); // Added maxAttempts for robustness
+        port = await findAvailablePort(requestedPort, 10);
         console.log(`[express] Development mode: Using port ${port}`);
       } catch (error) {
         console.error(`[express] Error finding available port: ${error}. Falling back to port 5001`);
