@@ -20,11 +20,14 @@ declare global {
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
-  // Initialize Firebase Admin SDK (replace with your service account key path)
+  // Use the firebase-admin module imported from lib folder which is already configured
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert("./path/to/your/serviceAccountKey.json"), // Replace with your service account key path
-    });
+    // Only initialize if not already initialized
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+      });
+    }
     console.log('Firebase Admin SDK initialized successfully.');
   } catch (error) {
     console.error('Failed to initialize Firebase Admin SDK:', error);

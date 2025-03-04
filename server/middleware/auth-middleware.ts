@@ -1,6 +1,6 @@
-
-import { Request, Response, NextFunction } from 'express';
-import { authService } from '../services/auth-service';
+import { Request, Response, NextFunction } from "express";
+import admin from "../lib/firebase-admin";
+import { storage } from "../storage";
 
 export interface AuthenticatedRequest extends Request {
   user?: any;
@@ -8,48 +8,50 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /**
- * Middleware to verify Firebase authentication token
+ * Middleware to check if a user is authenticated
+ * Verifies the Firebase UID from the request headers
  */
-export const requireAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  const firebaseUid = req.headers['firebase-uid'] as string;
+export async function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  const firebaseUid = req.headers["firebase-uid"] as string;
+
+  if (!firebaseUid) {
+    return res.status(401).json({ 
+      error: "Unauthorized", 
+      message: "Authentication required to access this resource"
+    });
+  }
 
   try {
-    // Check for Firebase UID in header (current method)
-    if (firebaseUid) {
-      const user = await authService.getUserByFirebaseId(firebaseUid);
-      if (!user) {
-        return res.status(401).json({ error: 'User not found' });
-      }
-      req.user = user;
-      return next();
+    // Verify the Firebase UID
+    const userRecord = await admin.auth().getUser(firebaseUid);
+
+    if (!userRecord.emailVerified) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Email verification required"
+      });
     }
 
-    // Check for Bearer token (standard method)
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const idToken = authHeader.split('Bearer ')[1];
-      if (!idToken) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const decodedToken = await authService.verifyIdToken(idToken);
-      const user = await authService.getUserByFirebaseId(decodedToken.uid);
-      
-      if (!user) {
-        return res.status(401).json({ error: 'User not found' });
-      }
-
-      req.firebaseUser = decodedToken;
-      req.user = user;
-      return next();
+    // Get the user from our database
+    const user = await storage.getUserByFirebaseUid(firebaseUid);
+    if (!user) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "User not found in database"
+      });
     }
 
-    return res.status(401).json({ error: 'Authentication required' });
+    // Attach user to request for use in route handlers
+    req.user = user;
+    next();
   } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(401).json({ error: 'Authentication failed' });
+    console.error("Error in authentication middleware:", error);
+    return res.status(401).json({ 
+      error: "Unauthorized", 
+      message: "Invalid authentication credentials"
+    });
   }
-};
+}
 
 /**
  * Middleware to check if email is verified
@@ -58,10 +60,10 @@ export const requireEmailVerification = (req: AuthenticatedRequest, res: Respons
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  
+
   if (!req.user.emailVerified) {
     return res.status(403).json({ error: 'Email verification required' });
   }
-  
+
   next();
 };
