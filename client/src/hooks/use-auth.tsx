@@ -15,8 +15,7 @@ import {
   sendSignInLinkToEmail
 } from "firebase/auth";
 import { useToast } from "./use-toast";
-import { initializeFirebase } from "@/lib/firebase-client";
-import firebaseConfig from "@/lib/firebaseConfig"; // Assuming firebaseConfig is imported correctly
+import firebaseConfig from "@/lib/firebaseConfig";
 
 // Initialize Firebase if not already initialized
 let auth;
@@ -25,6 +24,7 @@ try {
     initializeApp(firebaseConfig);
   }
   auth = getAuth();
+  console.log("Firebase initialized successfully");
 } catch (error) {
   console.error("Firebase initialization error:", error);
   // Provide a fallback auth object to prevent null reference errors
