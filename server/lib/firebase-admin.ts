@@ -1,6 +1,8 @@
 
 import * as admin from 'firebase-admin';
 
+import * as admin from 'firebase-admin';
+
 let firebaseAdmin: admin.app.App;
 
 try {

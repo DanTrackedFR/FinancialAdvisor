@@ -1,4 +1,3 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 
@@ -41,7 +40,7 @@ export const initializeFirebase = () => {
         throw error;
       }
     }
-    
+
     auth = getAuth(app);
 
     // Only connect to auth emulator in development mode
