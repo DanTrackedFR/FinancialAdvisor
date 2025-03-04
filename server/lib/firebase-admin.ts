@@ -22,8 +22,13 @@ try {
     console.log('Firebase Admin environment variables missing. Initializing with minimal config.');
     
     // Initialize with a minimal default configuration
+    // Use cert with empty values when applicationDefault is not available
     admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
+      credential: admin.credential.cert({
+        projectId: 'trackedfr-prod',
+        clientEmail: 'dummy@example.com',
+        privateKey: 'dummy-key'
+      }),
       projectId: 'trackedfr-prod',
     });
   }
