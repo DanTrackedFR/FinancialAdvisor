@@ -136,6 +136,12 @@ export default function AuthPage() {
     setShowVerificationDialog(false);
     signUpForm.reset();
     setMode("login");
+    
+    // Show toast to remind user to check email
+    toast({
+      title: "Check your email",
+      description: "Please verify your account by clicking the link we sent to your email (check spam/junk folder if not visible).",
+    });
   };
 
   useEffect(() => {
@@ -438,6 +444,9 @@ export default function AuthPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 text-sm text-muted-foreground">
+            <p className="mb-2 font-bold">
+              You won't be able to log in until you verify your email address.
+            </p>
             <p className="mb-2">
               If you don't see the email in your inbox, please check your spam or junk folder.
             </p>
@@ -447,7 +456,7 @@ export default function AuthPage() {
           </div>
           <DialogFooter>
             <Button onClick={handleVerificationDialogClose}>
-              OK
+              I'll check my email
             </Button>
           </DialogFooter>
         </DialogContent>

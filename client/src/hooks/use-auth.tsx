@@ -332,6 +332,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         company
       }));
 
+      // Sign out the user immediately after registration to enforce email verification
+      await signOut(auth);
+      setUser(null);
+
       toast({
         title: "Verification Email Sent",
         description: "Please check your email to complete the sign-up process",
