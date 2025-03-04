@@ -11,12 +11,10 @@ if (!admin.apps || admin.apps.length === 0) {
 
     // Basic validation
     if (!privateKey || !clientEmail || !projectId) {
-      console.warn('Firebase Admin environment variables missing. Using application default credentials if available.');
+      console.warn('Firebase Admin environment variables missing. Initializing with minimal config.');
       
-      // Try to use application default credentials if environment variables are not set
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-      });
+      // Initialize with empty config if env vars not available
+      admin.initializeApp();
     } else {
       // Initialize with environment variables
       admin.initializeApp({
@@ -36,6 +34,9 @@ if (!admin.apps || admin.apps.length === 0) {
   }
 }
 
+// Safely export admin services
 export default admin;
-export const auth = admin.auth();
-export const firestore = admin.firestore();
+
+// Safely export auth and firestore (with fallbacks if not available)
+export const auth = admin.auth ? admin.auth() : null;
+export const firestore = admin.firestore ? admin.firestore() : null;

@@ -94,7 +94,22 @@ export function registerRoutes(app: Express) {
     const wss = new WebSocketServer({
       server: httpServer,
       path: '/ws',
-      clientTracking: true
+      clientTracking: true,
+      // Add production-friendly settings
+      perMessageDeflate: {
+        zlibDeflateOptions: {
+          chunkSize: 1024,
+          memLevel: 7,
+          level: 3
+        },
+        zlibInflateOptions: {
+          chunkSize: 10 * 1024
+        },
+        clientNoContextTakeover: true,
+        serverNoContextTakeover: true,
+        concurrencyLimit: 10,
+        threshold: 1024
+      }
     });
 
     global.wss = wss;
