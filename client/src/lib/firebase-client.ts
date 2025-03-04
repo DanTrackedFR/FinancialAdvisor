@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 
-// Firebase configuration object with Vite environment variables
+// Firebase configuration object with Vite environment variables and fallbacks
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDlGZDKiXkljNzYkK2Ry9SbX4J6bqZUqFI",
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID || "trackedfr-prod"}.firebaseapp.com`,
@@ -12,8 +12,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:857363648999:web:ec2fe37eeab2258defed42",
 };
 
-// Debug info for deployment troubleshooting
-console.log("Firebase Config:", firebaseConfig);
+// Debug output for troubleshooting
+console.log("Firebase Config Debug:", {
+  apiKey: firebaseConfig.apiKey ? "Present" : "Missing",
+  projectId: firebaseConfig.projectId ? "Present" : "Missing",
+  appId: firebaseConfig.appId ? "Present" : "Missing"
+});
 
 // Get current domain to help with configuration
 const currentDomain = window.location.host;
@@ -25,7 +29,7 @@ let auth;
 
 export const initializeFirebase = () => {
   try {
-    // Avoid duplicate Firebase initialization
+    // Only initialize once
     if (!app) {
       app = initializeApp(firebaseConfig);
       console.log("Firebase app initialized");
@@ -36,7 +40,7 @@ export const initializeFirebase = () => {
       console.log("Firebase auth initialized");
     }
 
-    // Only connect to auth emulator in development mode
+    // Only connect to auth emulator in development
     if (import.meta.env.DEV || window.location.hostname === 'localhost') {
       try {
         connectAuthEmulator(auth, "http://localhost:9099");
@@ -46,7 +50,12 @@ export const initializeFirebase = () => {
       }
     }
 
-    console.log("Firebase initialization completed successfully");
+    console.log("Firebase configuration:", {
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+    });
+
+    console.log("Firebase initialized successfully");
     return { app, auth };
   } catch (error) {
     console.error("Firebase initialization error:", error);

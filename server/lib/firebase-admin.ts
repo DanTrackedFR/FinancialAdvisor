@@ -1,5 +1,5 @@
 
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 
 // Check for environment variables
 const hasEnvCredentials = process.env.FIREBASE_PROJECT_ID && 
@@ -19,12 +19,13 @@ try {
     });
     console.log('Firebase Admin SDK initialized with environment variables');
   } else {
-    console.log('Firebase Admin environment variables missing. Using empty config.');
+    console.log('Firebase Admin environment variables missing. Using default config.');
     
-    // Initialize with minimal config for development
+    // Initialize with a default empty config for development
     admin.initializeApp({
       projectId: 'trackedfr-prod',
     });
+    console.log('Firebase Admin SDK initialized with default configuration');
   }
 } catch (error) {
   console.error('Firebase Admin initialization error:', error);
