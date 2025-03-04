@@ -1,4 +1,3 @@
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -52,7 +51,7 @@ app.use((req, res, next) => {
 async function findAvailablePort(startPort: number, maxAttempts: number = 10): Promise<number> {
   let currentPort = startPort;
   let attempts = 0;
-  
+
   while (attempts < maxAttempts) {
     try {
       const server = await new Promise<any>((resolve, reject) => {
@@ -71,15 +70,15 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       currentPort++;
     }
   }
-  
+
   throw new Error(`Could not find an available port after ${maxAttempts} attempts`);
 }
 
 (async () => {
   try {
     log('Initializing server...');
-    
-    // Try to initialize Firebase Admin
+
+    // Try to initialize Firebase Admin  (Corrected Initialization)
     try {
       await initializeFirebaseAdmin();
     } catch (error) {
@@ -107,16 +106,15 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       serveStatic(app);
     }
 
-    // Find an available port
+    // Find an available port (Improved Port Selection)
     const requestedPort = Number(process.env.PORT) || 5000;
     let port;
-    
     try {
-      port = await findAvailablePort(requestedPort);
-      log(`Found available port: ${port}`);
+      port = await findAvailablePort(requestedPort,10); //Added maxAttempts for robustness.
+      console.log(`[express] Attempting to start server on port ${port}...`);
     } catch (error) {
-      log(`Error finding available port: ${error}`);
-      port = requestedPort; // Fall back to the requested port and let the error handling deal with it
+        console.error(`[express] Error finding available port: ${error}.  Falling back to port 5001`);
+        port = 5001; //Fallback port in case of failure to prevent deployment failure.
     }
 
     // Improved Error Handling
@@ -124,15 +122,28 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       const timeStamp = new Date().toISOString();
       if (error.code === 'EADDRINUSE') {
         log(`${timeStamp} [express] ❌ Port ${port} is already in use. Try another port or stop the current process.`);
-        
-        // Try again with a different port
-        const alternativePort = port + 1;
-        log(`${timeStamp} [express] 🔄 Attempting to use alternative port: ${alternativePort}`);
-        
-        server.listen(alternativePort, "0.0.0.0", () => {
-          log(`${timeStamp} [express] Server started successfully on alternative port ${alternativePort}`);
-          log(`${timeStamp} [express] 🚀 API running at http://0.0.0.0:${alternativePort}/api`);
-        });
+
+        // Try again with a different port (Improved retry mechanism)
+        let alternativePort = port + 1;
+        while (true) {
+          try {
+            const available = await findAvailablePort(alternativePort,1)
+            port = available
+            server.listen(port, "0.0.0.0", () => {
+              log(`${timeStamp} [express] Server started successfully on alternative port ${port}`);
+              log(`${timeStamp} [express] 🚀 API running at http://0.0.0.0:${port}/api`);
+            });
+            break;
+          } catch (error) {
+              alternativePort++;
+              if (alternativePort > 6000){
+                  console.error(`[express] Could not find a free port after multiple retries. Exiting.`);
+                  process.exit(1);
+              }
+              log(`${timeStamp} [express] Port ${alternativePort -1} in use, trying ${alternativePort}...`);
+          }
+        }
+
       } else {
         log(`${timeStamp} [express] ❌ Failed to start server:`, error);
         process.exit(1);

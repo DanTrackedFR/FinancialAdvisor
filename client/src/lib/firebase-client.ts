@@ -40,20 +40,26 @@ console.log("Firebase configuration:", {
   authDomain: firebaseConfig.authDomain,
 });
 
-// Initialize Firebase - prevent duplicate initializations
-let app: FirebaseApp;
-
-try {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
+// Initialize Firebase function to prevent duplicate initializations
+export function initializeFirebase(): FirebaseApp {
+  let app: FirebaseApp;
+  
+  try {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApp();
+    }
+    console.log("Firebase initialized successfully");
+    return app;
+  } catch (error) {
+    console.error("Firebase initialization error:", error);
+    throw error;
   }
-  console.log("Firebase initialized successfully");
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-  throw error;
 }
+
+// Initialize app
+const app = initializeFirebase();
 
 // Export the auth for use throughout the app
 export const auth = getAuth(app);
