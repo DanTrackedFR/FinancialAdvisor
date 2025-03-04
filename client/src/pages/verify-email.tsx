@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { isSignInWithEmailLink, signInWithEmailLink, getAuth, signInWithEmailAndPassword } from "firebase/auth";
@@ -60,7 +60,7 @@ export default function VerifyEmailPage() {
 
             // Store email in localStorage for login form auto-fill
             localStorage.setItem("emailForSignIn", email);
-            
+
             // Show toast notification
             toast({
               title: "Email Verified",
