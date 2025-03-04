@@ -19,16 +19,10 @@ try {
     });
     console.log('Firebase Admin SDK initialized with environment variables');
   } else {
-    console.log('Firebase Admin environment variables missing. Initializing with minimal config.');
+    console.log('Firebase Admin environment variables missing. Using empty config.');
     
-    // Initialize with a minimal default configuration
-    // Use cert with empty values when applicationDefault is not available
+    // Initialize with empty credentials for development
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: 'trackedfr-prod',
-        clientEmail: 'dummy@example.com',
-        privateKey: 'dummy-key'
-      }),
       projectId: 'trackedfr-prod',
     });
   }

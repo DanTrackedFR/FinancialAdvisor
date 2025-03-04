@@ -2,22 +2,14 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 
-// Your web app's Firebase configuration
+// Firebase configuration object
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyDlGZDKiXkljNzYkK2Ry9SbX4J6bqZUqFI",
-  authDomain: `${process.env.FIREBASE_PROJECT_ID || "trackedfr-prod"}.firebaseapp.com`,
-  projectId: process.env.FIREBASE_PROJECT_ID || "trackedfr-prod",
-  storageBucket: `${process.env.FIREBASE_PROJECT_ID || "trackedfr-prod"}.appspot.com`,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "857363648999",
-  appId: process.env.FIREBASE_APP_ID || "1:857363648999:web:ec2fe37eeab2258defed42",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
-
-// Debug info for deployment troubleshooting
-console.log("Firebase Config Debug:", {
-  apiKey: firebaseConfig.apiKey ? "Present" : "Missing",
-  projectId: firebaseConfig.projectId ? "Present" : "Missing",
-  appId: firebaseConfig.appId ? "Present" : "Missing"
-});
 
 // Get current domain to help with configuration
 const currentDomain = window.location.host;
@@ -32,7 +24,8 @@ export const initializeFirebase = () => {
     try {
       // Check if Firebase is already initialized
       app = initializeApp(firebaseConfig);
-    } catch (error: any) {
+    } catch (error) {
+      // @ts-ignore
       if (error.code === 'app/duplicate-app') {
         console.log("Firebase already initialized, getting existing app");
         app = initializeApp();
@@ -63,8 +56,7 @@ export const initializeFirebase = () => {
 
 // Initialize Firebase on module import
 try {
-  const { auth: initializedAuth } = initializeFirebase();
-  auth = initializedAuth;
+  initializeFirebase();
 } catch (error) {
   console.error("Firebase auto-initialization error:", error);
 }
