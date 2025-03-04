@@ -1,5 +1,5 @@
 
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // Check for environment variables
 const hasEnvCredentials = process.env.FIREBASE_PROJECT_ID && 
@@ -21,7 +21,7 @@ try {
   } else {
     console.log('Firebase Admin environment variables missing. Using empty config.');
     
-    // Initialize with empty credentials for development
+    // Initialize with minimal config for development
     admin.initializeApp({
       projectId: 'trackedfr-prod',
     });

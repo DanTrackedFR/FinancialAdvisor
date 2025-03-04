@@ -106,6 +106,7 @@ app.use((req, res, next) => {
     server.listen(port, "0.0.0.0", () => {
       log(`Server running at http://0.0.0.0:${port}`);
       log(`Environment: ${process.env.NODE_ENV}`);
+      log(`⚡️ All systems ready - development server is now live`);
     });
 
   } catch (error) {
