@@ -78,14 +78,7 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
   try {
     log('Initializing server...');
 
-    // Try to initialize Firebase Admin  (Corrected Initialization)
-    try {
-      await initializeFirebaseAdmin();
-    } catch (error) {
-      log(`Warning: Firebase Admin initialization failed: ${error}`);
-      log('Continuing without Firebase Admin, some features may not work');
-    }
-
+    // Move Firebase initialization to happen after the server starts
     // More detailed logging for initialization steps
     log('Setting up Express application...');
     const server = registerRoutes(app);
@@ -174,9 +167,19 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
 
     // Start the server on a fixed port
     log(`Starting server on port ${PORT}...`);
-    server.listen(PORT, "0.0.0.0", () => {
+    server.listen(PORT, "0.0.0.0", async () => {
       log(`Server running at http://0.0.0.0:${PORT}`);
       log(`Environment: ${process.env.NODE_ENV}`);
+      
+      // Initialize Firebase Admin after the server has started
+      try {
+        await initializeFirebaseAdmin();
+        log('Firebase Admin SDK initialized successfully after server start');
+      } catch (error) {
+        log(`Warning: Firebase Admin initialization failed: ${error}`);
+        log('Continuing without Firebase Admin, some features may not work');
+      }
+      
       log(`⚡️ All systems ready - ${isDev ? 'development' : 'production'} server is now live`);
     });
 
