@@ -25,6 +25,17 @@ console.log("Firebase Config Debug:", debugConfig);
 console.log("Current domain:", window.location.hostname);
 
 // Firebase configuration
+import { firebaseConfig } from './firebaseConfig';
+
+// Initialize Firebase app
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+
+console.log("Firebase configuration:", {
+  projectId: firebaseConfig.projectId, 
+  authDomain: firebaseConfig.authDomain
+});
+console.log("Firebase initialized successfully");
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: `${process.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,

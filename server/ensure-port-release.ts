@@ -1,6 +1,32 @@
 
 import { exec } from 'child_process';
 
+console.log("Checking for processes using port 5000...");
+
+exec('lsof -i :5000', (error, stdout, stderr) => {
+  if (stdout) {
+    console.log("Found processes using port 5000:");
+    console.log(stdout);
+    
+    exec("kill $(lsof -t -i:5000)", (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error killing processes: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`Command stderr: ${stderr}`);
+        return;
+      }
+      console.log("Successfully killed processes using port 5000");
+    });
+  } else {
+    console.log("No processes found using port 5000");
+  }
+});
+
+
+import { exec } from 'child_process';
+
 // Function to check if a port is in use
 function checkPort(port: number): Promise<boolean> {
   return new Promise((resolve) => {
