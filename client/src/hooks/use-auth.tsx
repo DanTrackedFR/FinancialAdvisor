@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { getApps, initializeApp } from "firebase/app";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -11,9 +12,7 @@ import {
   sendEmailVerification,
   signInWithEmailLink,
   isSignInWithEmailLink,
-  sendSignInLinkToEmail,
-  getApps,
-  initializeApp
+  sendSignInLinkToEmail
 } from "firebase/auth";
 import { useToast } from "./use-toast";
 import { initializeFirebase } from "@/lib/firebase-client";
