@@ -106,63 +106,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          console.log("Auth state changed:", "User logged in");
+    const app = initializeFirebase();
+    if (!app) {
+      console.error("Failed to initialize Firebase");
+      setIsLoading(false);
+      return () => {}; // Return empty cleanup function
+    }
 
-          // Synchronize with backend
-          await syncUserWithBackend(firebaseUser);
+    const auth = getAuth(app);
+    if (!auth) {
+      console.error("Failed to get auth instance");
+      setIsLoading(false);
+      return () => {}; // Return empty cleanup function
+    }
 
-          setUser(firebaseUser);
-        } else {
-          console.log("Auth state changed:", "User logged out");
-          setUser(null);
-        }
-      } catch (error) {
-        console.error("Auth state change error:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      setUser(firebaseUser);
+      setIsLoading(false);
+      console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
+    }, (error) => {
+      console.error("Auth state change error:", error);
+      setIsLoading(false);
     });
 
-    // Check for email verification link on mount
-    const handleEmailVerification = async () => {
+    // Check for email link sign-in
+    if (auth && isSignInWithEmailLink(auth, window.location.href)) {
+      let email = window.localStorage.getItem('emailForSignIn');
+      if (!email) {
+        // User opened the link on a different device. To prevent session fixation
+        // attacks, ask the user to provide the associated email again. For example:
+        email = window.prompt('Please provide your email for confirmation');
+      }
+
+      if (email) {
+        setIsLoading(true);
+        signInWithEmailLink(auth, email, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            setUser(result.user);
+          })
+          .catch((error) => {
+            console.error("Error signing in with email link:", error);
+            toast({
+              title: "Error signing in",
+              description: error.message,
+              variant: "destructive",
+            });
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      }
+    }
+
+    return () => {
       try {
-        if (isSignInWithEmailLink(auth, window.location.href)) {
-          let email = localStorage.getItem("emailForSignIn");
-
-          if (!email) {
-            email = window.prompt("Please provide your email for confirmation");
-          }
-
-          if (email) {
-            const userCredential = await signInWithEmailLink(auth, email, window.location.href);
-
-            // Store credentials for login after verification
-            if (userCredential.user) {
-              localStorage.setItem('verifiedUserCredentials', JSON.stringify({
-                email: email,
-                timestamp: Date.now()
-              }));
-            }
-
-            localStorage.removeItem("emailForSignIn");
-          }
-        }
-      } catch (error) {
-        console.error("Email verification error:", error);
-        toast({
-          title: "Verification Failed",
-          description: "There was an error verifying your email. Please try again.",
-          variant: "destructive",
-        });
+        unsubscribe();
+      } catch (e) {
+        console.error("Error unsubscribing from auth state:", e);
       }
     };
-
-    handleEmailVerification();
-
-    return () => unsubscribe();
   }, [toast]);
 
   // Log in a user with email and password

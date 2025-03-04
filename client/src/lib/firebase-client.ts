@@ -1,5 +1,4 @@
-
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -25,17 +24,6 @@ console.log("Firebase Config Debug:", debugConfig);
 console.log("Current domain:", window.location.hostname);
 
 // Firebase configuration
-import { firebaseConfig } from './firebaseConfig';
-
-// Initialize Firebase app
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-
-console.log("Firebase configuration:", {
-  projectId: firebaseConfig.projectId, 
-  authDomain: firebaseConfig.authDomain
-});
-console.log("Firebase initialized successfully");
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: `${process.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
@@ -52,25 +40,58 @@ console.log("Firebase configuration:", {
 });
 
 // Initialize Firebase function to prevent duplicate initializations
-export function initializeFirebase(): FirebaseApp {
-  let app: FirebaseApp;
-  
+export function initializeFirebase(): FirebaseApp | null {
+  const apiKey = process.env.VITE_FIREBASE_API_KEY;
+  const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+  const appId = process.env.VITE_FIREBASE_APP_ID;
+
+  if (!apiKey || !projectId || !appId) {
+    console.error('Firebase configuration variables missing');
+    return null;
+  }
+
+  const authDomain = `${projectId}.firebaseapp.com`;
+
+  console.log("Current domain:", window.location.hostname);
+
+  // Debug Firebase config - without showing sensitive values
+  console.log("Firebase Config Debug:", {
+    apiKey: apiKey ? "Present" : "Missing",
+    projectId: projectId ? "Present" : "Missing",
+    appId: appId ? "Present" : "Missing"
+  });
+
   try {
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApp();
+    // Check if Firebase is already initialized
+    const apps = getApps();
+    if (apps.length > 0) {
+      console.log("Firebase already initialized, returning existing app");
+      return apps[0];
     }
+
+    const config = {
+      apiKey,
+      authDomain,
+      projectId,
+      appId
+    };
+
+    console.log("Firebase configuration:", { projectId, authDomain });
+    const app = initializeApp(config);
     console.log("Firebase initialized successfully");
     return app;
   } catch (error) {
     console.error("Firebase initialization error:", error);
-    throw error;
+    return null;
   }
 }
 
-// Initialize app
+// Initialize app - handle potential null return from initializeFirebase
 const app = initializeFirebase();
+if (!app) {
+  console.error("Failed to initialize Firebase.  Application cannot continue.");
+  throw new Error("Firebase Initialization Failed");
+}
 
 // Export the auth for use throughout the app
 export const auth = getAuth(app);
