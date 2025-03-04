@@ -132,7 +132,10 @@ export default function VerifyEmailPage() {
         </CardContent>
         <CardFooter className="flex justify-center">
           {status !== "loading" && (
-            <Button onClick={() => navigate("/auth?mode=login")}>
+            <Button onClick={() => {
+              // When user clicks to login, navigate them to the login page
+              navigate("/auth?mode=login");
+            }}>
               Go to Login
             </Button>
           )}

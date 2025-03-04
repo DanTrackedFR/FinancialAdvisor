@@ -148,6 +148,33 @@ export default function AuthPage() {
     const verifiedEmail = window.localStorage.getItem('emailForSignIn');
     if (verifiedEmail && modeParam === "login") {
       loginForm.setValue("email", verifiedEmail);
+      
+      // Check if we have stored credentials from verification
+      const verifiedCredentialsJson = window.localStorage.getItem('verifiedUserCredentials');
+      if (verifiedCredentialsJson) {
+        try {
+          const verifiedCredentials = JSON.parse(verifiedCredentialsJson);
+          // Only use the stored password if it's for the same email and recent (within 1 hour)
+          if (verifiedCredentials.email === verifiedEmail && 
+              (Date.now() - verifiedCredentials.timestamp) < 3600000) {
+            // Auto-fill the password field if we have verified credentials
+            loginForm.setValue("password", verifiedCredentials.password);
+            
+            toast({
+              title: "Account Verified",
+              description: "Your account has been verified. You can now log in.",
+            });
+          } else {
+            // Clear outdated credentials
+            window.localStorage.removeItem('verifiedUserCredentials');
+          }
+        } catch (e) {
+          console.error("Error parsing verified credentials:", e);
+          window.localStorage.removeItem('verifiedUserCredentials');
+        }
+      }
+      
+      // Remove the email from storage after it's been used
       window.localStorage.removeItem('emailForSignIn');
       toast({
         title: "Email Pre-filled",
