@@ -1,6 +1,5 @@
-
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // This is safe to expose in client-side code
 const firebaseConfig = {
@@ -29,13 +28,13 @@ export function initializeFirebase() {
     // Initialize Firebase if not already initialized
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    
+
     // Set persistence and other configurations as needed
     console.log("Firebase configuration:", {
       projectId: app.options.projectId,
       authDomain: app.options.authDomain
     });
-    
+
     console.log("Firebase initialized successfully");
     return { app, auth };
   } catch (error) {
@@ -44,5 +43,7 @@ export function initializeFirebase() {
   }
 }
 
-// Initialize Firebase and export auth
+// Initialize Firebase and export auth and google provider
+const googleProvider = new GoogleAuthProvider();
 export const { auth } = initializeFirebase();
+export { googleProvider };
