@@ -1,3 +1,4 @@
+
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 
@@ -19,20 +20,19 @@ console.log("Firebase Config Debug:", {
 });
 
 // Get current domain to help with configuration
-const currentDomain = window.location.hostname;
+const currentDomain = window.location.host;
 console.log("Current domain:", currentDomain);
 
 let app;
 let auth;
 
-// Export the initialization function
 export const initializeFirebase = () => {
   try {
     // Avoid duplicate Firebase initialization
     try {
       // Check if Firebase is already initialized
       app = initializeApp(firebaseConfig);
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'app/duplicate-app') {
         console.log("Firebase already initialized, getting existing app");
         app = initializeApp();
@@ -40,7 +40,7 @@ export const initializeFirebase = () => {
         throw error;
       }
     }
-
+    
     auth = getAuth(app);
 
     // Only connect to auth emulator in development mode
@@ -61,8 +61,8 @@ export const initializeFirebase = () => {
   }
 };
 
+// Initialize Firebase on module import
 try {
-  // Initialize Firebase on module import
   const { auth: initializedAuth } = initializeFirebase();
   auth = initializedAuth;
 } catch (error) {
