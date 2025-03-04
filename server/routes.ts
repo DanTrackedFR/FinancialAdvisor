@@ -4,10 +4,12 @@ import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 import analysisRoutes from "./routes/analysis";
 import chatRoutes from "./routes/chat";
-import authRoutes from "./routes/auth";
+//Import Firebase Admin SDK
+import * as admin from 'firebase-admin';
+import authRoutes from "./routes/auth"; // Assuming this is the new auth routes file
 import analyticsRoutes from "./routes/analytics";
 import feedbackRoutes from "./routes/feedback";
-import bigqueryRoutes from "./routes/bigquery"; // Import BigQuery routes
+import bigqueryRoutes from "./routes/bigquery";
 import { WebSocketServer, WebSocket } from "ws";
 
 // Declare global type for the WebSocket server
@@ -18,24 +20,33 @@ declare global {
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
+  // Initialize Firebase Admin SDK (replace with your service account key path)
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert("./path/to/your/serviceAccountKey.json"), // Replace with your service account key path
+    });
+    console.log('Firebase Admin SDK initialized successfully.');
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error);
+  }
+
+
   // Register routes
   app.use("/api", analysisRoutes);
   app.use("/api", chatRoutes);
-  app.use("/api", authRoutes);
-  app.use("/api", analyticsRoutes); // Add analytics routes
-  app.use("/api", feedbackRoutes); // Add feedback routes
-  app.use("/api", bigqueryRoutes); // Add BigQuery routes
+  app.use("/api/auth", authRoutes); //Use new auth routes
+  app.use("/api", analyticsRoutes);
+  app.use("/api", feedbackRoutes);
+  app.use("/api", bigqueryRoutes);
 
   // Debug endpoint to echo the routes
   app.get("/api/debug/routes", (_req, res) => {
-    // Send information about registered routes
     res.json({
       message: "Routes are registered correctly",
       timestamp: new Date().toISOString()
     });
   });
 
-  // User routes
   app.get("/api/users", async (_req, res) => {
     try {
       const users = await storage.getAllUsers();
@@ -45,7 +56,6 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Remove the duplicate POST /api/users route because it's already defined in auth.ts
 
   app.get("/api/user/analyses", async (req, res) => {
     try {
@@ -68,7 +78,6 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // WebSocket server diagnostic endpoint
   app.get("/api/ws-status", (_req, res) => {
     res.json({
       wsInitialized: global.wss !== undefined,
@@ -79,43 +88,35 @@ export function registerRoutes(app: Express) {
 
   console.log('Initializing WebSocket server...');
 
-  // Initialize WebSocket server
   try {
-    // Create WebSocket server on a specific path to avoid conflicts with Vite's HMR WebSocket
-    const wss = new WebSocketServer({ 
+    const wss = new WebSocketServer({
       server: httpServer,
       path: '/ws',
       clientTracking: true
     });
 
-    // Store WSS globally for diagnostics and status checks
     global.wss = wss;
     console.log('WebSocket server initialized successfully on path /ws');
 
-    // Store active connections
     const clients = new Set<WebSocket>();
 
     wss.on('connection', (socket) => {
       console.log('New WebSocket connection established');
       clients.add(socket);
 
-      // Handle incoming messages
       socket.on('message', (message) => {
         try {
           const data = JSON.parse(message.toString());
           console.log('Received message:', data);
 
-          // Process the message based on its type
           switch (data.type) {
             case 'ping':
-              // Respond to ping with pong
               if (socket.readyState === WebSocket.OPEN) {
                 socket.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
               }
               break;
 
             case 'chat':
-              // Broadcast chat message to all connected clients
               if (data.message) {
                 broadcastMessage({
                   type: 'chat',
@@ -127,7 +128,6 @@ export function registerRoutes(app: Express) {
               break;
 
             case 'analysis_update':
-              // Notify clients about analysis updates
               if (data.analysisId) {
                 broadcastMessage({
                   type: 'analysis_update',
@@ -146,27 +146,23 @@ export function registerRoutes(app: Express) {
         }
       });
 
-      // Handle disconnections
       socket.on('close', () => {
         console.log('WebSocket connection closed');
         clients.delete(socket);
       });
 
-      // Handle errors
       socket.on('error', (error) => {
         console.error('WebSocket error:', error);
         clients.delete(socket);
       });
 
-      // Send welcome message
-      socket.send(JSON.stringify({ 
-        type: 'info', 
+      socket.send(JSON.stringify({
+        type: 'info',
         message: 'Connected to TrackedFR WebSocket server',
         timestamp: Date.now()
       }));
     });
 
-    // Function to broadcast messages to all connected clients
     const broadcastMessage = (data: any) => {
       const message = JSON.stringify(data);
       let sentCount = 0;
@@ -181,7 +177,6 @@ export function registerRoutes(app: Express) {
       console.log(`Broadcast message sent to ${sentCount} clients:`, data.type);
     };
 
-    // Heartbeat interval to keep connections alive
     setInterval(() => {
       console.log(`WebSocket heartbeat - Active connections: ${clients.size}`);
       clients.forEach(client => {
@@ -189,7 +184,7 @@ export function registerRoutes(app: Express) {
           client.send(JSON.stringify({ type: 'heartbeat', timestamp: Date.now() }));
         }
       });
-    }, 30000); // Send heartbeat every 30 seconds
+    }, 30000);
   } catch (error) {
     console.error('Failed to initialize WebSocket server:', error);
   }

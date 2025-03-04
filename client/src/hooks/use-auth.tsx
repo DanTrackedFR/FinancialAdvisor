@@ -1,367 +1,320 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { 
-  User,
-  signOut,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-  sendSignInLinkToEmail,
-  createUserWithEmailAndPassword,
-  ActionCodeSettings
-} from "firebase/auth";
-import { auth, sendVerificationEmail, actionCodeSettings, handleEmailSignInLink } from "@/lib/firebase";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
-type SignUpData = {
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  User as FirebaseUser,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendEmailVerification,
+  signInWithEmailLink,
+  isSignInWithEmailLink,
+  sendSignInLinkToEmail,
+} from "firebase/auth";
+import { useToast } from "./use-toast";
+import { initializeFirebase } from "@/lib/firebase-client";
+
+// Initialize Firebase
+const { auth } = initializeFirebase();
+
+// Define the authentication context type
+interface AuthContextType {
+  user: FirebaseUser | null;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<FirebaseUser>;
+  signUp: (userData: SignUpData) => Promise<void>;
+  logout: () => Promise<void>;
+  signInWithGoogle: () => Promise<FirebaseUser>;
+  sendVerificationEmail: (user: FirebaseUser) => Promise<void>;
+  verifyEmail: (email: string) => Promise<FirebaseUser>;
+}
+
+// Define the sign-up data type
+interface SignUpData {
   email: string;
   password: string;
   firstName: string;
   surname: string;
   company?: string;
+}
+
+// Create the authentication context
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Email verification link configuration
+const actionCodeSettings = {
+  url: `${window.location.origin}/verify-email`,
+  handleCodeInApp: true,
 };
 
-// Extended user type that includes our custom fields from the database
-type ExtendedUser = User & {
-  isAdmin?: boolean;
-  firstName?: string;
-  surname?: string;
-  company?: string;
-};
-
-type AuthContextType = {
-  user: ExtendedUser | null;
-  isLoading: boolean;
-  signUp: (data: SignUpData) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  sendEmailVerification: (email: string) => Promise<void>;
-  updateUserFirebaseUid: (email: string, uid: string) => Promise<boolean>;
-};
-
-const AuthContext = createContext<AuthContextType | null>(null);
-
+// Provider component to wrap the application
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<ExtendedUser | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Function to fetch user profile data from our backend
-  const fetchUserProfile = async (firebaseUser: User) => {
+  // Function to synchronize the user with the backend
+  const syncUserWithBackend = async (firebaseUser: FirebaseUser) => {
     try {
-      console.log("Fetching profile for Firebase UID:", firebaseUser.uid);
-      const response = await fetch('/api/users/profile', {
+      const idToken = await firebaseUser.getIdToken();
+      
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'firebase-uid': firebaseUser.uid
-        }
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        console.log("User profile fetched:", userData);
-        // Merge Firebase user with our database user
-        return {
-          ...firebaseUser,
-          isAdmin: userData.isAdmin || false,
-          firstName: userData.firstName,
-          surname: userData.surname,
-          company: userData.company
-        } as ExtendedUser;
-      }
-      console.log("No user profile found in database for UID:", firebaseUser.uid);
-      return firebaseUser;
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      return firebaseUser;
-    }
-  };
-
-  // Function to update a user's Firebase UID in the database
-  const updateUserFirebaseUid = async (email: string, uid: string): Promise<boolean> => {
-    try {
-      console.log(`Updating Firebase UID for ${email} to ${uid}`);
-      const response = await fetch('/api/users/update-firebase-uid', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
         },
-        body: JSON.stringify({ email, firebaseUid: uid }),
+        body: JSON.stringify({
+          firebaseUser: {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            emailVerified: firebaseUser.emailVerified,
+          }
+        })
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log("Firebase UID update result:", result);
-        toast({
-          title: "User account updated",
-          description: "The Firebase UID has been successfully updated",
-        });
-        return true;
-      } else {
-        const error = await response.json();
-        console.error("Error updating Firebase UID:", error);
-        toast({
-          title: "Update failed",
-          description: error.error || "Failed to update Firebase UID",
-          variant: "destructive",
-        });
-        return false;
+      
+      if (!response.ok) {
+        throw new Error("Failed to synchronize user with backend");
       }
-    } catch (error: any) {
-      console.error("Error in updateUserFirebaseUid:", error);
-      toast({
-        title: "Update error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-      return false;
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error syncing user with backend:", error);
+      throw error;
     }
   };
 
+  // Listen for authentication state changes
   useEffect(() => {
-    // Check if there's an email verification link
-    try {
-      const emailSignInResult = handleEmailSignInLink();
-      if (emailSignInResult) {
-        // If we're handling an email sign-in link, wait for it to complete
-        setIsLoading(true);
-
-        emailSignInResult
-          .then(async (user) => {
-            console.log("Email verification successful", user);
-            toast({
-              title: "Email Verified",
-              description: "Your email has been verified. You are now signed in.",
-            });
-            // Fetch user profile and set it
-            const extendedUser = await fetchUserProfile(user);
-            setUser(extendedUser);
-          })
-          .catch((error) => {
-            console.error("Email verification error:", error);
-            toast({
-              title: "Verification Failed",
-              description: error.message || "Failed to verify email",
-              variant: "destructive",
-            });
-          })
-          .finally(() => setIsLoading(false));
-
-        // Return early since we're handling the verification
-        return;
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          console.log("Auth state changed:", "User logged in");
+          
+          // Synchronize with backend
+          await syncUserWithBackend(firebaseUser);
+          
+          setUser(firebaseUser);
+        } else {
+          console.log("Auth state changed:", "User logged out");
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Auth state change error:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error checking for email sign-in link:", error);
-    }
+    });
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
-      if (firebaseUser) {
-        console.log("Firebase user info:", {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          emailVerified: firebaseUser.emailVerified
-        });
-
-        // If we have a new sign up with stored details, create the user profile
-        const storedDetails = window.localStorage.getItem('pendingUserDetails');
-        if (storedDetails) {
-          try {
-            const details = JSON.parse(storedDetails);
-            await fetch('/api/users', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'firebase-uid': firebaseUser.uid
-              },
-              body: JSON.stringify({
-                firebaseUid: firebaseUser.uid,
-                firstName: details.firstName,
-                surname: details.surname,
-                company: details.company,
-                email: firebaseUser.email!,
-              }),
-            });
-            window.localStorage.removeItem('pendingUserDetails');
-          } catch (error: any) {
-            console.error('Error creating user profile:', error);
+    // Check for email verification link on mount
+    const handleEmailVerification = async () => {
+      try {
+        if (isSignInWithEmailLink(auth, window.location.href)) {
+          let email = localStorage.getItem("emailForSignIn");
+          
+          if (!email) {
+            email = window.prompt("Please provide your email for confirmation");
+          }
+          
+          if (email) {
+            const userCredential = await signInWithEmailLink(auth, email, window.location.href);
+            
+            // Store credentials for login after verification
+            if (userCredential.user) {
+              localStorage.setItem('verifiedUserCredentials', JSON.stringify({
+                email: email,
+                timestamp: Date.now()
+              }));
+            }
+            
+            localStorage.removeItem("emailForSignIn");
           }
         }
-
-        // Fetch user profile data including isAdmin status
-        const extendedUser = await fetchUserProfile(firebaseUser);
-        setUser(extendedUser);
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error("Email verification error:", error);
+        toast({
+          title: "Verification Failed",
+          description: "There was an error verifying your email. Please try again.",
+          variant: "destructive",
+        });
       }
-      setIsLoading(false);
-    });
+    };
+
+    handleEmailVerification();
 
     return () => unsubscribe();
   }, [toast]);
 
-  const login = async (email: string, password: string) => {
+  // Log in a user with email and password
+  const login = async (email: string, password: string): Promise<FirebaseUser> => {
     try {
       setIsLoading(true);
-      console.log("Starting login process for:", email);
-
-      // Check if we have verified credentials stored
-      const verifiedCredentialsJson = window.localStorage.getItem('verifiedUserCredentials');
-      if (verifiedCredentialsJson) {
-        try {
-          const verifiedCredentials = JSON.parse(verifiedCredentialsJson);
-          // Check if the credentials are for this email and still recent (within 1 hour)
-          const isRecent = verifiedCredentials.timestamp && 
-                          (Date.now() - verifiedCredentials.timestamp) < 3600000;
-
-          if (verifiedCredentials.email === email && isRecent) {
-            console.log("Found verified credentials for this email");
-            // Use the password from verified credentials instead
-            password = verifiedCredentials.password;
-            console.log("Using password from verified credentials");
-            // Remove the stored credentials after use
-            window.localStorage.removeItem('verifiedUserCredentials');
-          }
-        } catch (e) {
-          console.error("Error parsing verified credentials:", e);
-        }
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      if (!userCredential.user.emailVerified) {
+        toast({
+          title: "Email Not Verified",
+          description: "Please check your email to verify your account before logging in.",
+          variant: "destructive",
+        });
+        await firebaseSignOut(auth);
+        throw new Error("Email not verified");
       }
-
-      // Attempt to sign in with email and password
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Login successful for UID:", result.user.uid);
-
-      // Fetch user profile data including isAdmin status
-      const extendedUser = await fetchUserProfile(result.user);
-      setUser(extendedUser);
-
-      // Update Firebase UID in database if necessary.  This assumes the placeholder UID is in the database before login.
-      if (email === 'support@trackedfr.com' && extendedUser.uid !== 'admin-support-placeholder-uid') {
-        await updateUserFirebaseUid(email, result.user.uid);
-      }
-
-      toast({
-        title: "Welcome back!",
-        description: "Successfully signed in",
-      });
+      
+      await syncUserWithBackend(userCredential.user);
+      
+      return userCredential.user;
     } catch (error: any) {
       console.error("Login error:", error);
-      console.error("Error code:", error.code);
-      console.error("Error message:", error.message);
-
-      // Provide more specific error messages for different authentication errors
-      let errorMessage = "Failed to sign in";
-
-      if (error.code === 'auth/invalid-credential') {
-        errorMessage = "Invalid email or password. Please check your credentials and try again.";
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = "No account found with this email address. Please sign up first.";
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = "Incorrect password. Please try again.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Too many failed login attempts. Please try again later or reset your password.";
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = "This account has been disabled. Please contact support.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+      
+      const errorMessage = 
+        error.code === "auth/user-not-found" || error.code === "auth/wrong-password" 
+          ? "Invalid email or password"
+          : error.code === "auth/too-many-requests"
+          ? "Too many failed login attempts. Please try again later."
+          : "Failed to sign in. Please try again.";
+          
       toast({
-        title: "Error signing in",
+        title: "Login Failed",
         description: errorMessage,
         variant: "destructive",
       });
+      
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-      toast({
-        title: "Signed out",
-        description: "Successfully signed out",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error signing out",
-        description: error.message || "Failed to sign out",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const signUp = async ({ email, password, firstName, surname, company }: SignUpData) => {
+  // Sign up a new user
+  const signUp = async (userData: SignUpData): Promise<void> => {
     try {
       setIsLoading(true);
-      console.log("Starting sign up process...");
-
-      // Create user with email and password
-      console.log("Creating user with data:", { email, password, firstName, surname, company });
-      // Store credentials for later use after verification
-      window.localStorage.setItem('verifiedUserCredentials', JSON.stringify({
-        email: email,
-        password: password,
+      
+      // Create the user in Firebase
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        userData.email,
+        userData.password
+      );
+      
+      // Update the user's profile
+      await updateProfile(userCredential.user, {
+        displayName: `${userData.firstName} ${userData.surname}`,
+      });
+      
+      // Send email verification
+      await sendEmailVerification(userCredential.user, actionCodeSettings);
+      
+      // Store email for verification process
+      localStorage.setItem("emailForSignIn", userData.email);
+      
+      // Store data for after verification process
+      localStorage.setItem('verifiedUserCredentials', JSON.stringify({
+        email: userData.email,
         timestamp: Date.now()
       }));
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = result.user;
-
-      console.log("Firebase account created:", firebaseUser.uid);
-
-      // Store email in localStorage for later verification
-      window.localStorage.setItem('emailForSignIn', email);
-
-      // Create a custom actionCodeSettings with the email as a URL parameter
-      const customActionCodeSettings = {
-        ...actionCodeSettings,
-        url: `${actionCodeSettings.url}?email=${encodeURIComponent(email)}`
-      };
-
-      // Send sign-in link to email - this is the email verification process
-      await sendSignInLinkToEmail(auth, email, customActionCodeSettings);
-
-
-      // Store user details for later use (after verification)
-      window.localStorage.setItem('pendingUserDetails', JSON.stringify({
-        firstName,
-        surname,
-        company
-      }));
-
-      // Sign out the user immediately after registration to enforce email verification
-      await signOut(auth);
+      
+      // Log the user out - they need to verify email first
+      await firebaseSignOut(auth);
       setUser(null);
-
+      
       toast({
         title: "Verification Email Sent",
         description: "Please check your email to complete the sign-up process",
       });
-
     } catch (error: any) {
-      console.error("Authentication error:", error);
-
-      // Provide more specific error messages for different authentication errors
-      let errorMessage = "Failed to create account";
-
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "This email address is already in use. Please try signing in instead.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "The email address provided is invalid. Please enter a valid email.";
-      } else if (error.code === 'auth/operation-not-allowed') {
-        errorMessage = "Account creation is currently disabled. Please try again later.";
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = "The password is too weak. Please choose a stronger password.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+      console.error("Signup error:", error);
+      
+      const errorMessage = 
+        error.code === "auth/email-already-in-use"
+          ? "Email is already in use"
+          : "Failed to create account. Please try again.";
+          
       toast({
-        title: "Error creating account",
+        title: "Sign Up Failed",
         description: errorMessage,
+        variant: "destructive",
+      });
+      
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sign in with Google
+  const signInWithGoogle = async (): Promise<FirebaseUser> => {
+    try {
+      setIsLoading(true);
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      
+      await syncUserWithBackend(userCredential.user);
+      
+      return userCredential.user;
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      
+      // Don't show error for user cancellation
+      if (error.code !== "auth/popup-closed-by-user") {
+        toast({
+          title: "Sign In Failed",
+          description: "Failed to sign in with Google. Please try again.",
+          variant: "destructive",
+        });
+      }
+      
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Send verification email
+  const sendVerificationEmail = async (user: FirebaseUser): Promise<void> => {
+    try {
+      await sendEmailVerification(user, actionCodeSettings);
+      localStorage.setItem("emailForSignIn", user.email || "");
+      
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email to verify your account.",
+      });
+    } catch (error) {
+      console.error("Send verification email error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send verification email. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Verify email with link
+  const verifyEmail = async (email: string): Promise<FirebaseUser> => {
+    try {
+      setIsLoading(true);
+      
+      if (!isSignInWithEmailLink(auth, window.location.href)) {
+        throw new Error("Invalid verification link");
+      }
+      
+      const userCredential = await signInWithEmailLink(auth, email, window.location.href);
+      
+      await syncUserWithBackend(userCredential.user);
+      
+      return userCredential.user;
+    } catch (error) {
+      console.error("Email verification error:", error);
+      toast({
+        title: "Verification Failed",
+        description: "There was an error verifying your email. Please try again.",
         variant: "destructive",
       });
       throw error;
@@ -370,50 +323,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const sendEmailVerification = async (email: string) => {
+  // Log out the user
+  const logout = async (): Promise<void> => {
     try {
-      // Send verification email to the user
-      if (auth.currentUser) {
-        await sendVerificationEmail(auth.currentUser);
-        window.localStorage.setItem('emailForSignIn', email);
-        toast({
-          title: "Verification email sent",
-          description: "Please check your email to complete the sign-up process",
-        });
-      } else {
-        throw new Error("No authenticated user found");
-      }
-    } catch (error: any) {
-      console.error("Email verification error:", error);
+      await firebaseSignOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error:", error);
       toast({
-        title: "Error sending verification",
-        description: error.message || "Failed to send verification email",
+        title: "Error",
+        description: "Failed to log out. Please try again.",
         variant: "destructive",
       });
       throw error;
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        signUp,
-        login,
-        logout,
-        sendEmailVerification,
-        updateUserFirebaseUid,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  // The authentication context value
+  const value = {
+    user,
+    isLoading,
+    login,
+    signUp,
+    logout,
+    signInWithGoogle,
+    sendVerificationEmail,
+    verifyEmail,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Hook to use the authentication context
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
