@@ -1,77 +1,58 @@
+import admin from "firebase-admin";
 
-import admin from 'firebase-admin';
-import { log } from '../vite';
-
-// Initialize Firebase Admin with environment variables or service account
-let firebaseAdmin: admin.app.App | null = null;
-
-export interface UserRecord {
-  uid: string;
-  email?: string;
-  emailVerified: boolean;
-  displayName?: string;
-  photoURL?: string;
-  disabled: boolean;
-}
-
+// Initialize Firebase Admin with environment variables
+// This is more secure than including credentials in code
 export async function initializeFirebaseAdmin() {
   try {
-    // Check if required environment variables are set
+    // Check if Firebase Admin is already initialized
+    if (admin.apps.length > 0) {
+      console.log("Firebase Admin SDK already initialized");
+      return admin;
+    }
+
+    console.log("Initializing Firebase Admin SDK...");
+
+    // Check for required environment variables
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
 
-    if (!projectId || !clientEmail || !privateKey) {
-      log('Firebase Admin environment variables missing. Using default config.');
-      
-      // Initialize with application default credentials if available
-      try {
-        firebaseAdmin = admin.initializeApp({
-          credential: admin.credential.applicationDefault()
+    if (!projectId || !clientEmail || !privateKeyRaw) {
+      console.warn("Missing Firebase credentials. Running in limited mode.");
+      // Create a minimal app with default config for testing/development
+      if (process.env.NODE_ENV !== 'production') {
+        const app = admin.initializeApp({
+          projectId: projectId || 'demo-project',
         });
-        log('Firebase Admin SDK initialized with application default credentials.');
-        return firebaseAdmin;
-      } catch (error) {
-        throw new Error('Failed to initialize with application default credentials');
+        return app;
+      } else {
+        throw new Error("Firebase credentials missing in production environment");
       }
     }
-    
-    // Initialize with provided credentials
-    firebaseAdmin = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        // Firebase private keys can be provided in various formats that need processing
-        privateKey: privateKey.includes('\\n') 
-          ? privateKey.replace(/\\n/g, '\n') 
-          : privateKey.replace(/-----BEGIN PRIVATE KEY-----|\n|-----END PRIVATE KEY-----|"/g, '')
-            .replace(/(.{64})/g, '$1\n')
-            .replace(/^/, '-----BEGIN PRIVATE KEY-----\n')
-            .replace(/$/, '\n-----END PRIVATE KEY-----'),
-      }),
+
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+
+    const credential = admin.credential.cert({
+      projectId,
+      clientEmail,
+      privateKey,
     });
-    
-    log('Firebase Admin SDK initialized successfully.');
-    return firebaseAdmin;
+
+    const app = admin.initializeApp({
+      credential,
+    });
+
+    console.log("Firebase Admin SDK initialized successfully!");
+    return app;
   } catch (error) {
-    log(`Firebase Admin initialization error: ${error}`);
-    throw error;
+    console.error("Error initializing Firebase Admin SDK:", error);
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    } else {
+      console.warn("Continuing without Firebase Admin in development mode");
+      return null;
+    }
   }
 }
 
-export function getFirebaseAdmin() {
-  if (!firebaseAdmin) {
-    throw new Error('Firebase Admin not initialized. Call initializeFirebaseAdmin() first.');
-  }
-  return firebaseAdmin;
-}
-
-// Initialize Firebase Admin on module import
-try {
-  initializeFirebaseAdmin();
-  log('Firebase Admin SDK imported successfully.');
-} catch (error) {
-  log('Continuing without Firebase Admin, some features may not work');
-}
-
-export default { initializeFirebaseAdmin, getFirebaseAdmin };
+export default admin;

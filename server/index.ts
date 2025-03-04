@@ -91,6 +91,19 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
     const server = registerRoutes(app);
     log('Routes registered successfully');
 
+    // Check Firebase credentials in production
+    if (!isDev) {
+      const missingCredentials = [];
+      if (!process.env.FIREBASE_PROJECT_ID) missingCredentials.push('FIREBASE_PROJECT_ID');
+      if (!process.env.FIREBASE_CLIENT_EMAIL) missingCredentials.push('FIREBASE_CLIENT_EMAIL');
+      if (!process.env.FIREBASE_PRIVATE_KEY) missingCredentials.push('FIREBASE_PRIVATE_KEY');
+      
+      if (missingCredentials.length > 0) {
+        log(`⚠️ Warning: Missing Firebase credentials in production: ${missingCredentials.join(', ')}`);
+        log('Some authentication features may not work correctly');
+      }
+    }
+    
     // In production, always serve from dist
     if (isDev) {
       log('Development mode: Setting up Vite middleware');
@@ -106,50 +119,35 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       serveStatic(app);
     }
 
-    // Use PORT environment variable in production, or find available port in development
-    let port;
-    if (process.env.NODE_ENV === 'production') {
-      port = Number(process.env.PORT) || 8080; // Use port from environment variable
-      console.log(`[express] Production mode: Using port ${port}`);
-    } else {
-      // Find an available port (Improved Port Selection)
-      const requestedPort = Number(process.env.PORT) || 5000;
-      try {
-        port = await findAvailablePort(requestedPort, 10);
-        console.log(`[express] Development mode: Using port ${port}`);
-      } catch (error) {
-        console.error(`[express] Error finding available port: ${error}. Falling back to port 5001`);
-        port = 5001; // Fallback port in case of failure to prevent deployment failure
-      }
-    }
+    // Simplified port handling
+    const PORT = Number(process.env.PORT) || (isDev ? 5000 : 8080);
+    log(`Server will use port ${PORT} in ${isDev ? 'development' : 'production'} mode`);
 
-    // Improved Error Handling
+    // Simplified error handling
     server.on('error', async (error: any) => {
       const timeStamp = new Date().toISOString();
       if (error.code === 'EADDRINUSE') {
-        log(`${timeStamp} [express] ❌ Port ${port} is already in use. Try another port or stop the current process.`);
-
-        // Try again with a different port (Improved retry mechanism)
-        let alternativePort = port + 1;
-        while (true) {
+        log(`${timeStamp} [express] ❌ Port ${PORT} is already in use.`);
+        
+        if (isDev) {
+          // In development, try to find another port
           try {
-            const available = await findAvailablePort(alternativePort,1)
-            port = available
-            server.listen(port, "0.0.0.0", () => {
-              log(`${timeStamp} [express] Server started successfully on alternative port ${port}`);
-              log(`${timeStamp} [express] 🚀 API running at http://0.0.0.0:${port}/api`);
+            const newPort = PORT + 1000; // Try a port with significant offset to avoid conflicts
+            log(`${timeStamp} [express] Attempting to use alternative port ${newPort}...`);
+            
+            server.listen(newPort, "0.0.0.0", () => {
+              log(`${timeStamp} [express] Server started on alternative port ${newPort}`);
+              log(`${timeStamp} [express] 🚀 API running at http://0.0.0.0:${newPort}/api`);
             });
-            break;
-          } catch (error) {
-              alternativePort++;
-              if (alternativePort > 6000){
-                  console.error(`[express] Could not find a free port after multiple retries. Exiting.`);
-                  process.exit(1);
-              }
-              log(`${timeStamp} [express] Port ${alternativePort -1} in use, trying ${alternativePort}...`);
+          } catch (retryError) {
+            log(`${timeStamp} [express] Failed to start on alternative port: ${retryError}`);
+            process.exit(1);
           }
+        } else {
+          // In production, this is a fatal error
+          log(`${timeStamp} [express] ❌ In production mode, fixed port is required. Please ensure port ${PORT} is available.`);
+          process.exit(1);
         }
-
       } else {
         log(`${timeStamp} [express] ❌ Failed to start server:`, error);
         process.exit(1);
@@ -174,9 +172,10 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
 
-    // Start the server
-    server.listen(port, "0.0.0.0", () => {
-      log(`Server running at http://0.0.0.0:${port}`);
+    // Start the server on a fixed port
+    log(`Starting server on port ${PORT}...`);
+    server.listen(PORT, "0.0.0.0", () => {
+      log(`Server running at http://0.0.0.0:${PORT}`);
       log(`Environment: ${process.env.NODE_ENV}`);
       log(`⚡️ All systems ready - ${isDev ? 'development' : 'production'} server is now live`);
     });
