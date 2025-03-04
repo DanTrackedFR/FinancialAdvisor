@@ -87,7 +87,7 @@ async function releasePort(port: number): Promise<boolean> {
   }
 }
 
-const port = Number(process.env.PORT) || 5000;
+const port = Number(process.env.PORT) || 8080;
 let isPortFree = await isPortAvailable(port);
 
 if (!isPortFree) {

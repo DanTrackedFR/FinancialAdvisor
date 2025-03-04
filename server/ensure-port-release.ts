@@ -56,7 +56,7 @@ function killProcessOnPort(port: number): Promise<void> {
 }
 
 async function ensurePortsReleased() {
-  const portsToCheck = [5000, 5001, 3000];
+  const portsToCheck = [8080, 5000, 5001, 3000];
   
   console.log('Checking for processes using required ports...');
   
