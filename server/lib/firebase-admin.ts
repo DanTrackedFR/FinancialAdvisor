@@ -41,8 +41,13 @@ export async function initializeFirebaseAdmin() {
       credential: admin.credential.cert({
         projectId,
         clientEmail,
-        // If private key is provided as a string with escaped newlines, replace them
-        privateKey: privateKey.replace(/\\n/g, '\n'),
+        // Firebase private keys can be provided in various formats that need processing
+        privateKey: privateKey.includes('\\n') 
+          ? privateKey.replace(/\\n/g, '\n') 
+          : privateKey.replace(/-----BEGIN PRIVATE KEY-----|\n|-----END PRIVATE KEY-----|"/g, '')
+            .replace(/(.{64})/g, '$1\n')
+            .replace(/^/, '-----BEGIN PRIVATE KEY-----\n')
+            .replace(/$/, '\n-----END PRIVATE KEY-----'),
       }),
     });
     
