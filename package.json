@@ -12,6 +12,8 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "firebase": "^10.8.0",
+    "firebase-admin": "^11.11.1",
     "@firebase/auth": "^1.9.0",
     "@google-cloud/bigquery": "^7.9.2",
     "@google/generative-ai": "^0.21.0",

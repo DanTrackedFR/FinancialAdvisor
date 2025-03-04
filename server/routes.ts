@@ -4,8 +4,7 @@ import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 import analysisRoutes from "./routes/analysis";
 import chatRoutes from "./routes/chat";
-//Import Firebase Admin SDK
-import * as admin from 'firebase-admin';
+// Import Firebase Admin SDK from our configured lib
 import authRoutes from "./routes/auth"; // Assuming this is the new auth routes file
 import analyticsRoutes from "./routes/analytics";
 import feedbackRoutes from "./routes/feedback";
@@ -23,13 +22,13 @@ export function registerRoutes(app: Express) {
   // Use the firebase-admin module imported from lib folder which is already configured
   try {
     // Import and use the pre-configured firebase-admin from our lib folder
-    import('./lib/firebase-admin.js').then(module => {
-      console.log('Firebase Admin SDK initialized successfully.');
+    import('./lib/firebase-admin.js').then(() => {
+      console.log('Firebase Admin SDK imported successfully.');
     }).catch(error => {
-      console.error('Failed to initialize Firebase Admin SDK:', error);
+      console.error('Failed to import Firebase Admin SDK:', error);
     });
   } catch (error) {
-    console.error('Failed to initialize Firebase Admin SDK:', error);
+    console.error('Failed to import Firebase Admin SDK:', error);
   }
 
 

@@ -20,6 +20,16 @@ app.use(express.urlencoded({ extended: false }));
 // Error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Error occurred:', err);
+  
+  // Add more detailed logging for Firebase errors
+  if (err.code && err.code.includes('firebase')) {
+    console.error('Firebase error details:', {
+      code: err.code,
+      message: err.message,
+      context: err.context || 'unknown'
+    });
+  }
+  
   res.status(err.status || 500).json({ 
     message: err.message || 'Internal Server Error',
     ...(isDev ? { stack: err.stack } : {})
