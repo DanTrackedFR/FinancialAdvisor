@@ -44,22 +44,27 @@ export const initializeFirebase = () => {
 };
 
 // Initialize firebase on import
+let firebaseApp;
 try {
-  const app = initializeFirebase();
-  if(!app){
+  firebaseApp = initializeFirebase();
+  if(!firebaseApp){
     console.error("Failed to initialize Firebase. Application cannot continue.");
     throw new Error("Firebase Initialization Failed");
   }
-  // Export the auth for use throughout the app
-  export const auth = getAuth(app);
+} catch (error) {
+  console.error("Fatal Firebase initialization error:", error);
+}
 
-  // Handle Google authentication
-  const googleProvider = new GoogleAuthProvider();
+// Export the auth for use throughout the app
+export const auth = getAuth(firebaseApp);
 
-  // Export authentication functions
-  export const signIn = (email: string, password: string): Promise<UserCredential> => {
-    return signInWithEmailAndPassword(auth, email, password);
-  };
+// Handle Google authentication
+const googleProvider = new GoogleAuthProvider();
+
+// Export authentication functions
+export const signIn = (email: string, password: string): Promise<UserCredential> => {
+  return signInWithEmailAndPassword(auth, email, password);
+};
 
   export const register = async (email: string, password: string): Promise<UserCredential> => {
     try {
