@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps } from "firebase/app";
 import { 
   getAuth, 
@@ -5,7 +6,8 @@ import {
   createUserWithEmailAndPassword, 
   sendEmailVerification,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signOut
 } from "firebase/auth";
 import { type UserCredential } from "firebase/auth";
 
@@ -49,24 +51,13 @@ export function initializeFirebase() {
 }
 
 // Initialize firebase on import
-let firebaseApp;
-try {
-  firebaseApp = initializeFirebase();
-  if(!firebaseApp){
-    console.error("Failed to initialize Firebase. Application cannot continue.");
-    throw new Error("Firebase Initialization Failed");
-  }
-} catch (error) {
-  console.error("Fatal Firebase initialization error:", error);
-}
+const firebaseApp = initializeFirebase();
 
-// Export the auth for use throughout the app
+// Create auth instance
 export const auth = getAuth(firebaseApp);
+export const googleProvider = new GoogleAuthProvider();
 
-// Handle Google authentication
-const googleProvider = new GoogleAuthProvider();
-
-// Export authentication functions
+// Authentication functions
 export const signIn = (email: string, password: string): Promise<UserCredential> => {
   return signInWithEmailAndPassword(auth, email, password);
 };
@@ -82,6 +73,21 @@ export const register = async (email: string, password: string): Promise<UserCre
   }
 };
 
+export const logOut = (): Promise<void> => {
+  return signOut(auth);
+};
+
 export const signInWithGoogle = (): Promise<UserCredential> => {
   return signInWithPopup(auth, googleProvider);
+};
+
+// Default export with all auth functions
+export default {
+  auth,
+  googleProvider,
+  initializeFirebase,
+  signIn,
+  register,
+  logOut,
+  signInWithGoogle
 };

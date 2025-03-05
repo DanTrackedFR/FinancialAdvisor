@@ -1,39 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getApps, initializeApp } from "firebase/app";
 import {
-  getAuth,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  createUserWithEmailAndPassword,
-  updateProfile,
   User as FirebaseUser,
-  GoogleAuthProvider,
-  signInWithPopup,
-  sendEmailVerification,
-  signInWithEmailLink,
+  updateProfile,
+  sendEmailVerification as firebaseSendEmailVerification,
   isSignInWithEmailLink,
+  signInWithEmailLink,
   sendSignInLinkToEmail
 } from "firebase/auth";
 import { useToast } from "./use-toast";
-import firebaseConfig from "@/lib/firebaseConfig";
-
-// Initialize Firebase if not already initialized
-let auth;
-try {
-  if (!getApps().length) {
-    initializeApp(firebaseConfig);
-  }
-  auth = getAuth();
-  console.log("Firebase initialized successfully");
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-  // Provide a fallback auth object to prevent null reference errors
-  auth = { 
-    onAuthStateChanged: () => {}, 
-    signOut: async () => {}, 
-    createUserWithEmailAndPassword: async () => ({})
-  } as any;
-}
+import { auth, signIn, register as firebaseRegister, logOut, signInWithGoogle as firebaseSignInWithGoogle } from "@/lib/firebase-client";
 
 
 // Define the authentication context type
