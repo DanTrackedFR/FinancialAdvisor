@@ -90,8 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
 
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser);
+    return () => unsubscribe();
       setIsLoading(false);
       console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
     }, (error) => {
