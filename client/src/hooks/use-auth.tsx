@@ -81,19 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for authentication state changes
   useEffect(() => {
-    const app = initializeFirebase();
-    if (!app) {
-      console.error("Failed to initialize Firebase");
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      setUser(firebaseUser);
       setIsLoading(false);
-      return () => {}; // Return empty cleanup function
-    }
-
-    const auth = getAuth(app);
-    if (!auth) {
-      console.error("Failed to get auth instance");
+      console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
+    }, (error) => {
+      console.error("Auth state change error:", error);
       setIsLoading(false);
-      return () => {}; // Return empty cleanup function
-    }
+    });
 
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       setUser(firebaseUser);
