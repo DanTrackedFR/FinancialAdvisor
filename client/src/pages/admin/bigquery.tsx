@@ -1,17 +1,19 @@
-import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Redirect } from 'react-router-dom';
+import { useLocation } from 'wouter';
 
 export default function BigQueryPage() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
 
   // Check if current user is an admin
-  const isAdmin = user && user.isAdmin === true;
+  // Using a type assertion since we know our user object has this property
+  const isAdmin = user && (user as any).isAdmin === true;
 
   // Redirect non-admins
   if (!isAdmin) {
-    return <Redirect to="/" />;
+    setLocation('/');
+    return null;
   }
 
   return (

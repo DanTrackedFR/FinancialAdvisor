@@ -117,12 +117,19 @@ export default function AuthPage() {
         localStorage.setItem("emailForSignIn", signUpData.email);
         console.log("Submitting signup form with data:", signUpData);
         await signUp(signUpData);
+        
+        // Show verification dialog after successful signup
         setShowVerificationDialog(true);
       } else {
         await login(data.email, data.password);
       }
     } catch (error) {
       console.error("Form submission error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   };
 

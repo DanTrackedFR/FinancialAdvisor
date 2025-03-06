@@ -5,7 +5,13 @@ import {
   sendEmailVerification as firebaseSendEmailVerification,
   isSignInWithEmailLink,
   signInWithEmailLink,
-  sendSignInLinkToEmail
+  sendSignInLinkToEmail,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import { useToast } from "./use-toast";
 import { auth, signIn, register as firebaseRegister, logOut, signInWithGoogle as firebaseSignInWithGoogle } from "@/lib/firebase-client";
@@ -91,23 +97,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-      setIsLoading(false);
-      console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
-    }, (error) => {
-      console.error("Auth state change error:", error);
-      setIsLoading(false);
-    });
 
     // Check for email link sign-in
     if (auth && isSignInWithEmailLink(auth, window.location.href)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (!email) {
+      // Default to empty string if null to avoid TypeScript errors
+      let email = window.localStorage.getItem('emailForSignIn') || '';
+      
+      if (email === '') {
         // User opened the link on a different device. To prevent session fixation
-        // attacks, ask the user to provide the associated email again. For example:
-        email = window.prompt('Please provide your email for confirmation');
+        // attacks, ask the user to provide the associated email again
+        const promptedEmail = window.prompt('Please provide your email for confirmation');
+        // If user cancels the prompt, promptedEmail will be null
+        email = promptedEmail || '';
       }
 
-      if (email) {
+      // Only proceed if we have an email
+      if (email !== '') {
         setIsLoading(true);
         signInWithEmailLink(auth, email, window.location.href)
           .then((result) => {
@@ -135,13 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error unsubscribing from auth state:", e);
       }
     };
-  }, [toast]);
+  }, []); // Removing toast dependency as it's not needed in cleanup function
 
   // Log in a user with email and password
   const login = async (email: string, password: string): Promise<FirebaseUser> => {
     try {
       setIsLoading(true);
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signIn(email, password);
 
       if (!userCredential.user.emailVerified) {
         toast({
@@ -149,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: "Please check your email to verify your account before logging in.",
           variant: "destructive",
         });
-        await firebaseSignOut(auth);
+        await logOut();
         throw new Error("Email not verified");
       }
 
@@ -184,19 +189,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
 
       // Create the user in Firebase
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        userData.email,
-        userData.password
-      );
+      const userCredential = await firebaseRegister(userData.email, userData.password);
 
       // Update the user's profile
       await updateProfile(userCredential.user, {
         displayName: `${userData.firstName} ${userData.surname}`,
       });
-
-      // Send email verification
-      await sendEmailVerification(userCredential.user, actionCodeSettings);
 
       // Store email for verification process
       localStorage.setItem("emailForSignIn", userData.email);
@@ -208,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }));
 
       // Log the user out - they need to verify email first
-      await firebaseSignOut(auth);
+      await logOut();
       setUser(null);
 
       toast({
@@ -239,11 +237,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async (): Promise<FirebaseUser> => {
     try {
       setIsLoading(true);
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-
+      const userCredential = await firebaseSignInWithGoogle();
+      
       await syncUserWithBackend(userCredential.user);
-
+      
       return userCredential.user;
     } catch (error: any) {
       console.error("Google sign-in error:", error);
@@ -266,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Send verification email
   const sendVerificationEmail = async (user: FirebaseUser): Promise<void> => {
     try {
-      await sendEmailVerification(user, actionCodeSettings);
+      await firebaseSendEmailVerification(user, actionCodeSettings);
       localStorage.setItem("emailForSignIn", user.email || "");
 
       toast({
@@ -314,7 +311,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Log out the user
   const logout = async (): Promise<void> => {
     try {
-      await firebaseSignOut(auth);
+      await logOut();
       setUser(null);
     } catch (error) {
       console.error("Logout error:", error);
