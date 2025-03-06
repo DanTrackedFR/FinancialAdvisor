@@ -1,9 +1,8 @@
 
-import { auth as firebaseAuth } from 'firebase-admin';
+import admin from 'firebase-admin';
 import { db } from '../db';
-import { users } from '../db/schema';
 import { eq } from 'drizzle-orm';
-import { type User } from '@shared/schema';
+import { type User, users } from '@shared/schema';
 
 /**
  * Service handling authentication operations
@@ -14,7 +13,7 @@ export class AuthService {
    */
   async verifyIdToken(idToken: string) {
     try {
-      const decodedToken = await firebaseAuth().verifyIdToken(idToken);
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
       return decodedToken;
     } catch (error) {
       console.error('Error verifying ID token:', error);
@@ -56,16 +55,13 @@ export class AuthService {
         email: userData.email,
         firstName: userData.firstName || '',
         surname: userData.surname || '',
-        company: userData.company || '',
-        emailVerified: userData.emailVerified,
-        createdAt: now,
-        updatedAt: now,
-        subscriptionStatus: 'trial',
+        company: userData.company || null,
+        subscriptionStatus: 'trial' as const,
         trialEndsAt,
-        lastLoginAt: now,
+        createdAt: now,
       };
 
-      const result = await db.insert(users).values(newUser).returning();
+      const result = await db.insert(users).values([newUser]).returning();
       return result[0];
     } catch (error) {
       console.error('Error creating user:', error);
@@ -79,7 +75,7 @@ export class AuthService {
   async updateLastLogin(userId: number): Promise<void> {
     try {
       await db.update(users)
-        .set({ lastLoginAt: new Date() })
+        .set({ lastLoggedIn: new Date() })
         .where(eq(users.id, userId));
     } catch (error) {
       console.error('Error updating last login:', error);

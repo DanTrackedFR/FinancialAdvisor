@@ -51,22 +51,39 @@ export default function Profile() {
   });
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
-    queryKey: ["/api/users/profile"],
+    queryKey: ["/api/auth/me"],
     queryFn: async () => {
       if (!user) return null;
       console.log("Fetching profile for user:", user.uid);
-      const response = await fetch("/api/users/profile", {
-        headers: {
-          "firebase-uid": user.uid,
-        },
-      });
-      if (!response.ok) {
-        console.error("Profile fetch failed:", response.status, response.statusText);
-        throw new Error("Failed to fetch profile");
+      try {
+        // Use the /me endpoint which is protected by the isAuthenticated middleware
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            "firebase-uid": user.uid,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (!response.ok) {
+          console.error("Profile fetch failed:", response.status, response.statusText);
+          throw new Error("Failed to fetch profile");
+        }
+        
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          return response.json();
+        } else {
+          console.error("Non-JSON response received:", contentType);
+          throw new Error("Invalid response format");
+        }
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+        throw error;
       }
-      return response.json();
     },
     enabled: !!user,
+    retry: 1,
+    retryDelay: 1000,
   });
 
   // Update form values when profile data is loaded
@@ -85,24 +102,35 @@ export default function Profile() {
       if (!user) throw new Error("Not authenticated");
       console.log("Updating profile with data:", data);
 
-      const response = await fetch("/api/users/profile", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "firebase-uid": user.uid,
-        },
-        body: JSON.stringify(data),
-      });
+      try {
+        const response = await fetch("/api/auth/users/profile", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "firebase-uid": user.uid,
+          },
+          body: JSON.stringify(data),
+        });
 
-      if (!response.ok) {
-        console.error("Profile update failed:", response.status, response.statusText);
-        throw new Error("Failed to update profile");
+        if (!response.ok) {
+          console.error("Profile update failed:", response.status, response.statusText);
+          throw new Error("Failed to update profile");
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          return response.json();
+        } else {
+          console.error("Non-JSON response received:", contentType);
+          throw new Error("Invalid response format");
+        }
+      } catch (error) {
+        console.error("Profile update error:", error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
@@ -126,7 +154,7 @@ export default function Profile() {
       setIsSubscriptionPending(true);
       console.log("Starting subscription management process...");
 
-      const response = await fetch("/api/subscriptions/manage", {
+      const response = await fetch("/api/auth/subscriptions/manage", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +163,14 @@ export default function Profile() {
       });
 
       if (!response.ok) {
+        console.error("Subscription management failed:", response.status, response.statusText);
         throw new Error("Failed to manage subscription");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || contentType.indexOf("application/json") === -1) {
+        console.error("Non-JSON response received for subscription:", contentType);
+        throw new Error("Invalid response format");
       }
 
       const data = await response.json();

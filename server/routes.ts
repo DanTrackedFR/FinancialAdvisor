@@ -4,8 +4,8 @@ import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 import analysisRoutes from "./routes/analysis";
 import chatRoutes from "./routes/chat";
-// Import Firebase Admin SDK from our configured lib
-import authRoutes from "./routes/auth"; // Assuming this is the new auth routes file
+// Import correct auth routes 
+import authRoutes from "./routes/auth-routes"; // Updated to use auth-routes.ts
 import analyticsRoutes from "./routes/analytics";
 import feedbackRoutes from "./routes/feedback";
 // import bigqueryRoutes from "./routes/bigquery"; // Removed as per the changes
