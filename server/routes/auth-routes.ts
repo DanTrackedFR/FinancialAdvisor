@@ -16,6 +16,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid request. Missing user data.' });
     }
     
+    console.log('Login request with firebaseUser:', { 
+      uid: firebaseUser.uid, 
+      email: firebaseUser.email, 
+      hasCompany: !!firebaseUser.company 
+    });
+    
     const user = await authService.processUserLogin(firebaseUser);
     
     // Get email verification status from Firebase

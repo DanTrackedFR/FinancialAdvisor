@@ -70,6 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             emailVerified: firebaseUser.emailVerified,
+            // Add company property if it exists in localStorage
+            ...(localStorage.getItem('userCompany') && { 
+              company: localStorage.getItem('userCompany') 
+            })
           }
         })
       });
@@ -210,9 +214,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store email for verification process
       localStorage.setItem("emailForSignIn", userData.email);
 
+      // Store company information for after verification process
+      if (userData.company) {
+        localStorage.setItem("userCompany", userData.company);
+      }
+
       // Store data for after verification process
       localStorage.setItem('verifiedUserCredentials', JSON.stringify({
         email: userData.email,
+        firstName: userData.firstName,
+        surname: userData.surname,
+        company: userData.company || "",
         timestamp: Date.now()
       }));
 
@@ -302,6 +314,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const userCredential = await signInWithEmailLink(auth, email, window.location.href);
+      
+      // Get stored user credentials if available
+      const storedCredentialsJson = localStorage.getItem('verifiedUserCredentials');
+      if (storedCredentialsJson) {
+        try {
+          const storedCredentials = JSON.parse(storedCredentialsJson);
+          // Check if the stored company matches the email being verified
+          if (storedCredentials.email === email && storedCredentials.company) {
+            // Store company for future logins
+            localStorage.setItem('userCompany', storedCredentials.company);
+          }
+        } catch (e) {
+          console.error("Error parsing stored credentials:", e);
+        }
+      }
 
       await syncUserWithBackend(userCredential.user);
 

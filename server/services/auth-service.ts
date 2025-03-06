@@ -85,7 +85,7 @@ export class AuthService {
   /**
    * Process user login or create a new user if they don't exist
    */
-  async processUserLogin(firebaseUser: { uid: string; email?: string; emailVerified?: boolean; displayName?: string }): Promise<User> {
+  async processUserLogin(firebaseUser: { uid: string; email?: string; emailVerified?: boolean; displayName?: string; company?: string }): Promise<User> {
     if (!firebaseUser.email) {
       throw new Error('User email is required');
     }
@@ -105,6 +105,7 @@ export class AuthService {
           email: firebaseUser.email,
           firstName,
           surname,
+          company: firebaseUser.company,
           emailVerified: firebaseUser.emailVerified || false,
         });
         console.log('Created new user:', user.id);

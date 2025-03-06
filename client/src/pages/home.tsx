@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Menu, Loader2, CheckCircle2, Clock, ArrowRight } from "lucide-react";
+import { Menu, Loader2, CheckCircle2, Clock, ArrowRight, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -21,9 +21,15 @@ export default function Home() {
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { data: profile, isLoading: isLoadingProfile } = useQuery<User>({
+  const { 
+    data: profile, 
+    isLoading: isLoadingProfile,
+    error: profileError
+  } = useQuery<User>({
     queryKey: ["/api/users/profile"],
     enabled: !!user,
+    retry: 3,
+    retryDelay: 1000
   });
 
   const handleSignOut = async () => {
@@ -491,14 +497,12 @@ export default function Home() {
                   </p>
                   <p>{profile.email}</p>
                 </div>
-                {profile.company && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Company
-                    </p>
-                    <p>{profile.company}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Company
+                  </p>
+                  <p>{profile.company || "Not specified"}</p>
+                </div>
                 <div className="pt-4 space-y-4">
                   <Button
                     onClick={handleManageSubscription}
@@ -528,7 +532,23 @@ export default function Home() {
               </CardContent>
             </Card>
           ) : (
-            <p>Error loading profile information</p>
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 text-red-500">
+                  <AlertCircle className="h-5 w-5" />
+                  <h3 className="font-medium">Error loading profile</h3>
+                </div>
+                <p className="text-muted-foreground">
+                  There was a problem loading your profile information. Please try again or contact support if the issue persists.
+                </p>
+                <Button 
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                >
+                  Refresh page
+                </Button>
+              </div>
+            </Card>
           )}
         </div>
       )}

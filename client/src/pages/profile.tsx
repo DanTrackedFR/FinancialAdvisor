@@ -56,9 +56,13 @@ export default function Profile() {
       if (!user) return null;
       console.log("Fetching profile for user:", user.uid);
       try {
+        // Get the ID token for more secure authentication
+        const idToken = await user.getIdToken();
+        
         // Use the /me endpoint which is protected by the isAuthenticated middleware
         const response = await fetch("/api/auth/me", {
           headers: {
+            "Authorization": `Bearer ${idToken}`,
             "firebase-uid": user.uid,
             "Content-Type": "application/json",
           },
@@ -103,10 +107,14 @@ export default function Profile() {
       console.log("Updating profile with data:", data);
 
       try {
+        // Get the ID token for more secure authentication
+        const idToken = await user.getIdToken();
+        
         const response = await fetch("/api/auth/users/profile", {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
             "firebase-uid": user.uid,
           },
           body: JSON.stringify(data),
@@ -154,10 +162,14 @@ export default function Profile() {
       setIsSubscriptionPending(true);
       console.log("Starting subscription management process...");
 
+      // Get the ID token for more secure authentication
+      const idToken = await user.getIdToken();
+      
       const response = await fetch("/api/auth/subscriptions/manage", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
           "firebase-uid": user.uid,
         },
       });
@@ -341,14 +353,12 @@ export default function Profile() {
                     {profile?.email}
                   </p>
                 </div>
-                {profile?.company && (
-                  <div>
-                    <h3 className="font-medium">Company</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {profile.company}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <h3 className="font-medium">Company</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {profile?.company || "Not specified"}
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>
