@@ -97,6 +97,8 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       }
     }
     
+    // Database integration will be added at a later date
+    
     // In production, always serve from dist
     if (isDev) {
       log('Development mode: Setting up Vite middleware');

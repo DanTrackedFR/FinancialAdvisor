@@ -51,6 +51,8 @@ try {
 }
 console.log(`\nFirebase Admin SDK: ${firebaseAdminStatus}`);
 
+console.log("\nDatabase integration will be added at a later date.");
+
 // Check if port is available
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -140,5 +142,7 @@ if (issues.length === 0) {
     console.log(`• Ensure no other process is using port ${port} or change the PORT environment variable`);
   }
 }
+
+console.log("\nNote: Database integration will be added at a later date.");
 
 console.log("\n🔍 Pre-deployment check complete!");
