@@ -17,6 +17,12 @@ export async function initializeFirebaseAdmin() {
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
 
+    // Log which credentials are available (without exposing values)
+    console.log(`Firebase Admin SDK credentials status:
+      - Project ID: ${projectId ? 'Available' : 'Missing'}
+      - Client Email: ${clientEmail ? 'Available' : 'Missing'}
+      - Private Key: ${privateKeyRaw ? 'Available' : 'Missing'}`);
+
     if (!projectId || !clientEmail || !privateKeyRaw) {
       console.warn("Missing Firebase credentials. Running in limited mode.");
       // Create a minimal app with default config for both dev and prod

@@ -19,7 +19,18 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+// Log Firebase client config status without revealing values
+console.log("Firebase Client Config Status:", {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "Available" : "Missing",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ? "Available" : "Missing",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ? "Available" : "Missing",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ? "Available" : "Missing",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID ? "Available" : "Missing",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ? "Available" : "Missing",
+});
 
 const debugConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "Present" : "Missing",
