@@ -11,22 +11,62 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Menu, Loader2, CheckCircle2, Clock, ArrowRight, AlertCircle } from "lucide-react";
+import { 
+  Menu, 
+  Loader2, 
+  CheckCircle2, 
+  Clock, 
+  ArrowRight, 
+  AlertCircle,
+  MessageCircle,
+  User as UserIcon,
+  LogOut,
+  BarChart2,
+  Star
+} from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 
 export default function Home() {
   const { user, logout } = useAuth();
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const { 
     data: profile, 
     isLoading: isLoadingProfile,
     error: profileError
   } = useQuery<User>({
-    queryKey: ["/api/users/profile"],
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      if (!user) return null;
+      try {
+        // Get the ID token for more secure authentication
+        const idToken = await user.getIdToken();
+        
+        // Use the /me endpoint which is protected by the isAuthenticated middleware
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            "Authorization": `Bearer ${idToken}`,
+            "firebase-uid": user.uid,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (!response.ok) {
+          console.error("Profile fetch failed:", response.status, response.statusText);
+          throw new Error("Failed to fetch profile");
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error("Profile fetch error:", error);
+        throw error;
+      }
+    },
     enabled: !!user,
     retry: 3,
     retryDelay: 1000
@@ -73,6 +113,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Feedback Dialog */}
+      <FeedbackDialog 
+        open={feedbackOpen} 
+        onOpenChange={setFeedbackOpen} 
+      />
+      
       {/* Non-authenticated landing page */}
       {!user ? (
         <div className="pt-16">
@@ -471,85 +517,158 @@ export default function Home() {
         </div>
       ) : (
         // Authenticated user dashboard
-        <div className="container mx-auto px-4 py-8">
-          {isLoadingProfile ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : profile ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Welcome back, {profile.firstName}!</CardTitle>
-                <CardDescription>Your Profile Information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Name
-                  </p>
-                  <p>
-                    {profile.firstName} {profile.surname}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Email
-                  </p>
-                  <p>{profile.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Company
-                  </p>
-                  <p>{profile.company || "Not specified"}</p>
-                </div>
-                <div className="pt-4 space-y-4">
-                  <Button
-                    onClick={handleManageSubscription}
-                    disabled={subscriptionError !== null}
-                  >
-                    {subscriptionError ? "Error" : "Manage Subscription"}
-                  </Button>
-                  {subscriptionError && (
-                    <p className="text-sm text-red-500">
-                      {subscriptionError}
-                    </p>
-                  )}
-                  {isLoadingCheckout && (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <p className="text-sm text-muted-foreground">
-                        Preparing checkout...
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div className="pt-4">
-                  <Button asChild>
-                    <Link to="/chat">Start Analysis</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-red-500">
-                  <AlertCircle className="h-5 w-5" />
-                  <h3 className="font-medium">Error loading profile</h3>
-                </div>
-                <p className="text-muted-foreground">
-                  There was a problem loading your profile information. Please try again or contact support if the issue persists.
-                </p>
-                <Button 
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                >
-                  Refresh page
-                </Button>
+        <div className="flex flex-col min-h-screen">
+          <div className="container mx-auto px-4 py-12 flex-grow">
+            {isLoadingProfile ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            </Card>
-          )}
+            ) : profile ? (
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold mb-8">
+                  Welcome, {profile.firstName}! What would you like to work on?
+                </h1>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Feedback Button Card */}
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div 
+                        className="flex flex-col items-center text-center cursor-pointer py-6"
+                        onClick={() => setFeedbackOpen(true)}
+                      >
+                        <div className="bg-blue-100 p-4 rounded-full mb-4">
+                          <Star className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <h3 className="text-xl font-medium mb-2">Feedback</h3>
+                        <p className="text-muted-foreground">
+                          Share your thoughts and help us improve
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Chat Link Card */}
+                  <Card className="hover:shadow-md transition-shadow">
+                    <Link to="/chat" className="block">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center text-center py-6">
+                          <div className="bg-green-100 p-4 rounded-full mb-4">
+                            <MessageCircle className="h-8 w-8 text-green-600" />
+                          </div>
+                          <h3 className="text-xl font-medium mb-2">Chat</h3>
+                          <p className="text-muted-foreground">
+                            Start a conversation with our AI assistant
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Link>
+                  </Card>
+                  
+                  {/* Analysis Link Card */}
+                  <Card className="hover:shadow-md transition-shadow">
+                    <Link to="/analysis" className="block">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center text-center py-6">
+                          <div className="bg-purple-100 p-4 rounded-full mb-4">
+                            <BarChart2 className="h-8 w-8 text-purple-600" />
+                          </div>
+                          <h3 className="text-xl font-medium mb-2">Analysis</h3>
+                          <p className="text-muted-foreground">
+                            View and manage your financial analyses
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Link>
+                  </Card>
+                  
+                  {/* Profile Link Card */}
+                  <Card className="hover:shadow-md transition-shadow">
+                    <Link to="/profile" className="block">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center text-center py-6">
+                          <div className="bg-amber-100 p-4 rounded-full mb-4">
+                            <UserIcon className="h-8 w-8 text-amber-600" />
+                          </div>
+                          <h3 className="text-xl font-medium mb-2">Profile</h3>
+                          <p className="text-muted-foreground">
+                            Manage your account information
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Link>
+                  </Card>
+                  
+                  {/* Sign Out Card */}
+                  <Card className="md:col-span-2 hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div 
+                        className="flex flex-col items-center text-center cursor-pointer py-6"
+                        onClick={handleSignOut}
+                      >
+                        <div className="bg-red-100 p-4 rounded-full mb-4">
+                          <LogOut className="h-8 w-8 text-red-600" />
+                        </div>
+                        <h3 className="text-xl font-medium mb-2">Sign Out</h3>
+                        <p className="text-muted-foreground">
+                          Securely log out of your account
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              <Card className="p-6 max-w-xl mx-auto">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2 text-red-500">
+                    <AlertCircle className="h-5 w-5" />
+                    <h3 className="font-medium">Error loading profile</h3>
+                  </div>
+                  <p className="text-muted-foreground">
+                    There was a problem loading your profile information. Please try again or contact support if the issue persists.
+                  </p>
+                  <Button 
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                  >
+                    Refresh page
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+          
+          {/* Footer with mobile optimization */}
+          <footer className="py-6 md:py-8 border-t mt-auto">
+            <div className="container mx-auto px-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
+                <p className="text-xs md:text-sm text-muted-foreground text-center md:text-left">
+                  © 2025 Tracked Financial Reporting
+                </p>
+                <div className="flex flex-wrap justify-center gap-4 text-xs md:text-sm">
+                  <Link
+                    to="/terms"
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Terms & Conditions
+                  </Link>
+                  <Link
+                    to="/privacy"
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <Link
+                    to="/cookies"
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    Cookie Policy
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </footer>
         </div>
       )}
     </div>
