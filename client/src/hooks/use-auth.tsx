@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error unsubscribing from auth state:", e);
       }
     };
-  }), [toast]);
+  }, [toast]);
 
   // Log in a user with email and password
   const login = async (email: string, password: string): Promise<FirebaseUser> => {

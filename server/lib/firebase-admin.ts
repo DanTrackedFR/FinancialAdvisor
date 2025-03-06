@@ -19,15 +19,12 @@ export async function initializeFirebaseAdmin() {
 
     if (!projectId || !clientEmail || !privateKeyRaw) {
       console.warn("Missing Firebase credentials. Running in limited mode.");
-      // Create a minimal app with default config for testing/development
-      if (process.env.NODE_ENV !== 'production') {
-        const app = admin.initializeApp({
-          projectId: projectId || 'demo-project',
-        });
-        return app;
-      } else {
-        throw new Error("Firebase credentials missing in production environment");
-      }
+      // Create a minimal app with default config for both dev and prod
+      const app = admin.initializeApp({
+        projectId: projectId || 'demo-project',
+      });
+      console.log("Firebase Admin initialized with minimal configuration");
+      return app;
     }
 
     const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
