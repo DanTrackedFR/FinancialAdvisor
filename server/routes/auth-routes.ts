@@ -4,6 +4,7 @@ import { authService } from '../services/auth-service';
 import { AuthenticatedRequest, isAuthenticated } from '../middleware/auth-middleware';
 import { storage } from '../storage';
 import admin from 'firebase-admin';
+import z from 'zod';
 
 const router = Router();
 
@@ -117,6 +118,43 @@ router.patch('/users/profile', async (req, res) => {
   } catch (error: any) {
     console.error("Error updating user profile:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE user account
+router.delete('/account', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  console.log("DELETE /api/auth/account endpoint hit");
+  
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userId = req.user.id;
+    const firebaseUid = req.user.firebaseUid;
+    
+    if (!userId || !firebaseUid) {
+      return res.status(400).json({ error: 'Invalid user data' });
+    }
+    
+    console.log(`Deleting user account: ${userId} (Firebase UID: ${firebaseUid})`);
+    
+    try {
+      // First delete the user from the database
+      await storage.deleteUser(userId);
+      
+      // Then delete the Firebase user
+      await admin.auth().deleteUser(firebaseUid);
+      
+      console.log(`User account deleted successfully: ${userId}`);
+      return res.status(200).json({ success: true });
+    } catch (deleteError: any) {
+      console.error('Error during account deletion:', deleteError);
+      return res.status(500).json({ error: 'Failed to delete account', details: deleteError.message });
+    }
+  } catch (error: any) {
+    console.error('Account deletion error:', error);
+    return res.status(500).json({ error: 'Failed to process account deletion request' });
   }
 });
 

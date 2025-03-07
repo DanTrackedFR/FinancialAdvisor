@@ -103,15 +103,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      setUser(firebaseUser);
-      setIsLoading(false);
       console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
+      
+      // If user is logged in but email is not verified, log them out immediately
+      if (firebaseUser && !firebaseUser.emailVerified) {
+        // Only set the user temporarily to trigger the handleUnverifiedUser function
+        setUser(firebaseUser);
+        // We'll handle the logout in a separate function to avoid race conditions
+      } else {
+        setUser(firebaseUser);
+      }
+      
+      setIsLoading(false);
     }, (error) => {
       console.error("Auth state change error:", error);
       setIsLoading(false);
     });
-
-    return () => unsubscribe();
+    
+    // Handle unverified user with a separate effect to avoid race conditions
+    const handleUnverifiedUser = async () => {
+      if (user && !user.emailVerified) {
+        // Check if this is from a new sign-up (we'll redirect to login page)
+        const justSignedUp = localStorage.getItem('justSignedUp') === 'true';
+        
+        // Log them out since email is not verified
+        await logOut();
+        setUser(null);
+        
+        // If they just signed up, direct them to auth page instead of home
+        if (justSignedUp) {
+          // Clear the flag
+          localStorage.removeItem('justSignedUp');
+          window.location.href = '/auth?mode=login';
+        }
+      }
+    };
+    
+    if (user) {
+      handleUnverifiedUser();
+    }
 
     // Check for email link sign-in
     if (auth && isSignInWithEmailLink(auth, window.location.href)) {
@@ -155,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error unsubscribing from auth state:", e);
       }
     };
-  }, []); // Removing toast dependency as it's not needed in cleanup function
+  }, [user, toast]); // Add user and toast as dependencies
 
   // Log in a user with email and password
   const login = async (email: string, password: string): Promise<FirebaseUser> => {
@@ -203,6 +233,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
 
+      // Set a flag to indicate this is a new sign-up
+      // This will help us redirect to login page instead of home page
+      localStorage.setItem("justSignedUp", "true");
+
       // Create the user in Firebase
       const userCredential = await firebaseRegister(userData.email, userData.password);
 
@@ -210,6 +244,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateProfile(userCredential.user, {
         displayName: `${userData.firstName} ${userData.surname}`,
       });
+
+      // Send verification email
+      await sendEmailVerification(userCredential.user, actionCodeSettings);
 
       // Store email for verification process
       localStorage.setItem("emailForSignIn", userData.email);
@@ -231,6 +268,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Log the user out - they need to verify email first
       await logOut();
       setUser(null);
+      
+      // Redirect to login page to avoid flashing of home page
+      window.location.href = '/auth?mode=login';
 
       toast({
         title: "Verification Email Sent",
@@ -249,6 +289,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: errorMessage,
         variant: "destructive",
       });
+
+      // Clear the flag
+      localStorage.removeItem("justSignedUp");
 
       throw error;
     } finally {

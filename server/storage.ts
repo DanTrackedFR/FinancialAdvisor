@@ -10,9 +10,11 @@ export interface IStorage {
   // User methods
   createUser(user: InsertUser): Promise<User>;
   getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   getUser(id: number): Promise<User | undefined>; // Add method to get user by ID
   updateUser(id: number, data: Partial<InsertUser> & { isAdmin?: boolean }): Promise<User>; // Add isAdmin to allowed properties
   updateLastLogin(id: number): Promise<void>;
+  deleteUser(id: number): Promise<void>; // Add method to delete a user
   getAllUsers(): Promise<User[]>;
 
   // Subscription methods
@@ -74,6 +76,11 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [result] = await db.select().from(users).where(eq(users.email, email));
+    return result;
+  }
+
   // Add method to get user by ID
   async getUser(id: number): Promise<User | undefined> {
     const [result] = await db.select().from(users).where(eq(users.id, id));
@@ -92,6 +99,30 @@ export class DatabaseStorage implements IStorage {
     await db.update(users)
       .set({ lastLoggedIn: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    // Get all analyses for this user
+    const userAnalyses = await this.getUserAnalyses(id);
+    
+    // Delete each analysis (will also delete associated messages)
+    for (const analysis of userAnalyses) {
+      await this.deleteAnalysis(analysis.id);
+    }
+    
+    // Delete any subscriptions
+    await db.delete(subscriptions).where(eq(subscriptions.userId, id));
+    
+    // Delete analytics data
+    await db.delete(pageViews).where(eq(pageViews.userId, id));
+    await db.delete(userSessions).where(eq(userSessions.userId, id));
+    await db.delete(userActions).where(eq(userActions.userId, id));
+    
+    // Delete feedback
+    await db.delete(feedback).where(eq(feedback.userId, id));
+    
+    // Finally delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getAllUsers(): Promise<User[]> {

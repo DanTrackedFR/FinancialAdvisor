@@ -116,15 +116,24 @@ export default function AuthPage() {
         setVerificationEmail(signUpData.email);
         localStorage.setItem("emailForSignIn", signUpData.email);
         console.log("Submitting signup form with data:", signUpData);
-        await signUp(signUpData);
         
-        // Show verification dialog after successful signup
+        // Show verification dialog immediately before attempting to sign up
+        // This prevents the momentary flash of the home page
         setShowVerificationDialog(true);
+        
+        // Then process the sign-up in the background
+        await signUp(signUpData);
       } else {
         await login(data.email, data.password);
       }
     } catch (error) {
       console.error("Form submission error:", error);
+      
+      // If signup failed, hide the verification dialog
+      if (mode === "signup") {
+        setShowVerificationDialog(false);
+      }
+      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "An unknown error occurred",
