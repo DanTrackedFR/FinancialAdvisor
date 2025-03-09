@@ -117,22 +117,37 @@ export default function AuthPage() {
         localStorage.setItem("emailForSignIn", signUpData.email);
         console.log("Submitting signup form with data:", signUpData);
         
+        // Set explicit flag to prevent home page redirection
+        localStorage.setItem("signupInProgress", "true");
+        
         // Show verification dialog immediately before attempting to sign up
         // This prevents the momentary flash of the home page
         setShowVerificationDialog(true);
         
-        // Then process the sign-up in the background
-        await signUp(signUpData);
+        try {
+          // Process the sign-up in the background
+          await signUp(signUpData);
+          
+          // No need to handle success here - the verification dialog is already shown
+          // The auth context will handle the redirect to login page
+        } catch (signupError) {
+          // If signup failed, hide the verification dialog and show error
+          setShowVerificationDialog(false);
+          localStorage.removeItem("signupInProgress");
+          
+          toast({
+            title: "Sign Up Failed",
+            description: signupError instanceof Error ? signupError.message : "Failed to create account",
+            variant: "destructive",
+          });
+          
+          throw signupError; // Re-throw to be caught by outer catch
+        }
       } else {
         await login(data.email, data.password);
       }
     } catch (error) {
       console.error("Form submission error:", error);
-      
-      // If signup failed, hide the verification dialog
-      if (mode === "signup") {
-        setShowVerificationDialog(false);
-      }
       
       toast({
         title: "Error",
@@ -152,6 +167,9 @@ export default function AuthPage() {
     setShowVerificationDialog(false);
     signUpForm.reset();
     setMode("login");
+    
+    // Clean up all signup flags to ensure consistent state
+    localStorage.removeItem("signupInProgress");
     
     // Show toast to remind user to check email
     toast({

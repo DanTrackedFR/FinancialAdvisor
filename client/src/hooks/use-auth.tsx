@@ -265,12 +265,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         timestamp: Date.now()
       }));
 
+      // Check if we're in the signup process (dialog is already showing)
+      const inSignupProcess = localStorage.getItem("signupInProgress") === "true";
+      
       // Log the user out - they need to verify email first
       await logOut();
       setUser(null);
       
-      // Redirect to login page to avoid flashing of home page
-      window.location.href = '/auth?mode=login';
+      // Only redirect if we're not already showing the verification dialog
+      // This prevents the momentary flash of the home page
+      if (!inSignupProcess) {
+        // Redirect to login page to avoid flashing of home page
+        window.location.href = '/auth?mode=login';
+      }
+      
+      // Clear the signup in progress flag
+      localStorage.removeItem("signupInProgress");
 
       toast({
         title: "Verification Email Sent",
@@ -290,8 +300,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
 
-      // Clear the flag
+      // Clear all flags
       localStorage.removeItem("justSignedUp");
+      localStorage.removeItem("signupInProgress");
 
       throw error;
     } finally {
