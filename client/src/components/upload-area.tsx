@@ -21,6 +21,8 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
       if (!file) return;
 
       try {
+        console.log("Starting PDF processing for file:", file.name, "size:", file.size);
+        
         toast({
           title: "Processing PDF",
           description: "Please wait while we process your document...",
@@ -28,9 +30,26 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
         });
 
         if (onAnalyzing) onAnalyzing(true);
-        if (onProgress) onProgress(0);
+        
+        // Show incremental progress
+        if (onProgress) {
+          onProgress(10);
+          // Set up an interval to show progress animation
+          const progressInterval = setInterval(() => {
+            onProgress((prev) => {
+              const next = prev + 5;
+              return next < 90 ? next : 90; // Cap at 90% until complete
+            });
+          }, 1000);
+          
+          // Clear the interval after 30 seconds (safety cleanup)
+          setTimeout(() => clearInterval(progressInterval), 30000);
+        }
 
+        console.log("Calling extractTextFromPDF function...");
         const text = await extractTextFromPDF(file);
+        console.log("PDF text extraction successful. Text length:", text.length);
+        
         onContentExtracted(text);
 
         if (onProgress) onProgress(100);
@@ -44,6 +63,7 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
       } catch (error) {
         console.error("Error processing file:", error);
         const errorMessage = error instanceof Error ? error.message : "Failed to process PDF file";
+        console.log("Error details:", error);
 
         if (onProgress) onProgress(0);
         if (onAnalyzing) onAnalyzing(false);
