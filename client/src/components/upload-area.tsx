@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface UploadAreaProps {
   onContentExtracted: (content: string) => void;
-  onProgress?: (progress: number) => void;
+  onProgress?: (progress: number | ((prev: number) => number)) => void;
   onAnalyzing?: (analyzing: boolean) => void;
   isLoading?: boolean;
 }
@@ -36,7 +36,7 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
           onProgress(10);
           // Set up an interval to show progress animation
           const progressInterval = setInterval(() => {
-            onProgress((prev) => {
+            onProgress((prev: number) => {
               const next = prev + 5;
               return next < 90 ? next : 90; // Cap at 90% until complete
             });

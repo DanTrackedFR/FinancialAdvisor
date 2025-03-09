@@ -47,6 +47,17 @@ export function registerRoutes(app: Express) {
       timestamp: new Date().toISOString()
     });
   });
+  
+  // WebSocket status endpoint for diagnostics
+  app.get("/api/ws-status", (_req, res) => {
+    res.json({
+      wsInitialized: !!global.wss,
+      activeSockets: global.wss ? Array.from(global.wss.clients).length : 0,
+      timestamp: new Date().toISOString(),
+      replitEnvironment: !!process.env.REPL_ID,
+      replId: process.env.REPL_ID || null
+    });
+  });
 
   app.get("/api/users", async (_req, res) => {
     try {
@@ -79,17 +90,15 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/ws-status", (_req, res) => {
-    res.json({
-      wsInitialized: global.wss !== undefined,
-      activeSockets: global.wss ? global.wss.clients.size : 0,
-      serverPid: process.pid
-    });
-  });
+
 
   console.log('Initializing WebSocket server...');
 
   try {
+    // Check if we're in a Replit environment
+    const isReplit = process.env.REPL_ID && process.env.REPL_OWNER;
+    console.log(`Initializing WebSocket server in ${isReplit ? 'Replit' : 'standard'} environment`);
+    
     const wss = new WebSocketServer({
       server: httpServer, // This ensures WebSocket uses the same port as Express
       path: '/ws',
@@ -108,6 +117,13 @@ export function registerRoutes(app: Express) {
         serverNoContextTakeover: true,
         concurrencyLimit: 10,
         threshold: 1024
+      },
+      // Additional settings for Replit compatibility
+      maxPayload: 5 * 1024 * 1024, // 5MB max payload
+      verifyClient: (info, cb) => {
+        // Log connection attempts to help with debugging
+        console.log(`WebSocket connection attempt from: ${info.req.headers.origin || 'unknown origin'}`);
+        cb(true); // Allow all connections
       }
     });
 

@@ -114,11 +114,18 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       serveStatic(app);
     }
 
-    // Simplified port handling
+    // Enhanced port handling
     const PORT = Number(process.env.PORT) || (isDev ? 5000 : 8080);
-    log(`Server will use port ${PORT} in ${isDev ? 'development' : 'production'} mode`);
-
-    // Simplified error handling
+    
+    // Check if we're running in a Replit environment
+    const isReplit = process.env.REPL_ID && process.env.REPL_OWNER;
+    if (isReplit) {
+      log(`Detected Replit environment (ID: ${process.env.REPL_ID})`);
+    }
+    
+    log(`Server will use port ${PORT} in ${isDev ? 'development' : 'production'} mode on ${isReplit ? 'Replit' : 'standard environment'}`);
+    
+    // Simplified error handling 
     server.on('error', async (error: any) => {
       const timeStamp = new Date().toISOString();
       if (error.code === 'EADDRINUSE') {
@@ -127,7 +134,7 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
         if (isDev) {
           // In development, try to find another port
           try {
-            const newPort = PORT + 1000; // Try a port with significant offset to avoid conflicts
+            const newPort = 3000; // Try port 3000 as fallback for development
             log(`${timeStamp} [express] Attempting to use alternative port ${newPort}...`);
             
             server.listen(newPort, "0.0.0.0", () => {

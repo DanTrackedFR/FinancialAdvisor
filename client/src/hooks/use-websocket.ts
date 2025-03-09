@@ -25,6 +25,7 @@ let globalReconnectAttempts = 0;
 const globalMessageHandlers = new Map<string, Set<MessageHandler>>();
 let reconnectTimeout: NodeJS.Timeout | null = null;
 let isConnecting = false;
+let currentWsUrl: string = ''; // Store the current WebSocket URL globally
 
 // Create a common event system for connection status changes
 const connectionObservers = new Set<(connected: boolean) => void>();
@@ -61,14 +62,41 @@ const createWebSocketConnection = (
   globalConnectionAttempts++;
   console.log(`[WebSocket] Connection attempt #${globalConnectionAttempts}`);
 
-  // Determine protocol based on current connection
+  // Determine protocol and host based on current connection and environment
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.host}/ws`;
+  
+  // Check if we're in a Replit environment (deployed or preview)
+  const isReplit = window.location.hostname.includes('.replit.dev') || 
+                  window.location.hostname.includes('.repl.co') ||
+                  window.location.hostname.includes('.replit.app');
+                  
+  // Use the current URL if available or create a new one based on the environment
+  if (!currentWsUrl) {
+    if (isReplit) {
+      // In Replit environment, connect directly to port 5000 for WebSockets initially
+      // This bypasses the Vite proxy and connects directly to our Express server
+      console.log('[WebSocket] Detected Replit environment');
+      
+      // Always use wss:// when in Replit for security
+      currentWsUrl = `wss://${window.location.hostname}:5000/ws`;
+      
+      // Fallback to standard URL if the direct connection doesn't work
+      // This will be used in the next reconnect attempt if the direct connection fails
+      console.log('[WebSocket] Primary connection URL:', currentWsUrl);
+      console.log('[WebSocket] Fallback URL:', `${protocol}//${window.location.host}/ws`);
+    } else if (import.meta.env.PROD) {
+      // In other production environments
+      currentWsUrl = `${protocol}//${window.location.host}/ws`;
+    } else {
+      // In local development
+      currentWsUrl = `${protocol}//${window.location.hostname}:5000/ws`;
+    }
+  }
 
-  console.log(`[WebSocket] Connecting to ${wsUrl}`);
+  console.log(`[WebSocket] Connecting to ${currentWsUrl}`);
 
   try {
-    const socket = new WebSocket(wsUrl);
+    const socket = new WebSocket(currentWsUrl);
     globalSocket = socket;
 
     socket.onopen = () => {
@@ -140,8 +168,23 @@ const createWebSocketConnection = (
           clearTimeout(reconnectTimeout);
         }
 
+        // If we're in Replit and this was the direct port connection attempt that failed,
+        // try falling back to the standard URL pattern for the next attempt
+        if (isReplit && currentWsUrl.includes(':5000') && globalReconnectAttempts === 0) {
+          console.log('[WebSocket] Direct port connection failed, will try standard URL on next attempt');
+        }
+
         reconnectTimeout = setTimeout(() => {
           globalReconnectAttempts += 1;
+          
+          // If in Replit and this is the first retry after a direct connection failure,
+          // switch to the standard URL pattern
+          if (isReplit && currentWsUrl.includes(':5000') && globalReconnectAttempts === 1) {
+            console.log('[WebSocket] Switching to fallback WebSocket URL');
+            currentWsUrl = `${protocol}//${window.location.host}/ws`;
+            console.log(`[WebSocket] New connection URL: ${currentWsUrl}`);
+          }
+          
           createWebSocketConnection(
             onOpenCallbacks,
             onCloseCallbacks,
