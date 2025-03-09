@@ -1,8 +1,8 @@
 import * as pdfjs from "pdfjs-dist";
 import { createWorker } from "tesseract.js";
 
-// Set up PDF.js worker with a static configuration
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+// Use CDN as a fallback approach, but with a more reliable domain
+pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.js";
 
 export async function extractTextFromPDF(file: File): Promise<string> {
   try {
@@ -11,13 +11,14 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 
     // Load the PDF document
     console.log("Loading PDF document...");
+    
     const pdf = await pdfjs.getDocument({
       data: arrayBuffer,
       verbosity: 0,
-      cMapUrl: `https://unpkg.com/pdfjs-dist@3.11.174/cmaps/`,
+      cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/cmaps/",
       cMapPacked: true,
       disableFontFace: true, // Improve compatibility
-      standardFontDataUrl: `https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/`,
+      standardFontDataUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/standard_fonts/",
     }).promise;
 
     console.log(`PDF loaded successfully. Total pages: ${pdf.numPages}`);
@@ -29,11 +30,11 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     for (let i = 1; i <= pdf.numPages; i++) {
       console.log(`Processing page ${i} of ${pdf.numPages}`);
       const page = await pdf.getPage(i);
-      const content = await page.getTextContent({
-        normalizeWhitespace: true,
-      });
+      // Handle API changes in v4.10.38
+      const content = await page.getTextContent();
+      // Extract text from items (structure might change between versions)
       const pageText = content.items
-        .map((item: any) => item.str)
+        .map((item: any) => item.str || item.text || "")
         .join(" ")
         .trim();
       text += pageText + "\n";
@@ -69,7 +70,7 @@ export async function extractTextFromPDF(file: File): Promise<string> {
         await page.render({
           canvasContext: context,
           viewport,
-        }).promise;
+        });
 
         // Perform OCR on the rendered page
         const { data: { text: pageText } } = await worker.recognize(canvas);
@@ -94,7 +95,25 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     return finalText;
   } catch (error: unknown) {
     console.error("PDF extraction failed:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Provide more detailed error information
+    let errorMessage = 'Unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      console.log("Error details:", error.name, error.message, (error as any).details || '');
+    }
+    
+    // Check for various PDF loading errors and provide friendly messages
+    if (errorMessage.includes("API version") && errorMessage.includes("Worker version")) {
+      throw new Error(`PDF.js version mismatch: ${errorMessage}. Please try refreshing the page.`);
+    } else if (errorMessage.includes("Failed to fetch")) {
+      // This is likely a network issue with loading resources
+      throw new Error(`Network error loading PDF resources. Please check your internet connection and try again.`);
+    } else if (errorMessage.includes("InvalidPDFException")) {
+      throw new Error(`The file does not appear to be a valid PDF document. Please upload a valid PDF file.`);
+    } else if (errorMessage.includes("PasswordException")) {
+      throw new Error(`This PDF is password protected. Please upload an unprotected PDF file.`);
+    }
+    
     throw new Error(`Failed to extract text from PDF: ${errorMessage}`);
   }
 }

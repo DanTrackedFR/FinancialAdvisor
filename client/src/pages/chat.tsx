@@ -31,7 +31,7 @@ export default function ChatPage() {
   const [isLocalUpdate, setIsLocalUpdate] = useState(false);
   const initializedRef = useRef(false);
 
-  // Initialize WebSocket connection - keep functionality but remove UI indicators
+  // Initialize WebSocket connection - functionality only, no UI indicators
   const { 
     isConnected, 
     subscribe, 
@@ -39,20 +39,11 @@ export default function ChatPage() {
   } = useWebSocket({
     onOpen: () => {
       console.log("WebSocket connected in chat page");
-      toast({
-        title: "Real-time updates activated",
-        description: "You will now receive live updates",
-        duration: 3000,
-      });
+      // Toast notification removed for better UX
     },
     onClose: () => {
       console.log("WebSocket disconnected in chat page");
-      toast({
-        title: "Real-time updates disconnected",
-        description: "Attempting to reconnect...",
-        variant: "destructive",
-        duration: 5000,
-      });
+      // Silent reconnection without disturbing the user
     },
     onError: (error) => {
       console.error("WebSocket error in chat page:", error);
