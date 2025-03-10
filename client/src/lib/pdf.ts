@@ -1,4 +1,12 @@
 import * as pdfjs from 'pdfjs-dist';
+// Force disable worker settings right away to avoid any loading issues
+// This enables the "fake worker" mode which is more reliable in Replit
+(pdfjs as any).GlobalWorkerOptions.workerSrc = '';
+// Set additional optimization flags for the Replit environment
+(pdfjs as any).disableWorker = true;
+(pdfjs as any).disableAutoFetch = true;
+(pdfjs as any).disableStream = true;
+
 import { createWorker } from "tesseract.js";
 
 // Define interfaces for PDF.js text content
@@ -19,12 +27,10 @@ interface TextMarkedContent {
   [key: string]: any;
 }
 
-// Configure PDF.js worker to use our local worker file
-// This is the most reliable approach for Replit
+// Note: We already configured the fake worker at the top of the file
+// Just log the configuration for debugging
 if (typeof window !== 'undefined') {
-  // Use the local worker file in the public folder
-  pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-  console.log('Using local PDF.js worker file:', pdfjs.GlobalWorkerOptions.workerSrc);
+  console.log('Using PDF.js with fake worker configuration for reliability');
 }
 
 // Store active extraction operations for cancellation capability
@@ -89,24 +95,28 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
       // Try to load the PDF document using PDF.js
       console.log("Loading PDF document with PDF.js...");
       
-      // Set a timeout to catch worker loading issues
-      const workerLoadTimeout = setTimeout(() => {
-        throw new Error('PDF.js worker loading timed out');
-      }, 10000);
+      // Enhanced options for PDF.js in Replit environment
+      const loadingTask = pdfjs.getDocument({ 
+        data: arrayBuffer,
+        // Additional options to improve reliability
+        disableRange: true,    // Disable range requests for better reliability
+        disableStream: true,   // Disable streaming to avoid networking issues
+        disableAutoFetch: true // Disable auto fetch to avoid networking issues
+      });
       
-      const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
-      
-      // Add a timeout for the loading task
+      // Add a shorter timeout for the loading task in Replit environment
       const pdfLoadPromise = Promise.race<pdfjs.PDFDocumentProxy>([
         loadingTask.promise,
         new Promise<pdfjs.PDFDocumentProxy>((_, reject) => 
-          setTimeout(() => reject(new Error('PDF loading timed out')), 15000)
+          setTimeout(() => reject(new Error('PDF loading timed out')), 10000)
         )
       ]);
       
       // This is now properly typed due to the generic
-      const pdf = await pdfLoadPromise;
-      clearTimeout(workerLoadTimeout);
+      const pdf = await pdfLoadPromise.catch(error => {
+        console.error("PDF loading failed:", error);
+        throw new Error(`Failed to load PDF: ${error.message || 'Unknown error'}`);
+      });
       
       if (isCancelled) throw new Error('Extraction cancelled');
       

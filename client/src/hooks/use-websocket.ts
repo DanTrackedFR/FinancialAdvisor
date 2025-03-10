@@ -73,17 +73,15 @@ const createWebSocketConnection = (
   // Use the current URL if available or create a new one based on the environment
   if (!currentWsUrl) {
     if (isReplit) {
-      // In Replit environment, connect directly to port 5000 for WebSockets initially
-      // This bypasses the Vite proxy and connects directly to our Express server
+      // In Replit environment, we need to adapt our connection approach
       console.log('[WebSocket] Detected Replit environment');
       
-      // Always use wss:// when in Replit for security
-      currentWsUrl = `wss://${window.location.hostname}:5000/ws`;
+      // For Replit environment, use the relative path approach which is more reliable
+      // This works better with Replit's proxy system
+      currentWsUrl = `${protocol}//${window.location.host}/ws`;
+      console.log('[WebSocket] Using Replit-optimized WebSocket URL:', currentWsUrl);
       
-      // Fallback to standard URL if the direct connection doesn't work
-      // This will be used in the next reconnect attempt if the direct connection fails
-      console.log('[WebSocket] Primary connection URL:', currentWsUrl);
-      console.log('[WebSocket] Fallback URL:', `${protocol}//${window.location.host}/ws`);
+      // If we need a fallback mechanism later, we can implement it here
     } else if (import.meta.env.PROD) {
       // In other production environments
       currentWsUrl = `${protocol}//${window.location.host}/ws`;
@@ -177,12 +175,13 @@ const createWebSocketConnection = (
         reconnectTimeout = setTimeout(() => {
           globalReconnectAttempts += 1;
           
-          // If in Replit and this is the first retry after a direct connection failure,
-          // switch to the standard URL pattern
-          if (isReplit && currentWsUrl.includes(':5000') && globalReconnectAttempts === 1) {
-            console.log('[WebSocket] Switching to fallback WebSocket URL');
-            currentWsUrl = `${protocol}//${window.location.host}/ws`;
-            console.log(`[WebSocket] New connection URL: ${currentWsUrl}`);
+          // Since we're already using the optimized approach for Replit,
+          // we don't need to switch to a fallback URL.
+          // This is kept for compatibility with potential future changes
+          if (isReplit && globalReconnectAttempts === 1) {
+            console.log('[WebSocket] Reconnection attempt in Replit environment');
+            // We're already using the best URL for Replit
+            console.log(`[WebSocket] Current connection URL: ${currentWsUrl}`);
           }
           
           createWebSocketConnection(
