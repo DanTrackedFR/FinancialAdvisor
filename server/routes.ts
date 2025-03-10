@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer } from "http";
+import path from "path";
 import { storage } from "./storage";
 import { insertUserSchema } from "@shared/schema";
 import analysisRoutes from "./routes/analysis";
@@ -39,6 +40,11 @@ export function registerRoutes(app: Express) {
   app.use("/api", analyticsRoutes);
   app.use("/api", feedbackRoutes);
   // app.use("/api", bigqueryRoutes); // BigQuery routes removed as requested
+
+  // Serve PDF.js worker file
+  app.get("/pdf.worker.min.js", (_req, res) => {
+    res.sendFile(path.resolve("client/public/pdf.worker.min.js"));
+  });
 
   // Debug endpoint to echo the routes
   app.get("/api/debug/routes", (_req, res) => {
