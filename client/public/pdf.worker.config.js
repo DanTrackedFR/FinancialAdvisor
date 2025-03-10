@@ -10,12 +10,21 @@
       console.log('Setting up PDF.js worker configuration...');
       
       // Set worker source directly to CDN
+      // Since our application specifically uses version 3.11.174, use that version directly
+      // This avoids potential version mismatch issues and ensures consistency
+      const defaultVersion = '3.11.174';
+      const version = window.pdfjsLib.version || defaultVersion;
+      console.log('Detected PDF.js version:', version);
+      
+      // Always use the known working version to avoid mismatches
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 
-        'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        `https://cdn.jsdelivr.net/npm/pdfjs-dist@${defaultVersion}/build/pdf.worker.min.js`;
       
       // Optional: Set font support options
       window.pdfjsLib.GlobalWorkerOptions.StandardFontDataUrl = 
-        'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/';
+        `https://cdn.jsdelivr.net/npm/pdfjs-dist@${defaultVersion}/standard_fonts/`;
+        
+      console.log('PDF.js worker configured to use version:', defaultVersion);
       
       console.log('PDF.js worker successfully configured via static config script');
     } else {

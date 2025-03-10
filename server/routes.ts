@@ -59,6 +59,10 @@ export function registerRoutes(app: Express) {
     res.sendFile(path.resolve("client/public/pdfjs-websocket-test.html"));
   });
   
+  app.get("/ws-connect-test.html", (_req, res) => {
+    res.sendFile(path.resolve("client/public/ws-connect-test.html"));
+  });
+  
   // Serve worker config file
   app.get("/pdf.worker.config.js", (_req, res) => {
     res.sendFile(path.resolve("client/public/pdf.worker.config.js"));

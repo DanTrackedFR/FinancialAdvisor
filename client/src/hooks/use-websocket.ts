@@ -68,17 +68,25 @@ const createWebSocketConnection = (
   // Check if we're in a Replit environment (deployed or preview)
   const isReplit = window.location.hostname.includes('.replit.dev') || 
                    window.location.hostname.includes('.repl.co') ||
-                   window.location.hostname.includes('.replit.app');
+                   window.location.hostname.includes('.replit.app') ||
+                   window.location.hostname.includes('replit.dev') ||
+                   window.location.hostname.includes('.picard.replit.dev');
                   
+  // Log the current hostname for debugging
+  console.log('[WebSocket] Current hostname:', window.location.hostname);
+  console.log('[WebSocket] Current host:', window.location.host);
+  
   // Use the current URL if available or create a new one based on the environment
   if (!currentWsUrl) {
-    // Always use the current host with relative path /ws
-    // This approach works better across all environments, especially Replit
-    currentWsUrl = `${protocol}//${window.location.host}/ws`;
-    
     if (isReplit) {
       console.log('[WebSocket] Detected Replit environment');
+      // In Replit, we need to use the full hostname and explicitly avoid adding a port
+      // This is critical because WebSockets in Replit must use the proxy
+      currentWsUrl = `${protocol}//${window.location.hostname}/ws`;
       console.log('[WebSocket] Using Replit-optimized WebSocket URL:', currentWsUrl);
+    } else {
+      // In local development, use the full host with port if present
+      currentWsUrl = `${protocol}//${window.location.host}/ws`;
     }
   }
 
@@ -157,22 +165,35 @@ const createWebSocketConnection = (
           clearTimeout(reconnectTimeout);
         }
 
-        // If we're in Replit and this was the direct port connection attempt that failed,
-        // try falling back to the standard URL pattern for the next attempt
-        if (isReplit && currentWsUrl.includes(':5000') && globalReconnectAttempts === 0) {
-          console.log('[WebSocket] Direct port connection failed, will try standard URL on next attempt');
-        }
+        // In Replit, we're already using the optimized URL without the port
+        // so we don't need special handling for reconnection attempts
 
         reconnectTimeout = setTimeout(() => {
           globalReconnectAttempts += 1;
           
-          // Since we're already using the optimized approach for Replit,
-          // we don't need to switch to a fallback URL.
-          // This is kept for compatibility with potential future changes
-          if (isReplit && globalReconnectAttempts === 1) {
+          // For every reconnection attempt in Replit, we'll try a slightly different URL format
+          // This increases chances of successful connection across various Replit environments
+          if (isReplit) {
             console.log('[WebSocket] Reconnection attempt in Replit environment');
-            // We're already using the best URL for Replit
-            console.log(`[WebSocket] Current connection URL: ${currentWsUrl}`);
+            
+            // Reset URL to ensure we're using the correct format
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            
+            // Try different URL formats based on the reconnect attempt number
+            // This helps work around different Replit proxy configurations
+            if (globalReconnectAttempts % 3 === 0) {
+              // First attempt: use hostname without port
+              currentWsUrl = `${protocol}//${window.location.hostname}/ws`;
+            } else if (globalReconnectAttempts % 3 === 1) {
+              // Second attempt: use origin-based approach (full URL with path)
+              const origin = window.location.origin.replace(/^http/, protocol === 'wss:' ? 'https' : 'http');
+              currentWsUrl = `${origin.replace(/^http/, protocol)}/ws`;
+            } else {
+              // Third attempt: use host (may include port if present in browser URL)
+              currentWsUrl = `${protocol}//${window.location.host}/ws`;
+            }
+            
+            console.log(`[WebSocket] Using URL format #${(globalReconnectAttempts % 3) + 1}: ${currentWsUrl}`);
           }
           
           createWebSocketConnection(

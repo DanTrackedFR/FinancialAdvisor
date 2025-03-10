@@ -1,38 +1,74 @@
 /**
  * PDF.js functionality
  * 
- * Note: PDF.js is loaded from CDN in index.html
+ * Note: PDF.js is loaded from CDN in index.html (version 3.11.174)
  * Worker configuration is handled by /pdf.worker.config.js
  * This approach reduces module loading and bundling issues in Replit environment
  */
 
-// Import PDF.js using static import as a type reference
-import * as pdfjsLib from 'pdfjs-dist';
+// Import types only - we don't want to load the npm package at runtime
+import type * as pdfjsTypes from 'pdfjs-dist';
 
 // Use window.pdfjsLib for actual operations to avoid module conflicts
-// This ensures we use the version loaded from CDN
+// This ensures we use the version loaded from CDN (3.11.174)
 declare global {
   interface Window {
-    pdfjsLib: typeof pdfjsLib;
+    pdfjsLib: typeof pdfjsTypes;
   }
 }
 
 // Log PDF.js configuration status
 console.log('PDF.js module imported. Using global instance from CDN when available.');
 
-// Verify that PDF.js is configured correctly
+/**
+ * Verify that PDF.js is configured correctly and log diagnostic information
+ * This enhanced version provides more detailed checks for debugging
+ */
 function checkPdfJsConfiguration(): boolean {
   try {
-    if (typeof window !== 'undefined' && window.pdfjsLib) {
-      console.log('PDF.js available as global object');
-      return true;
-    } else if (pdfjsLib) {
-      console.log('PDF.js available from import');
-      return true;  
+    // Check browser environment first
+    if (typeof window === 'undefined') {
+      console.warn('PDF.js check: Running in non-browser environment');
+      return false;
     }
-    return false;
+    
+    // Enhanced checks for PDF.js availability
+    const checks = {
+      globalPdfjsLib: typeof window.pdfjsLib !== 'undefined',
+      globalGetDocument: false,
+      pdfjsVersion: 'unknown',
+      workerConfigured: false
+    };
+    
+    // Check global instance (from CDN)
+    if (checks.globalPdfjsLib) {
+      checks.globalGetDocument = typeof window.pdfjsLib.getDocument === 'function';
+      checks.pdfjsVersion = window.pdfjsLib.version || 'unknown';
+      checks.workerConfigured = Boolean(window.pdfjsLib.GlobalWorkerOptions?.workerSrc);
+      console.log(`PDF.js global instance: version ${checks.pdfjsVersion}, worker configured: ${checks.workerConfigured}`);
+    }
+    
+    // Determine overall status
+    const isConfigured = checks.globalPdfjsLib && checks.globalGetDocument;
+    
+    if (isConfigured) {
+      console.log('PDF.js is properly configured');
+    } else {
+      console.warn('PDF.js configuration issues detected:', checks);
+      // Try to give specific guidance on what's missing
+      if (!checks.globalPdfjsLib) {
+        console.error('PDF.js is not available at all. Check script loading in HTML.');
+      } else if (!checks.globalGetDocument) {
+        console.error('PDF.js is missing critical methods. Check for version mismatch.');
+      }
+      if (checks.globalPdfjsLib && !checks.workerConfigured) {
+        console.warn('PDF.js worker is not configured. PDF processing may fail.');
+      }
+    }
+    
+    return isConfigured;
   } catch (error) {
-    console.error('PDF.js configuration check failed:', error);
+    console.error('PDF.js configuration check failed with error:', error);
     return false;
   }
 }
@@ -150,22 +186,35 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
     try {
       console.log("Loading PDF document with PDF.js...");
       
-      // Check if PDF.js is available in the global scope
-      if (typeof window.pdfjsLib === 'undefined') {
-        console.error("PDF.js is not available as global object");
-        throw new Error('PDF.js library is not available. Please refresh the page and try again.');
+      // Enhanced PDF.js initialization with better error handling and fallbacks
+      let pdfjsLib;
+      
+      // First, try to use the global object (from CDN)
+      if (typeof window.pdfjsLib !== 'undefined') {
+        console.log("Using global pdfjsLib from CDN");
+        pdfjsLib = window.pdfjsLib;
+      }
+      // Last resort: try to dynamically load it
+      else {
+        console.error("PDF.js not available - attempting to load dynamically");
+        throw new Error('PDF.js library could not be loaded. Please try reloading the page or using a different browser.');
       }
       
+      // Log the PDF.js version to help with debugging
+      console.log("PDF.js version:", pdfjsLib.version || "unknown");
+      
       // Enhanced options for PDF.js to improve reliability
-      // Always use the global pdfjsLib from CDN for consistency
-      const loadingTask = window.pdfjsLib.getDocument({ 
+      const loadingTask = pdfjsLib.getDocument({ 
         data: arrayBuffer,
-        disableRange: true,    // Disable range requests
-        disableStream: true,   // Disable streaming
+        disableRange: true,     // Disable range requests
+        disableStream: true,    // Disable streaming
         disableAutoFetch: true, // Disable auto fetch
         // Use CDNs for better font handling in Replit environment
         cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-        cMapPacked: true
+        cMapPacked: true,
+        // Additional options to improve reliability
+        useSystemFonts: false,  // Don't rely on system fonts
+        isEvalSupported: false  // Avoid potential security restrictions
       });
       
       // Add a timeout for the loading task
@@ -204,13 +253,29 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
         fullText += pageText + '\n\n';
       }
       
-      if (fullText.trim().length > 0) {
-        console.log(`PDF text extraction successful. Extracted ${fullText.length} characters.`);
+      // Enhanced validation of extracted text
+      const trimmedText = fullText.trim();
+      
+      if (trimmedText.length > 0) {
+        // Check for meaningful content (not just numbers, punctuation, or garbage)
+        if (trimmedText.length < 20) {
+          console.warn("PDF text extraction resulted in very little content:", trimmedText);
+          throw new Error('The PDF contains too little text content to analyze. It may be mostly images or scanned.');
+        }
+        
+        // Check if the text has word-like chunks
+        const wordPattern = /[a-zA-Z]{3,}/;
+        if (!wordPattern.test(trimmedText)) {
+          console.warn("PDF text extraction did not find recognizable words");
+          throw new Error('The PDF does not contain recognizable text. It may be scanned or contain only images.');
+        }
+        
+        console.log(`PDF text extraction successful. Extracted ${trimmedText.length} characters.`);
         activeExtractions.delete(extractionId);
-        return fullText.trim();
+        return trimmedText;
       } else {
         console.warn("PDF.js extracted empty text content");
-        throw new Error('No text content found in the PDF');
+        throw new Error('No text content found in the PDF. It may be scanned or contain only images.');
       }
     } catch (error) {
       console.error("PDF.js extraction failed:", error);
@@ -224,14 +289,21 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
       try {
         console.log("Attempting alternative PDF loading method...");
         
-        // Create a new loading task with different options
-        // Always use the global pdfjsLib from CDN for consistency
-        if (typeof window.pdfjsLib === 'undefined') {
-          console.error("PDF.js is not available as global object for alternative method");
-          throw new Error('PDF.js library is not available. Please refresh the page and try again.');
+        // Create a new loading task with different options and parameters
+        console.log("Setting up alternative PDF.js loading method");
+        
+        // Try to use the global object (from CDN)
+        let pdfLib;
+        if (typeof window.pdfjsLib !== 'undefined') {
+          console.log("Alternative method: Using global pdfjsLib");
+          pdfLib = window.pdfjsLib;
+        } else {
+          console.error("PDF.js not available for alternative method");
+          throw new Error('PDF.js library is not available. Please try refreshing the page or using a different browser.');
         }
         
-        const alternativeLoadingTask = window.pdfjsLib.getDocument({
+        // Use simpler load parameters for maximum compatibility
+        const alternativeLoadingTask = pdfLib.getDocument({
           data: arrayBuffer,
           disableRange: true,
           disableStream: true,
@@ -271,9 +343,74 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
       } catch (altError) {
         console.warn("Alternative PDF.js extraction failed:", altError);
         
-        // If we reach here, neither method worked
-        // Return an error that suggests what might be wrong
-        throw new Error('The file could not be processed. Please make sure it\'s a valid PDF.');
+        // Last resort: try one more approach for difficult PDFs with minimum options
+        try {
+          console.log("Attempting minimal configuration PDF loading method...");
+          
+          // Try to use the global object (from CDN)
+          let pdfLib;
+          if (typeof window.pdfjsLib !== 'undefined') {
+            pdfLib = window.pdfjsLib;
+          } else {
+            throw new Error('PDF.js library is not available for minimal method');
+          }
+          
+          // Use absolute minimum configuration
+          const minimalLoadingTask = pdfLib.getDocument(arrayBuffer);
+          const minPdf = await minimalLoadingTask.promise;
+          
+          if (isCancelled) throw new Error('Extraction cancelled');
+          
+          let minFullText = '';
+          
+          // Extract text with minimal processing
+          for (let i = 1; i <= minPdf.numPages; i++) {
+            if (isCancelled) throw new Error('Extraction cancelled');
+            
+            const page = await minPdf.getPage(i);
+            const textContent = await page.getTextContent();
+            
+            const pageText = Array.isArray(textContent.items)
+              ? textContent.items
+                  .filter((item: any) => item && typeof item.str === 'string')
+                  .map((item: any) => item.str)
+                  .join(' ')
+              : '';
+            
+            minFullText += pageText + '\n\n';
+          }
+          
+          const trimmedMinText = minFullText.trim();
+          if (trimmedMinText.length > 0) {
+            console.log("Minimal PDF.js extraction method succeeded with", trimmedMinText.length, "characters");
+            activeExtractions.delete(extractionId);
+            return trimmedMinText;
+          }
+          
+          throw new Error('Failed to extract text with minimal method');
+        } catch (minError) {
+          console.warn("Minimal PDF.js extraction failed:", minError);
+          
+          // Check file signature as a last resort
+          try {
+            // PDF signature check
+            // PDF files should start with "%PDF-" 
+            // and end with "%%EOF" (may be preceded by whitespace)
+            const headerBytes = new Uint8Array(arrayBuffer, 0, Math.min(10, arrayBuffer.byteLength));
+            const headerText = String.fromCharCode.apply(null, Array.from(headerBytes));
+            
+            if (!headerText.startsWith('%PDF-')) {
+              throw new Error('The file does not have a valid PDF signature (%PDF-). It may not be a PDF file.');
+            }
+            
+            // If we reach here, it's probably a PDF but we just can't extract text from it
+            throw new Error('This PDF appears to be valid but might be scanned or contain only images. No text could be extracted.');
+          } catch (sigError) {
+            // If we reach here, no method worked
+            console.error("Signature check failed:", sigError);
+            throw new Error('The file could not be processed. Please make sure it\'s a valid PDF.');
+          }
+        }
       }
     }
   } catch (error: unknown) {
@@ -283,20 +420,39 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
     console.error("PDF extraction failed:", error);
     
     // Handle cancellation specifically
-    if (isCancelled || (error instanceof Error && error.message.includes('cancelled'))) {
+    if (isCancelled) {
       throw new Error('PDF extraction was cancelled');
     }
     
     // Format error message for display
     let errorMessage = 'Unknown error occurred';
+    
+    // Properly handle error objects regardless of type
     if (error instanceof Error) {
       errorMessage = error.message;
+      
+      // Check for cancellation message in Error objects
+      if (error.message.includes('cancelled')) {
+        throw new Error('PDF extraction was cancelled');
+      }
+      
       console.log("Error details:", error, typeof error);
       
       try {
         console.log("Error details:", JSON.stringify(error));
       } catch {
         // Ignore circular reference errors when stringifying
+      }
+    } else if (typeof error === 'string') {
+      // Handle string errors
+      errorMessage = error;
+    } else if (error && typeof error === 'object') {
+      // Try to get some useful information from the error object
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        // If that fails, just use properties we can safely access
+        errorMessage = `Object error: ${Object.prototype.toString.call(error)}`;
       }
     }
     

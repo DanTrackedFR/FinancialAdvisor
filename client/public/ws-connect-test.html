@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Connection Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    #status {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .connected {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .connecting {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    .disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    #log {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+      font-family: monospace;
+    }
+    #controls {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0069d9;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    #connectionInfo {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Connection Test</h1>
+  
+  <div id="status" class="disconnected">Disconnected</div>
+  
+  <div id="connectionInfo">
+    <h3>Connection Information</h3>
+    <table>
+      <tr>
+        <th>Property</th>
+        <th>Value</th>
+      </tr>
+      <tr>
+        <td>Protocol</td>
+        <td id="protocol"></td>
+      </tr>
+      <tr>
+        <td>Hostname</td>
+        <td id="hostname"></td>
+      </tr>
+      <tr>
+        <td>Port</td>
+        <td id="port"></td>
+      </tr>
+      <tr>
+        <td>Path</td>
+        <td id="path"></td>
+      </tr>
+      <tr>
+        <td>WebSocket URL</td>
+        <td id="wsUrl"></td>
+      </tr>
+      <tr>
+        <td>Connection Status</td>
+        <td id="connectionStatus">Disconnected</td>
+      </tr>
+      <tr>
+        <td>Last Message</td>
+        <td id="lastMessage">None</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div id="controls">
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <button id="pingBtn" disabled>Send Ping</button>
+    <button id="clearBtn">Clear Log</button>
+  </div>
+  
+  <h3>Connection Log</h3>
+  <div id="log"></div>
+  
+  <script>
+    // Elements
+    const status = document.getElementById('status');
+    const log = document.getElementById('log');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const pingBtn = document.getElementById('pingBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const lastMessage = document.getElementById('lastMessage');
+    
+    // Connection info elements
+    const protocolEl = document.getElementById('protocol');
+    const hostnameEl = document.getElementById('hostname');
+    const portEl = document.getElementById('port');
+    const pathEl = document.getElementById('path');
+    const wsUrlEl = document.getElementById('wsUrl');
+    
+    // Display connection environment information
+    protocolEl.textContent = window.location.protocol;
+    hostnameEl.textContent = window.location.hostname;
+    portEl.textContent = window.location.port || '(default)';
+    pathEl.textContent = window.location.pathname;
+    
+    // Global socket
+    let socket = null;
+    
+    // Add log message
+    function addLog(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> <span class="${type}">${message}</span>`;
+      log.appendChild(logEntry);
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    // Update connection status
+    function updateStatus(newStatus) {
+      status.className = newStatus;
+      status.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+      connectionStatus.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+      
+      // Update buttons
+      if (newStatus === 'connected') {
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        pingBtn.disabled = false;
+      } else if (newStatus === 'connecting') {
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        pingBtn.disabled = true;
+      } else {
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        pingBtn.disabled = true;
+      }
+    }
+    
+    // Connect to WebSocket
+    function connect() {
+      try {
+        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+          addLog('Already connected or connecting', 'warning');
+          return;
+        }
+        
+        updateStatus('connecting');
+        
+        // Determine protocol (ws or wss)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        
+        // Determine if we're in a Replit environment
+        const isReplit = window.location.hostname.includes('.replit.dev') || 
+                        window.location.hostname.includes('.repl.co') ||
+                        window.location.hostname.includes('.replit.app') ||
+                        window.location.hostname.includes('replit.dev') ||
+                        window.location.hostname.includes('.picard.replit.dev');
+        
+        // Determine WebSocket URL based on environment
+        let wsUrl;
+        if (isReplit) {
+          // In Replit, use hostname (without port)
+          wsUrl = `${protocol}//${window.location.hostname}/ws`;
+          addLog(`Detected Replit environment, using: ${wsUrl}`, 'info');
+        } else {
+          // In local development, use full host with port
+          wsUrl = `${protocol}//${window.location.host}/ws`;
+          addLog(`Using local development WebSocket URL: ${wsUrl}`, 'info');
+        }
+        
+        // Display WebSocket URL
+        wsUrlEl.textContent = wsUrl;
+        
+        // Create WebSocket connection
+        addLog(`Connecting to ${wsUrl}...`, 'info');
+        socket = new WebSocket(wsUrl);
+        
+        // WebSocket event handlers
+        socket.onopen = function() {
+          addLog('Connection established', 'success');
+          updateStatus('connected');
+        };
+        
+        socket.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            lastMessage.textContent = JSON.stringify(data);
+            addLog(`Received: ${JSON.stringify(data)}`, 'success');
+          } catch (error) {
+            addLog(`Received non-JSON message: ${event.data}`, 'warning');
+          }
+        };
+        
+        socket.onclose = function(event) {
+          addLog(`Connection closed (Code: ${event.code}, Reason: ${event.reason || 'none'})`, 'error');
+          updateStatus('disconnected');
+        };
+        
+        socket.onerror = function(error) {
+          addLog('WebSocket error', 'error');
+          console.error('WebSocket error:', error);
+        };
+      } catch (error) {
+        addLog(`Error creating WebSocket: ${error.message}`, 'error');
+        updateStatus('disconnected');
+      }
+    }
+    
+    // Disconnect from WebSocket
+    function disconnect() {
+      if (socket) {
+        socket.close();
+        socket = null;
+        addLog('Disconnected from server', 'info');
+        updateStatus('disconnected');
+      }
+    }
+    
+    // Send ping message
+    function sendPing() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        const pingMessage = {
+          type: 'ping',
+          timestamp: Date.now()
+        };
+        socket.send(JSON.stringify(pingMessage));
+        addLog(`Sent: ${JSON.stringify(pingMessage)}`, 'info');
+      } else {
+        addLog('Cannot send ping - not connected', 'warning');
+      }
+    }
+    
+    // Clear log
+    function clearLog() {
+      log.innerHTML = '';
+      addLog('Log cleared', 'info');
+    }
+    
+    // Event listeners
+    connectBtn.addEventListener('click', connect);
+    disconnectBtn.addEventListener('click', disconnect);
+    pingBtn.addEventListener('click', sendPing);
+    clearBtn.addEventListener('click', clearLog);
+    
+    // Initialize
+    addLog('WebSocket Tester Initialized', 'info');
+    addLog(`Page URL: ${window.location.href}`, 'info');
+    
+    // Automatically connect when loading the page
+    setTimeout(connect, 1000);
+  </script>
+</body>
+</html>

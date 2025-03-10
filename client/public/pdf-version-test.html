@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF.js Version Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .info {
+      color: blue;
+    }
+    button {
+      padding: 8px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr.success {
+      background-color: #e8f5e9;
+    }
+    tr.error {
+      background-color: #ffebee;
+    }
+    #log {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDF.js Version Test</h1>
+  <p>This tool helps diagnose issues with PDF.js version and configuration.</p>
+  
+  <button id="testButton">Run PDF.js Configuration Test</button>
+  
+  <h2>PDF.js Configuration Status:</h2>
+  <table id="configTable">
+    <tr>
+      <th>Test</th>
+      <th>Status</th>
+      <th>Details</th>
+    </tr>
+    <tr>
+      <td>PDF.js Loaded</td>
+      <td id="pdfjs-loaded-status">Not tested</td>
+      <td id="pdfjs-loaded-details">-</td>
+    </tr>
+    <tr>
+      <td>Version</td>
+      <td id="version-status">Not tested</td>
+      <td id="version-details">-</td>
+    </tr>
+    <tr>
+      <td>Worker Configuration</td>
+      <td id="worker-status">Not tested</td>
+      <td id="worker-details">-</td>
+    </tr>
+    <tr>
+      <td>Basic Functionality</td>
+      <td id="function-status">Not tested</td>
+      <td id="function-details">-</td>
+    </tr>
+  </table>
+  
+  <h2>Recommendations:</h2>
+  <div id="recommendations">Run the test to see recommendations</div>
+  
+  <h2>Console Log:</h2>
+  <div id="log">PDF.js test log will appear here...</div>
+  
+  <!-- PDF.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  
+  <!-- Configure PDF.js worker -->
+  <script src="/pdf.worker.config.js"></script>
+  
+  <script>
+    // DOM elements
+    const testButton = document.getElementById('testButton');
+    const log = document.getElementById('log');
+    const recommendations = document.getElementById('recommendations');
+    
+    // Configuration table cells
+    const pdfjsLoadedStatus = document.getElementById('pdfjs-loaded-status');
+    const pdfjsLoadedDetails = document.getElementById('pdfjs-loaded-details');
+    const versionStatus = document.getElementById('version-status');
+    const versionDetails = document.getElementById('version-details');
+    const workerStatus = document.getElementById('worker-status');
+    const workerDetails = document.getElementById('worker-details');
+    const functionStatus = document.getElementById('function-status');
+    const functionDetails = document.getElementById('function-details');
+    
+    // Logging function
+    function logMessage(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const messageWithTimestamp = `[${timestamp}] ${message}`;
+      
+      console.log(messageWithTimestamp);
+      
+      const spanClass = type === 'error' ? 'error' : 
+                         type === 'success' ? 'success' : 'info';
+      
+      log.innerHTML += `\n<span class="${spanClass}">${messageWithTimestamp}</span>`;
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    // Update table cell function
+    function updateTableCell(statusCell, detailsCell, success, statusText, details) {
+      statusCell.textContent = statusText;
+      detailsCell.textContent = details;
+      
+      statusCell.className = success ? 'success' : 'error';
+      statusCell.parentElement.className = success ? 'success' : 'error';
+    }
+    
+    // Check PDF.js configuration function
+    async function checkPdfJsConfiguration() {
+      logMessage('Starting PDF.js configuration test...');
+      let allTestsPassed = true;
+      
+      // Reset recommendations
+      recommendations.innerHTML = '';
+      
+      // Test 1: Check if PDF.js is loaded
+      try {
+        if (typeof window.pdfjsLib !== 'undefined') {
+          logMessage('PDF.js is loaded as a global object', 'success');
+          updateTableCell(
+            pdfjsLoadedStatus, 
+            pdfjsLoadedDetails, 
+            true, 
+            'Loaded', 
+            'PDF.js is available as window.pdfjsLib'
+          );
+          
+          // Check if it's an object with expected methods
+          if (typeof window.pdfjsLib.getDocument === 'function') {
+            logMessage('PDF.js has required methods', 'success');
+          } else {
+            logMessage('PDF.js object is missing expected methods', 'error');
+            updateTableCell(
+              pdfjsLoadedStatus, 
+              pdfjsLoadedDetails, 
+              false, 
+              'Incomplete', 
+              'PDF.js object is missing expected methods'
+            );
+            allTestsPassed = false;
+          }
+        } else {
+          logMessage('PDF.js is not loaded as a global object', 'error');
+          updateTableCell(
+            pdfjsLoadedStatus, 
+            pdfjsLoadedDetails, 
+            false, 
+            'Not Loaded', 
+            'PDF.js is not available as window.pdfjsLib'
+          );
+          allTestsPassed = false;
+          
+          // Skip remaining tests
+          throw new Error('PDF.js not loaded');
+        }
+        
+        // Test 2: Check version
+        if (window.pdfjsLib.version) {
+          const version = window.pdfjsLib.version;
+          logMessage(`PDF.js version: ${version}`, 'success');
+          
+          // Check if it's the expected version (3.11.174)
+          if (version === '3.11.174') {
+            updateTableCell(
+              versionStatus, 
+              versionDetails, 
+              true, 
+              'Correct', 
+              `Version ${version} matches expected (3.11.174)`
+            );
+          } else {
+            updateTableCell(
+              versionStatus, 
+              versionDetails, 
+              false, 
+              'Mismatch', 
+              `Version ${version} doesn't match expected (3.11.174)`
+            );
+            allTestsPassed = false;
+          }
+        } else {
+          logMessage('PDF.js version not found', 'error');
+          updateTableCell(
+            versionStatus, 
+            versionDetails, 
+            false, 
+            'Unknown', 
+            'PDF.js version property not found'
+          );
+          allTestsPassed = false;
+        }
+        
+        // Test 3: Check worker configuration
+        if (window.pdfjsLib.GlobalWorkerOptions) {
+          if (window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            const workerSrc = window.pdfjsLib.GlobalWorkerOptions.workerSrc;
+            logMessage(`Worker source configured: ${workerSrc}`, 'success');
+            
+            // Check if it matches version
+            if (workerSrc.includes('3.11.174')) {
+              updateTableCell(
+                workerStatus, 
+                workerDetails, 
+                true, 
+                'Configured', 
+                `Worker correctly configured with matching version: ${workerSrc}`
+              );
+            } else {
+              updateTableCell(
+                workerStatus, 
+                workerDetails, 
+                false, 
+                'Version Mismatch', 
+                `Worker source version doesn't match PDF.js version: ${workerSrc}`
+              );
+              allTestsPassed = false;
+            }
+          } else {
+            logMessage('Worker source not configured', 'error');
+            updateTableCell(
+              workerStatus, 
+              workerDetails, 
+              false, 
+              'Not Configured', 
+              'PDF.js GlobalWorkerOptions.workerSrc not set'
+            );
+            allTestsPassed = false;
+          }
+        } else {
+          logMessage('GlobalWorkerOptions not found', 'error');
+          updateTableCell(
+            workerStatus, 
+            workerDetails, 
+            false, 
+            'Missing', 
+            'PDF.js GlobalWorkerOptions object not found'
+          );
+          allTestsPassed = false;
+        }
+        
+        // Test 4: Basic functionality test
+        logMessage('Testing basic PDF functionality...');
+        try {
+          // Create a minimal PDF document (just the header)
+          const pdfData = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]); // %PDF-1.7
+          
+          // Try to load it
+          const loadingTask = window.pdfjsLib.getDocument({ data: pdfData });
+          await loadingTask.promise;
+          
+          logMessage('Basic PDF parsing works!', 'success');
+          updateTableCell(
+            functionStatus, 
+            functionDetails, 
+            true, 
+            'Working', 
+            'Successfully created and parsed a minimal PDF document'
+          );
+        } catch (error) {
+          logMessage(`Basic functionality test failed: ${error.message}`, 'error');
+          updateTableCell(
+            functionStatus, 
+            functionDetails, 
+            false, 
+            'Failed', 
+            `Error: ${error.message}`
+          );
+          allTestsPassed = false;
+        }
+        
+      } catch (error) {
+        logMessage(`Test failed: ${error.message}`, 'error');
+        // Mark remaining tests as skipped
+        if (versionStatus.textContent === 'Not tested') {
+          updateTableCell(versionStatus, versionDetails, false, 'Skipped', 'Test skipped due to previous failure');
+        }
+        if (workerStatus.textContent === 'Not tested') {
+          updateTableCell(workerStatus, workerDetails, false, 'Skipped', 'Test skipped due to previous failure');
+        }
+        if (functionStatus.textContent === 'Not tested') {
+          updateTableCell(functionStatus, functionDetails, false, 'Skipped', 'Test skipped due to previous failure');
+        }
+      }
+      
+      // Generate recommendations
+      generateRecommendations(allTestsPassed);
+      
+      return allTestsPassed;
+    }
+    
+    function generateRecommendations(allTestsPassed) {
+      if (allTestsPassed) {
+        recommendations.innerHTML = '<p class="success">✅ All tests passed! PDF.js is correctly configured.</p>';
+        return;
+      }
+      
+      let html = '<ul>';
+      
+      // Check each test and add appropriate recommendations
+      if (pdfjsLoadedStatus.textContent !== 'Loaded') {
+        html += `
+          <li>Make sure PDF.js is properly loaded via the CDN:
+            <pre>&lt;script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"&gt;&lt;/script&gt;</pre>
+          </li>
+        `;
+      }
+      
+      if (versionStatus.textContent === 'Mismatch') {
+        html += `
+          <li>Version mismatch detected. Update all PDF.js references to use version 3.11.174:
+            <ul>
+              <li>Check client/index.html</li>
+              <li>Check any test pages (like pdfjs-websocket-test.html)</li>
+              <li>Check the worker configuration script</li>
+            </ul>
+          </li>
+        `;
+      }
+      
+      if (workerStatus.textContent !== 'Configured') {
+        html += `
+          <li>Worker configuration issue detected:
+            <ul>
+              <li>Make sure pdf.worker.config.js is being loaded after PDF.js</li>
+              <li>Check that it's correctly setting window.pdfjsLib.GlobalWorkerOptions.workerSrc</li>
+              <li>Make sure the worker URL points to version 3.11.174</li>
+            </ul>
+          </li>
+        `;
+      }
+      
+      if (functionStatus.textContent === 'Failed') {
+        html += `
+          <li>Basic functionality test failed. This often indicates:
+            <ul>
+              <li>Worker script not loading properly</li>
+              <li>Mismatched PDF.js and worker versions</li>
+              <li>Network issues preventing worker script loading</li>
+              <li>Try opening browser dev tools and check for network or console errors</li>
+            </ul>
+          </li>
+        `;
+      }
+      
+      html += '</ul>';
+      recommendations.innerHTML = html;
+    }
+    
+    // Button event listeners
+    testButton.addEventListener('click', () => {
+      // Clear log
+      log.innerHTML = 'Running tests...';
+      
+      // Run configuration check
+      checkPdfJsConfiguration();
+    });
+    
+    // Log version info on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof window.pdfjsLib !== 'undefined') {
+        logMessage(`PDF.js loaded. Version: ${window.pdfjsLib.version || 'unknown'}`);
+        
+        if (window.pdfjsLib.GlobalWorkerOptions && window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          logMessage(`Worker configured: ${window.pdfjsLib.GlobalWorkerOptions.workerSrc}`);
+        } else {
+          logMessage('Worker not configured');
+        }
+      } else {
+        logMessage('PDF.js not loaded', 'error');
+      }
+    });
+  </script>
+</body>
+</html>
