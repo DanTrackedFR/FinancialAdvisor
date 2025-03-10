@@ -63,6 +63,10 @@ export function registerRoutes(app: Express) {
     res.sendFile(path.resolve("client/public/ws-connect-test.html"));
   });
   
+  app.get("/simple-ws-test.html", (_req, res) => {
+    res.sendFile(path.resolve("client/public/simple-ws-test.html"));
+  });
+  
   // Serve worker config file
   app.get("/pdf.worker.config.js", (_req, res) => {
     res.sendFile(path.resolve("client/public/pdf.worker.config.js"));

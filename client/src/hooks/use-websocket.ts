@@ -75,18 +75,39 @@ const createWebSocketConnection = (
   // Log the current hostname for debugging
   console.log('[WebSocket] Current hostname:', window.location.hostname);
   console.log('[WebSocket] Current host:', window.location.host);
+  console.log('[WebSocket] Current origin:', window.location.origin);
+  
+  // Create array of potential WebSocket URLs that work with Replit's proxy
+  const connectionStrategies = [];
   
   // Use the current URL if available or create a new one based on the environment
   if (!currentWsUrl) {
     if (isReplit) {
       console.log('[WebSocket] Detected Replit environment');
-      // In Replit, we need to use the full hostname and explicitly avoid adding a port
-      // This is critical because WebSockets in Replit must use the proxy
-      currentWsUrl = `${protocol}//${window.location.hostname}/ws`;
-      console.log('[WebSocket] Using Replit-optimized WebSocket URL:', currentWsUrl);
+      
+      // Strategy 1: Use hostname only (no port) - this is the most reliable in Replit
+      const strategy1 = `${protocol}//${window.location.hostname}/ws`;
+      connectionStrategies.push(strategy1);
+      console.log('[WebSocket] Connection strategy #1:', strategy1);
+      
+      // Strategy 2: Use origin-based URL
+      const originUrlBase = window.location.origin.replace(/^http/, '');
+      const strategy2 = `${protocol}${originUrlBase}/ws`;
+      connectionStrategies.push(strategy2);
+      console.log('[WebSocket] Connection strategy #2:', strategy2);
+      
+      // Strategy 3: Use full host with port (if present in URL)
+      const strategy3 = `${protocol}//${window.location.host}/ws`;
+      connectionStrategies.push(strategy3);
+      console.log('[WebSocket] Connection strategy #3:', strategy3);
+      
+      // Use the first strategy by default
+      currentWsUrl = connectionStrategies[0];
+      console.log('[WebSocket] Using initial strategy:', currentWsUrl);
     } else {
-      // In local development, use the full host with port if present
+      // In local development, use full host with port if present
       currentWsUrl = `${protocol}//${window.location.host}/ws`;
+      connectionStrategies.push(currentWsUrl);
     }
   }
 

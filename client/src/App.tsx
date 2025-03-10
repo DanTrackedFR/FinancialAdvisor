@@ -15,6 +15,7 @@ import Chat from "@/pages/chat";
 import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
 import TestPages from "@/pages/test-pages"; // Import the test pages component
+import WebSocketTest from "@/pages/websocket-test"; // Import the new WebSocket test page
 import BigQueryAdmin from "@/pages/admin/bigquery";
 import AdminLogin from "@/pages/admin/login"; 
 import AdminDashboard from "@/pages/admin/dashboard"; // Import the main admin dashboard
@@ -47,6 +48,7 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />
         <Route path="/test-pages" component={TestPages} />
+        <Route path="/websocket-test" component={WebSocketTest} />
         <ProtectedRoute path="/chat" component={Chat} />
         <ProtectedRoute path="/analysis" component={Analysis} />
         <ProtectedRoute path="/analysis/:id" component={Analysis} />

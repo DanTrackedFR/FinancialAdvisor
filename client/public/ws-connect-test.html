@@ -215,12 +215,36 @@
                         window.location.hostname.includes('replit.dev') ||
                         window.location.hostname.includes('.picard.replit.dev');
         
-        // Determine WebSocket URL based on environment
-        let wsUrl;
+        // Debug environment info
+        addLog(`Protocol: ${window.location.protocol}`, 'info');
+        addLog(`Hostname: ${window.location.hostname}`, 'info');
+        addLog(`Host: ${window.location.host}`, 'info');
+        addLog(`Origin: ${window.location.origin}`, 'info');
+        
+        // Try different connection strategies for Replit
+        const connectionStrategies = [];
+        
         if (isReplit) {
-          // In Replit, use hostname (without port)
-          wsUrl = `${protocol}//${window.location.hostname}/ws`;
-          addLog(`Detected Replit environment, using: ${wsUrl}`, 'info');
+          addLog('Detected Replit environment', 'info');
+          
+          // Strategy 1: Use hostname without port
+          connectionStrategies.push(`${protocol}//${window.location.hostname}/ws`);
+          
+          // Strategy 2: Use full origin-based URL
+          const originUrl = window.location.origin.replace(/^http/, protocol === 'wss:' ? 'wss' : 'ws');
+          connectionStrategies.push(`${originUrl}/ws`);
+          
+          // Strategy 3: Use full host with port if present
+          connectionStrategies.push(`${protocol}//${window.location.host}/ws`);
+          
+          // List all strategies for debugging
+          connectionStrategies.forEach((url, index) => {
+            addLog(`Connection strategy #${index + 1}: ${url}`, 'info');
+          });
+          
+          // Use the first strategy by default
+          wsUrl = connectionStrategies[0];
+          addLog(`Using strategy #1 initially: ${wsUrl}`, 'info');
         } else {
           // In local development, use full host with port
           wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -253,11 +277,63 @@
         socket.onclose = function(event) {
           addLog(`Connection closed (Code: ${event.code}, Reason: ${event.reason || 'none'})`, 'error');
           updateStatus('disconnected');
+          
+          // If in Replit environment and we have other strategies to try, attempt the next one
+          if (isReplit && connectionStrategies.length > 1) {
+            // Remove the first strategy (the one we just tried)
+            connectionStrategies.shift();
+            
+            if (connectionStrategies.length > 0) {
+              // Try the next strategy
+              const nextWsUrl = connectionStrategies[0];
+              addLog(`Trying next connection strategy: ${nextWsUrl}`, 'info');
+              
+              // Wait a moment before retrying
+              setTimeout(() => {
+                wsUrl = nextWsUrl;
+                wsUrlEl.textContent = wsUrl;
+                
+                addLog(`Connecting to ${wsUrl}...`, 'info');
+                socket = new WebSocket(wsUrl);
+                
+                // Re-attach event handlers (simplified versions)
+                socket.onopen = function() {
+                  addLog('Connection established with alternative strategy', 'success');
+                  updateStatus('connected');
+                };
+                
+                socket.onmessage = function(event) {
+                  try {
+                    const data = JSON.parse(event.data);
+                    lastMessage.textContent = JSON.stringify(data);
+                    addLog(`Received: ${JSON.stringify(data)}`, 'success');
+                  } catch (error) {
+                    addLog(`Received non-JSON message: ${event.data}`, 'warning');
+                  }
+                };
+                
+                socket.onclose = function(event) {
+                  addLog(`Alternative connection closed (Code: ${event.code})`, 'error');
+                  updateStatus('disconnected');
+                };
+                
+                socket.onerror = function(error) {
+                  addLog('WebSocket error with alternative connection', 'error');
+                };
+              }, 1000);
+            }
+          }
         };
         
         socket.onerror = function(error) {
           addLog('WebSocket error', 'error');
           console.error('WebSocket error:', error);
+          
+          // In some browsers, the onerror handler is triggered but onclose is not
+          // We need to ensure our alternative connection logic still runs
+          if (isReplit && connectionStrategies.length > 1 && socket.readyState !== WebSocket.OPEN) {
+            addLog('Error occurred before connection established, will try alternative strategies', 'warning');
+          }
         };
       } catch (error) {
         addLog(`Error creating WebSocket: ${error.message}`, 'error');
