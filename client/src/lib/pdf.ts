@@ -1,13 +1,44 @@
-import * as pdfjs from 'pdfjs-dist';
-// Force disable worker settings right away to avoid any loading issues
-// This enables the "fake worker" mode which is more reliable in Replit
-(pdfjs as any).GlobalWorkerOptions.workerSrc = '';
-// Set additional optimization flags for the Replit environment
-(pdfjs as any).disableWorker = true;
-(pdfjs as any).disableAutoFetch = true;
-(pdfjs as any).disableStream = true;
+/**
+ * PDF.js functionality
+ * 
+ * Note: PDF.js is loaded from CDN in index.html
+ * Worker configuration is handled by /pdf.worker.config.js
+ * This approach reduces module loading and bundling issues in Replit environment
+ */
 
-import { createWorker } from "tesseract.js";
+// Import PDF.js using static import as a type reference
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Use window.pdfjsLib for actual operations to avoid module conflicts
+// This ensures we use the version loaded from CDN
+declare global {
+  interface Window {
+    pdfjsLib: typeof pdfjsLib;
+  }
+}
+
+// Log PDF.js configuration status
+console.log('PDF.js module imported. Using global instance from CDN when available.');
+
+// Verify that PDF.js is configured correctly
+function checkPdfJsConfiguration(): boolean {
+  try {
+    if (typeof window !== 'undefined' && window.pdfjsLib) {
+      console.log('PDF.js available as global object');
+      return true;
+    } else if (pdfjsLib) {
+      console.log('PDF.js available from import');
+      return true;  
+    }
+    return false;
+  } catch (error) {
+    console.error('PDF.js configuration check failed:', error);
+    return false;
+  }
+}
+
+// Run configuration check when module loads
+checkPdfJsConfiguration();
 
 // Define interfaces for PDF.js text content
 interface TextItem {
@@ -27,10 +58,14 @@ interface TextMarkedContent {
   [key: string]: any;
 }
 
-// Note: We already configured the fake worker at the top of the file
-// Just log the configuration for debugging
-if (typeof window !== 'undefined') {
-  console.log('Using PDF.js with fake worker configuration for reliability');
+// Define PDF.js interfaces for better typing
+interface PDFPageProxy {
+  getTextContent(): Promise<{ items: (TextItem | TextMarkedContent)[] }>;
+}
+
+interface PDFDocumentProxy {
+  numPages: number;
+  getPage(pageIndex: number): Promise<PDFPageProxy>;
 }
 
 // Store active extraction operations for cancellation capability
@@ -54,7 +89,7 @@ export function cancelExtraction(extractionId: string): boolean {
 }
 
 /**
- * Extract text from a PDF file using PDF.js with OCR fallback
+ * Extract text from a PDF file using PDF.js with simplified fallback
  * @param file The PDF file to extract text from
  * @param extractionId Optional ID for the extraction process (for cancellation)
  */
@@ -70,7 +105,12 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
   activeExtractions.set(extractionId, { cancel });
   
   try {
-    console.log(`Starting PDF extraction for: ${file.name} (ID: ${extractionId})`);
+    console.log(`Starting PDF extraction for: ${file.name} (${file.size} bytes, ID: ${extractionId})`);
+    
+    // Basic validation of the file type
+    if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+      throw new Error('The selected file does not appear to be a PDF document');
+    }
     
     // Create a FileReader and convert to ArrayBuffer
     const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
@@ -82,41 +122,57 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
           reject(new Error('Failed to read file as ArrayBuffer'));
         }
       };
-      reader.onerror = () => reject(reader.error);
+      reader.onerror = () => reject(reader.error || new Error('File reading failed'));
       reader.readAsArrayBuffer(file);
     });
     
     if (isCancelled) throw new Error('Extraction cancelled');
     
+    // Verify the file signature/magic number for PDF
+    // PDF files start with "%PDF-" (hex: 25 50 44 46 2D)
+    if (arrayBuffer.byteLength < 5) {
+      throw new Error('The file is too small to be a valid PDF document');
+    }
+    
+    const fileHeader = new Uint8Array(arrayBuffer, 0, 5);
+    const isPDF = fileHeader[0] === 0x25 && // %
+                 fileHeader[1] === 0x50 && // P
+                 fileHeader[2] === 0x44 && // D
+                 fileHeader[3] === 0x46 && // F
+                 fileHeader[4] === 0x2D;   // -
+    
+    if (!isPDF) {
+      throw new Error('The file does not appear to be a valid PDF document');
+    }
+    
     let fullText = '';
-    let usedPDFJS = false;
     
     try {
-      // Try to load the PDF document using PDF.js
       console.log("Loading PDF document with PDF.js...");
       
-      // Enhanced options for PDF.js in Replit environment
-      const loadingTask = pdfjs.getDocument({ 
+      // Enhanced options for PDF.js to improve reliability
+      // Use window.pdfjsLib when available (from CDN) or fall back to import
+      const pdfLib = (window.pdfjsLib || pdfjsLib);
+      const loadingTask = pdfLib.getDocument({ 
         data: arrayBuffer,
-        // Additional options to improve reliability
-        disableRange: true,    // Disable range requests for better reliability
-        disableStream: true,   // Disable streaming to avoid networking issues
-        disableAutoFetch: true // Disable auto fetch to avoid networking issues
+        disableRange: true,    // Disable range requests
+        disableStream: true,   // Disable streaming
+        disableAutoFetch: true, // Disable auto fetch
+        // Use CDNs for better font handling in Replit environment
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+        cMapPacked: true
       });
       
-      // Add a shorter timeout for the loading task in Replit environment
-      const pdfLoadPromise = Promise.race<pdfjs.PDFDocumentProxy>([
+      // Add a timeout for the loading task
+      const pdfLoadPromise = Promise.race([
         loadingTask.promise,
-        new Promise<pdfjs.PDFDocumentProxy>((_, reject) => 
-          setTimeout(() => reject(new Error('PDF loading timed out')), 10000)
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('PDF loading timed out after 15 seconds')), 15000)
         )
       ]);
       
-      // This is now properly typed due to the generic
-      const pdf = await pdfLoadPromise.catch(error => {
-        console.error("PDF loading failed:", error);
-        throw new Error(`Failed to load PDF: ${error.message || 'Unknown error'}`);
-      });
+      // Wait for the PDF to load
+      const pdf = await pdfLoadPromise as PDFDocumentProxy;
       
       if (isCancelled) throw new Error('Extraction cancelled');
       
@@ -132,98 +188,85 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
         
         // Extract text items and join them with spaces
         const pageText = textContent.items
-          .map((item: TextItem | TextMarkedContent) => 
-            'str' in item ? item.str : ''
-          )
+          .map((item: TextItem | TextMarkedContent) => {
+            if ('str' in item) {
+              return item.str;
+            }
+            return '';
+          })
           .join(' ');
         
         fullText += pageText + '\n\n';
       }
       
-      // If we got text successfully, mark that we used PDF.js
       if (fullText.trim().length > 0) {
-        usedPDFJS = true;
-        console.log("PDF text extraction completed successfully with PDF.js");
+        console.log(`PDF text extraction successful. Extracted ${fullText.length} characters.`);
+        activeExtractions.delete(extractionId);
+        return fullText.trim();
+      } else {
+        console.warn("PDF.js extracted empty text content");
+        throw new Error('No text content found in the PDF');
       }
-    } catch (pdfJsError) {
-      console.warn("PDF.js extraction failed, will try OCR fallback:", pdfJsError);
-    }
-    
-    // If we already have text from PDF.js, return it
-    if (usedPDFJS && fullText.trim().length > 0) {
-      activeExtractions.delete(extractionId);
-      return fullText.trim();
-    }
-    
-    // If no text was found with PDF.js or PDF.js failed, try OCR as fallback
-    console.log("Falling back to OCR for text extraction...");
-    
-    // Create a data URL for OCR processing
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to read file as data URL'));
+    } catch (error) {
+      console.error("PDF.js extraction failed:", error);
+      
+      // Handle empty text content case
+      if (error instanceof Error && error.message.includes('No text content')) {
+        throw new Error('The PDF does not contain extractable text content. It may be scanned or contain only images.');
+      }
+      
+      // Try alternative approach with PDF.js document loading
+      try {
+        console.log("Attempting alternative PDF loading method...");
+        
+        // Create a new loading task with different options
+        // Use window.pdfjsLib when available (from CDN) or fall back to import
+        const pdfLib = (window.pdfjsLib || pdfjsLib);
+        const alternativeLoadingTask = pdfLib.getDocument({
+          data: arrayBuffer,
+          disableRange: true,
+          disableStream: true,
+          disableAutoFetch: true,
+          isEvalSupported: false, // Disable potentially problematic eval
+          useSystemFonts: false // Don't rely on system fonts
+        });
+        
+        const altPdf = await alternativeLoadingTask.promise;
+        
+        if (isCancelled) throw new Error('Extraction cancelled');
+        
+        let altFullText = '';
+        
+        // Extract text from each page with the alternative method
+        for (let i = 1; i <= altPdf.numPages; i++) {
+          if (isCancelled) throw new Error('Extraction cancelled');
+          
+          const page = await altPdf.getPage(i);
+          const textContent = await page.getTextContent();
+          
+          const pageText = textContent.items
+            .filter((item: any) => typeof item.str === 'string')
+            .map((item: any) => item.str)
+            .join(' ');
+          
+          altFullText += pageText + '\n\n';
         }
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-    
-    if (isCancelled) throw new Error('Extraction cancelled');
-    
-    // Initialize Tesseract worker for OCR
-    console.log("Initializing OCR worker...");
-    const worker = await createWorker('eng');
-    
-    // Create an image element for the first page
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    
-    // Wait for the image to load
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Failed to load image'));
-      // Set a timeout to avoid hanging
-      setTimeout(() => reject(new Error('Image load timeout')), 10000);
-    });
-    
-    if (isCancelled) {
-      await worker.terminate();
-      throw new Error('Extraction cancelled');
+        
+        if (altFullText.trim().length > 0) {
+          console.log("Alternative PDF.js extraction method succeeded");
+          activeExtractions.delete(extractionId);
+          return altFullText.trim();
+        }
+        
+        throw new Error('Failed to extract text with alternative method');
+      } catch (altError) {
+        console.warn("Alternative PDF.js extraction failed:", altError);
+        
+        // If we reach here, neither method worked
+        // Return an error that suggests what might be wrong
+        throw new Error('The file could not be processed. Please make sure it\'s a valid PDF.');
+      }
     }
-    
-    // Create a canvas to draw the image for OCR processing
-    console.log("Processing PDF with OCR...");
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      await worker.terminate();
-      throw new Error('Could not create canvas context');
-    }
-    
-    // Draw image to canvas
-    ctx.drawImage(img, 0, 0);
-    
-    // Perform OCR on the image
-    const { data: { text } } = await worker.recognize(canvas);
-    
-    // Clean up worker
-    await worker.terminate();
-    
-    // Check if OCR found any text
-    if (!text.trim()) {
-      throw new Error('No text could be extracted from the PDF.');
-    }
-    
-    console.log("PDF extraction completed successfully with OCR");
-    activeExtractions.delete(extractionId);
-    return text.trim();
   } catch (error: unknown) {
     // Clean up extraction record
     activeExtractions.delete(extractionId);
@@ -231,44 +274,54 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
     console.error("PDF extraction failed:", error);
     
     // Handle cancellation specifically
-    if (isCancelled || (error instanceof Error && error.message === 'Extraction cancelled')) {
+    if (isCancelled || (error instanceof Error && error.message.includes('cancelled'))) {
       throw new Error('PDF extraction was cancelled');
     }
     
-    // Provide more detailed error information
+    // Format error message for display
     let errorMessage = 'Unknown error occurred';
     if (error instanceof Error) {
       errorMessage = error.message;
-      console.log("Error details:", error.name, error.message, (error as any).details || '');
+      console.log("Error details:", error, typeof error);
+      
+      try {
+        console.log("Error details:", JSON.stringify(error));
+      } catch {
+        // Ignore circular reference errors when stringifying
+      }
     }
     
-    // Provide friendly error messages based on the error type
-    if (errorMessage.includes('Failed to load image') || errorMessage.includes('Image load timeout')) {
-      throw new Error('The file could not be processed. Please make sure it\'s a valid PDF.');
+    // Provide friendly error messages based on error patterns
+    if (
+      errorMessage.includes('Failed to load image') || 
+      errorMessage.includes('Image load timeout') ||
+      errorMessage.includes('valid PDF') ||
+      errorMessage.includes('could not be processed')
+    ) {
+      throw new Error('Error Processing PDF: The file could not be processed. Please make sure it\'s a valid PDF.');
     } else if (errorMessage.includes('Failed to read file')) {
-      throw new Error('Failed to read the uploaded file. Please try again with a different file.');
-    } else if (errorMessage.includes('not well-formed') || errorMessage.includes('Invalid PDF')) {
-      throw new Error('The file appears to be corrupted or is not a valid PDF. Please try another file.');
+      throw new Error('Error Processing PDF: Failed to read the uploaded file. Please try again with a different file.');
+    } else if (
+      errorMessage.includes('not well-formed') || 
+      errorMessage.includes('Invalid PDF') ||
+      errorMessage.includes('corrupted')
+    ) {
+      throw new Error('Error Processing PDF: The file appears to be corrupted or is not a valid PDF. Please try another file.');
+    } else if (
+      errorMessage.includes('empty text') || 
+      errorMessage.includes('No text content')
+    ) {
+      throw new Error('Error Processing PDF: No text was found in the PDF. It may be scanned or contain only images.');
     } else if (
       errorMessage.includes('worker') || 
       errorMessage.includes('Worker') || 
       errorMessage.includes('timed out') ||
       errorMessage.includes('timeout')
-    ) { 
-      // Handle worker-related errors and timeouts
-      console.error('PDF.js worker error detected:', errorMessage);
-      throw new Error('PDF processing failed due to technical issues. Please try again or use a different file.');
-    } else if (
-      errorMessage.includes('fetch') || 
-      errorMessage.includes('dynamically imported') ||
-      errorMessage.includes('network') ||
-      errorMessage.includes('CORS')
     ) {
-      // Handle fetch and network-related failures
-      console.error('Network-related PDF error detected:', errorMessage);
-      throw new Error('PDF processing failed due to network issues. Please try again in a moment.');
+      throw new Error('Error Processing PDF: Processing timed out. Please try again with a smaller file or a different PDF.');
     }
     
-    throw new Error(`Failed to extract text from PDF: ${errorMessage}`);
+    // Default error message if no specific pattern matches
+    throw new Error('Error Processing PDF: ' + errorMessage);
   }
 }

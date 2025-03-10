@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #log {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      background-color: #f9f9f9;
+      height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .warning {
+      color: orange;
+    }
+    .info {
+      color: blue;
+    }
+    #messageForm {
+      display: flex;
+      margin: 20px 0;
+    }
+    #messageInput {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px 0 0 4px;
+    }
+    #sendButton {
+      border-radius: 0 4px 4px 0;
+      margin: 0;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-connected {
+      background-color: #4CAF50;
+    }
+    .status-disconnected {
+      background-color: #f44336;
+    }
+    .status-connecting {
+      background-color: #ff9800;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background-color: #f1f1f1;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Test Page</h1>
+  <p>This page tests WebSocket connectivity to verify it's working correctly in the Replit environment.</p>
+  
+  <div class="status-bar">
+    <div class="status-indicator" id="statusIndicator"></div>
+    <span id="connectionStatus">Disconnected</span>
+  </div>
+  
+  <div class="controls">
+    <button id="connectButton">Connect</button>
+    <button id="disconnectButton" disabled>Disconnect</button>
+    <button id="pingButton" disabled>Send Ping</button>
+    <button id="clearLogButton">Clear Log</button>
+  </div>
+  
+  <div id="messageForm">
+    <input type="text" id="messageInput" placeholder="Type a message..." disabled>
+    <button id="sendButton" disabled>Send</button>
+  </div>
+  
+  <div id="log">WebSocket Test Log</div>
+  
+  <script>
+    // DOM elements
+    const log = document.getElementById('log');
+    const connectButton = document.getElementById('connectButton');
+    const disconnectButton = document.getElementById('disconnectButton');
+    const pingButton = document.getElementById('pingButton');
+    const clearLogButton = document.getElementById('clearLogButton');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const connectionStatus = document.getElementById('connectionStatus');
+    
+    // WebSocket instance
+    let socket = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    let reconnectTimeout = null;
+    
+    // Log function with timestamps
+    function logMessage(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const formattedMessage = `[${timestamp}] ${message}`;
+      console.log(formattedMessage);
+      
+      if (type === 'error') {
+        log.innerHTML += `\n<span class="error">${formattedMessage}</span>`;
+      } else if (type === 'success') {
+        log.innerHTML += `\n<span class="success">${formattedMessage}</span>`;
+      } else if (type === 'warning') {
+        log.innerHTML += `\n<span class="warning">${formattedMessage}</span>`;
+      } else if (type === 'info') {
+        log.innerHTML += `\n<span class="info">${formattedMessage}</span>`;
+      } else {
+        log.innerHTML += '\n' + formattedMessage;
+      }
+      
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    // Update connection status UI
+    function updateConnectionStatus(status) {
+      switch (status) {
+        case 'connected':
+          statusIndicator.className = 'status-indicator status-connected';
+          connectionStatus.textContent = 'Connected';
+          connectButton.disabled = true;
+          disconnectButton.disabled = false;
+          pingButton.disabled = false;
+          messageInput.disabled = false;
+          sendButton.disabled = false;
+          break;
+        case 'disconnected':
+          statusIndicator.className = 'status-indicator status-disconnected';
+          connectionStatus.textContent = 'Disconnected';
+          connectButton.disabled = false;
+          disconnectButton.disabled = true;
+          pingButton.disabled = true;
+          messageInput.disabled = true;
+          sendButton.disabled = true;
+          break;
+        case 'connecting':
+          statusIndicator.className = 'status-indicator status-connecting';
+          connectionStatus.textContent = 'Connecting...';
+          connectButton.disabled = true;
+          disconnectButton.disabled = true;
+          pingButton.disabled = true;
+          messageInput.disabled = true;
+          sendButton.disabled = true;
+          break;
+      }
+    }
+    
+    // Connect to WebSocket
+    function connect() {
+      if (socket) {
+        logMessage('Already connected or connecting, please disconnect first', 'warning');
+        return;
+      }
+      
+      updateConnectionStatus('connecting');
+      
+      try {
+        // Get the current hostname and port to build the WebSocket URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        logMessage(`Connecting to WebSocket: ${wsUrl}...`);
+        
+        socket = new WebSocket(wsUrl);
+        
+        // Connection opened
+        socket.addEventListener('open', (event) => {
+          logMessage('Connection established successfully!', 'success');
+          updateConnectionStatus('connected');
+          reconnectAttempts = 0; // Reset reconnect attempts after successful connection
+        });
+        
+        // Listen for messages
+        socket.addEventListener('message', (event) => {
+          logMessage(`Received message: ${event.data}`, 'info');
+          
+          try {
+            // Try to parse as JSON
+            const data = JSON.parse(event.data);
+            if (data.type === 'pong') {
+              logMessage('Received pong response!', 'success');
+            }
+          } catch (error) {
+            // Not JSON, just log as text
+            logMessage(`Raw message (not JSON): ${event.data}`);
+          }
+        });
+        
+        // Connection closed
+        socket.addEventListener('close', (event) => {
+          const wasConnected = connectionStatus.textContent === 'Connected';
+          
+          if (event.wasClean) {
+            logMessage(`Connection closed cleanly, code=${event.code} reason=${event.reason}`, 'warning');
+          } else {
+            logMessage('Connection died unexpectedly', 'error');
+            
+            // Only attempt to reconnect if the connection was previously established
+            // and we haven't exceeded the maximum reconnect attempts
+            if (wasConnected && reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts++;
+              const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+              logMessage(`Attempting to reconnect in ${delay/1000} seconds (attempt ${reconnectAttempts}/${maxReconnectAttempts})...`, 'warning');
+              
+              if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+              }
+              
+              reconnectTimeout = setTimeout(() => {
+                socket = null;
+                connect();
+              }, delay);
+            }
+          }
+          
+          socket = null;
+          updateConnectionStatus('disconnected');
+        });
+        
+        // Connection error
+        socket.addEventListener('error', (error) => {
+          logMessage(`WebSocket error: ${error.message || 'Unknown error'}`, 'error');
+        });
+        
+      } catch (error) {
+        logMessage(`Failed to create WebSocket: ${error.message}`, 'error');
+        socket = null;
+        updateConnectionStatus('disconnected');
+      }
+    }
+    
+    // Disconnect from WebSocket
+    function disconnect() {
+      if (socket) {
+        logMessage('Closing connection...');
+        socket.close(1000, 'User initiated disconnect');
+      } else {
+        logMessage('Not connected', 'warning');
+      }
+    }
+    
+    // Send ping message
+    function sendPing() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        const pingMessage = JSON.stringify({
+          type: 'ping',
+          timestamp: Date.now()
+        });
+        
+        socket.send(pingMessage);
+        logMessage(`Sent ping: ${pingMessage}`);
+      } else {
+        logMessage('Not connected, cannot send ping', 'error');
+      }
+    }
+    
+    // Send custom message
+    function sendMessage(message) {
+      if (!message) {
+        logMessage('Message cannot be empty', 'warning');
+        return;
+      }
+      
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+          // Try to parse as JSON
+          JSON.parse(message);
+          // If parsing succeeds, send as is
+          socket.send(message);
+          logMessage(`Sent message: ${message}`);
+        } catch (error) {
+          // Not valid JSON, send as string message with type
+          const formattedMessage = JSON.stringify({
+            type: 'message',
+            content: message,
+            timestamp: Date.now()
+          });
+          
+          socket.send(formattedMessage);
+          logMessage(`Sent message: ${formattedMessage}`);
+        }
+        
+        messageInput.value = '';
+      } else {
+        logMessage('Not connected, cannot send message', 'error');
+      }
+    }
+    
+    // Event listeners
+    connectButton.addEventListener('click', connect);
+    disconnectButton.addEventListener('click', disconnect);
+    pingButton.addEventListener('click', sendPing);
+    clearLogButton.addEventListener('click', () => {
+      log.innerHTML = 'WebSocket Test Log';
+    });
+    
+    sendButton.addEventListener('click', () => {
+      sendMessage(messageInput.value);
+    });
+    
+    messageInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        sendMessage(messageInput.value);
+      }
+    });
+    
+    // Auto connect on page load
+    window.addEventListener('load', () => {
+      logMessage('WebSocket test page loaded. Click "Connect" to start testing.');
+      updateConnectionStatus('disconnected');
+    });
+  </script>
+</body>
+</html>

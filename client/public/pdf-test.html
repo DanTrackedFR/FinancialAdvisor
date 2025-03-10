@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF.js Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #status {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .warning {
+      color: orange;
+    }
+    .dragdrop {
+      border: 2px dashed #ccc;
+      padding: 20px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .dragdrop.active {
+      border-color: #4CAF50;
+      background-color: rgba(76, 175, 80, 0.1);
+    }
+    progress {
+      width: 100%;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDF.js Test Page</h1>
+  <p>This page tests PDF.js functionality to ensure it's properly configured.</p>
+  
+  <div class="dragdrop" id="dropZone">
+    <p>Drag and drop a PDF file here or click to select</p>
+    <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+    <button id="selectFile">Select PDF File</button>
+  </div>
+  
+  <progress id="progress" value="0" max="100" style="display: none;"></progress>
+  
+  <div id="status">Status: Ready to test PDF.js</div>
+  
+  <button id="checkConfig">Check PDF.js Configuration</button>
+  <button id="testExtraction" disabled>Extract Text from PDF</button>
+  
+  <!-- PDF.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  
+  <!-- Configure PDF.js worker -->
+  <script src="/pdf.worker.config.js"></script>
+  
+  <script>
+    // DOM elements
+    const status = document.getElementById('status');
+    const progress = document.getElementById('progress');
+    const checkConfigButton = document.getElementById('checkConfig');
+    const testExtractionButton = document.getElementById('testExtraction');
+    const fileInput = document.getElementById('fileInput');
+    const selectFileButton = document.getElementById('selectFile');
+    const dropZone = document.getElementById('dropZone');
+    
+    let selectedFile = null;
+    
+    // Log function with timestamps
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const formattedMessage = `[${timestamp}] ${message}`;
+      console.log(formattedMessage);
+      
+      if (type === 'error') {
+        status.innerHTML += `\n<span class="error">${formattedMessage}</span>`;
+      } else if (type === 'success') {
+        status.innerHTML += `\n<span class="success">${formattedMessage}</span>`;
+      } else if (type === 'warning') {
+        status.innerHTML += `\n<span class="warning">${formattedMessage}</span>`;
+      } else {
+        status.innerHTML += '\n' + formattedMessage;
+      }
+      
+      status.scrollTop = status.scrollHeight;
+    }
+    
+    // Clear log
+    function clearLog() {
+      status.innerHTML = 'Status: ';
+    }
+    
+    // File selection handler
+    selectFileButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+    
+    fileInput.addEventListener('change', (event) => {
+      if (event.target.files && event.target.files.length > 0) {
+        selectedFile = event.target.files[0];
+        log(`File selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`, 'success');
+        testExtractionButton.disabled = false;
+      }
+    });
+    
+    // Drag and drop handlers
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('active');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('active');
+    });
+    
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('active');
+      
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        selectedFile = event.dataTransfer.files[0];
+        log(`File dropped: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`, 'success');
+        testExtractionButton.disabled = false;
+      }
+    });
+    
+    // Check PDF.js configuration
+    checkConfigButton.addEventListener('click', async () => {
+      clearLog();
+      log('Checking PDF.js configuration...');
+      
+      try {
+        // Check if PDF.js is available
+        if (typeof pdfjsLib === 'undefined') {
+          log('PDF.js is not available as global variable', 'error');
+          return;
+        }
+        
+        log('PDF.js detected', 'success');
+        
+        // Check version
+        if (pdfjsLib.version) {
+          log(`PDF.js version: ${pdfjsLib.version}`, 'success');
+        }
+        
+        // Check worker configuration
+        if (pdfjsLib.GlobalWorkerOptions) {
+          if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            log(`Worker source configured: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`, 'success');
+          } else {
+            log('Worker source not configured!', 'warning');
+          }
+        } else {
+          log('GlobalWorkerOptions not found!', 'error');
+        }
+        
+        // Test a simple PDF operation to verify functionality
+        log('Creating a simple 1x1 PDF document to test functionality...');
+        
+        const pdfData = new Uint8Array([
+          0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, // %PDF-1.7
+          0x31, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 1 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x43, 0x61, 0x74, 0x61, 0x6c, 0x6f, 0x67, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <<Type/Catalog/Pages 2 0 R>>;
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x32, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 2 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x2f, 0x4b, 0x69, 0x64, 0x73, 0x5b, 0x33, 0x20, 0x30, 0x20, 0x52, 0x5d, 0x2f, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x20, 0x31, 0x3e, 0x3e, 0x0a, // <</Type/Pages/Kids[3 0 R]/Count 1>>
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x33, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 3 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x2f, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x2f, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x73, 0x20, 0x34, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <</Type/Page/Parent 2 0 R/Contents 4 0 R>>
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x34, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 4 0 obj
+          0x3c, 0x3c, 0x2f, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x20, 0x34, 0x34, 0x3e, 0x3e, 0x0a, // <</Length 44>>
+          0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x0a, // stream
+          0x42, 0x54, 0x0a, 0x2f, 0x46, 0x31, 0x20, 0x31, 0x38, 0x20, 0x54, 0x66, 0x0a, 0x31, 0x30, 0x30, 0x20, 0x31, 0x30, 0x30, 0x20, 0x54, 0x64, 0x0a, 0x28, 0x50, 0x44, 0x46, 0x20, 0x54, 0x65, 0x73, 0x74, 0x29, 0x20, 0x54, 0x6a, 0x0a, 0x45, 0x54, 0x0a, // BT /F1 18 Tf 100 100 Td (PDF Test) Tj ET
+          0x65, 0x6e, 0x64, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x0a, // endstream
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x78, 0x72, 0x65, 0x66, 0x0a, // xref
+          0x30, 0x20, 0x35, 0x0a, // 0 5
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x36, 0x35, 0x35, 0x33, 0x35, 0x20, 0x66, 0x0a, // 0000000000 65535 f
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x30, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000010 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x36, 0x35, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000065 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x33, 0x30, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000130 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x32, 0x30, 0x31, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000201 00000 n
+          0x74, 0x72, 0x61, 0x69, 0x6c, 0x65, 0x72, 0x0a, // trailer
+          0x3c, 0x3c, 0x2f, 0x53, 0x69, 0x7a, 0x65, 0x20, 0x35, 0x2f, 0x52, 0x6f, 0x6f, 0x74, 0x20, 0x31, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <</Size 5/Root 1 0 R>>
+          0x73, 0x74, 0x61, 0x72, 0x74, 0x78, 0x72, 0x65, 0x66, 0x0a, // startxref
+          0x33, 0x33, 0x30, 0x0a, // 330
+          0x25, 0x25, 0x45, 0x4f, 0x46, 0x0a // %%EOF
+        ]);
+        
+        try {
+          // Load the test PDF
+          const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+          const pdf = await loadingTask.promise;
+          
+          log(`Test PDF loaded successfully. Number of pages: ${pdf.numPages}`, 'success');
+          
+          // Try to get text content from the test PDF
+          const page = await pdf.getPage(1);
+          const textContent = await page.getTextContent();
+          
+          if (textContent && textContent.items) {
+            const text = textContent.items
+              .filter(item => typeof item.str === 'string')
+              .map(item => item.str)
+              .join(' ');
+              
+            log(`Text extraction working. Sample text: "${text}"`, 'success');
+          } else {
+            log('Text content structure is not as expected', 'warning');
+          }
+          
+          log('PDF.js functionality test completed successfully!', 'success');
+        } catch (error) {
+          log(`Error in PDF test: ${error.message}`, 'error');
+          log('PDF.js may not be properly configured', 'error');
+        }
+        
+      } catch (error) {
+        log(`Configuration check failed: ${error.message}`, 'error');
+      }
+    });
+    
+    // Extract text from PDF
+    testExtractionButton.addEventListener('click', async () => {
+      if (!selectedFile) {
+        log('No file selected', 'error');
+        return;
+      }
+      
+      clearLog();
+      log(`Starting text extraction from ${selectedFile.name}...`);
+      progress.style.display = 'block';
+      progress.value = 0;
+      
+      try {
+        // Read the file as ArrayBuffer
+        const arrayBuffer = await readFileAsArrayBuffer(selectedFile, (percent) => {
+          progress.value = percent * 20; // First 20% for loading the file
+        });
+        
+        log(`File loaded (${formatFileSize(arrayBuffer.byteLength)})`);
+        
+        // Load the PDF with PDF.js
+        log('Parsing PDF document...');
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          disableRange: true,
+          disableStream: true,
+          disableAutoFetch: true
+        });
+        
+        const pdf = await loadingTask.promise;
+        log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`, 'success');
+        
+        // Extract text from each page
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const progressValue = 20 + (i / pdf.numPages) * 80; // Remaining 80% for page processing
+          progress.value = progressValue;
+          
+          log(`Processing page ${i}/${pdf.numPages}...`);
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          
+          // Extract text from items
+          const pageText = textContent.items
+            .map(item => {
+              if (typeof item === 'object' && 'str' in item) {
+                return item.str;
+              }
+              return '';
+            })
+            .join(' ');
+            
+          fullText += pageText + '\n\n';
+          
+          // Log a small sample of the text
+          const sampleText = pageText.substring(0, 100) + (pageText.length > 100 ? '...' : '');
+          log(`Page ${i} text sample: ${sampleText}`);
+        }
+        
+        progress.value = 100;
+        log('Text extraction completed successfully!', 'success');
+        log(`Total characters extracted: ${fullText.length}`);
+        
+        // Display a small sample of the full text
+        const sampleFullText = fullText.substring(0, 500) + (fullText.length > 500 ? '...' : '');
+        log('Sample of extracted text:');
+        log(sampleFullText);
+        
+      } catch (error) {
+        progress.style.display = 'none';
+        log(`Text extraction failed: ${error.message}`, 'error');
+      }
+    });
+    
+    // Helper function to read a file as ArrayBuffer with progress
+    function readFileAsArrayBuffer(file, onProgress) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          if (reader.result instanceof ArrayBuffer) {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Failed to read file as ArrayBuffer'));
+          }
+        };
+        
+        reader.onerror = () => reject(reader.error || new Error('File reading failed'));
+        
+        if (onProgress) {
+          reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = event.loaded / event.total;
+              onProgress(percentComplete);
+            }
+          };
+        }
+        
+        reader.readAsArrayBuffer(file);
+      });
+    }
+    
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      else return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+    
+    // Initialize - check for PDF.js availability
+    window.addEventListener('load', () => {
+      if (typeof pdfjsLib === 'undefined') {
+        log('PDF.js is not available! Please check if it\'s properly loaded.', 'error');
+        checkConfigButton.disabled = true;
+        testExtractionButton.disabled = true;
+      } else {
+        log('PDF.js detected. Ready for testing.', 'success');
+      }
+    });
+  </script>
+</body>
+</html>

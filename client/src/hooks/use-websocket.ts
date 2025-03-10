@@ -67,27 +67,18 @@ const createWebSocketConnection = (
   
   // Check if we're in a Replit environment (deployed or preview)
   const isReplit = window.location.hostname.includes('.replit.dev') || 
-                  window.location.hostname.includes('.repl.co') ||
-                  window.location.hostname.includes('.replit.app');
+                   window.location.hostname.includes('.repl.co') ||
+                   window.location.hostname.includes('.replit.app');
                   
   // Use the current URL if available or create a new one based on the environment
   if (!currentWsUrl) {
+    // Always use the current host with relative path /ws
+    // This approach works better across all environments, especially Replit
+    currentWsUrl = `${protocol}//${window.location.host}/ws`;
+    
     if (isReplit) {
-      // In Replit environment, we need to adapt our connection approach
       console.log('[WebSocket] Detected Replit environment');
-      
-      // For Replit environment, use the relative path approach which is more reliable
-      // This works better with Replit's proxy system
-      currentWsUrl = `${protocol}//${window.location.host}/ws`;
       console.log('[WebSocket] Using Replit-optimized WebSocket URL:', currentWsUrl);
-      
-      // If we need a fallback mechanism later, we can implement it here
-    } else if (import.meta.env.PROD) {
-      // In other production environments
-      currentWsUrl = `${protocol}//${window.location.host}/ws`;
-    } else {
-      // In local development
-      currentWsUrl = `${protocol}//${window.location.hostname}:5000/ws`;
     }
   }
 

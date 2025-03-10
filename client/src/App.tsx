@@ -14,6 +14,7 @@ import Users from "@/pages/users";
 import Chat from "@/pages/chat";
 import Analysis from "@/pages/analysis";
 import NewAnalysis from "@/pages/new-analysis";
+import TestPages from "@/pages/test-pages"; // Import the test pages component
 import BigQueryAdmin from "@/pages/admin/bigquery";
 import AdminLogin from "@/pages/admin/login"; 
 import ManageUsers from "@/pages/admin/manage-users"; 
@@ -44,6 +45,7 @@ function Router() {
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/cookies" component={Cookies} />
+        <Route path="/test-pages" component={TestPages} />
         <ProtectedRoute path="/chat" component={Chat} />
         <ProtectedRoute path="/analysis" component={Analysis} />
         <ProtectedRoute path="/analysis/:id" component={Analysis} />

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MessageCircle, User, LogOut, BarChart2, Menu, Star } from "lucide-react";
+import { MessageCircle, User, LogOut, BarChart2, Menu, Star, TestTube } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FeedbackDialog } from "./feedback-dialog";
@@ -65,6 +65,12 @@ export function Navigation() {
                 Profile
               </Link>
             </Button>
+            <Button variant={location === "/test-pages" ? "default" : "ghost"} asChild>
+              <Link to="/test-pages" className="flex items-center">
+                <TestTube className="h-4 w-4 mr-2" />
+                Test Pages
+              </Link>
+            </Button>
             <Button variant="ghost" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
@@ -109,6 +115,12 @@ export function Navigation() {
                     <Button variant="ghost" className="w-full justify-start" size="lg">
                       <User className="h-4 w-4 mr-2" />
                       Profile
+                    </Button>
+                  </Link>
+                  <Link to="/test-pages" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start" size="lg">
+                      <TestTube className="h-4 w-4 mr-2" />
+                      Test Pages
                     </Button>
                   </Link>
                   <Button 

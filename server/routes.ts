@@ -45,12 +45,44 @@ export function registerRoutes(app: Express) {
   app.get("/pdf.worker.min.js", (_req, res) => {
     res.sendFile(path.resolve("client/public/pdf.worker.min.js"));
   });
+  
+  // Serve test HTML files
+  app.get("/pdf-test.html", (_req, res) => {
+    res.sendFile(path.resolve("client/public/pdf-test.html"));
+  });
+  
+  app.get("/websocket-test.html", (_req, res) => {
+    res.sendFile(path.resolve("client/public/websocket-test.html"));
+  });
+  
+  app.get("/pdfjs-websocket-test.html", (_req, res) => {
+    res.sendFile(path.resolve("client/public/pdfjs-websocket-test.html"));
+  });
+  
+  // Serve worker config file
+  app.get("/pdf.worker.config.js", (_req, res) => {
+    res.sendFile(path.resolve("client/public/pdf.worker.config.js"));
+  });
 
   // Debug endpoint to echo the routes
   app.get("/api/debug/routes", (_req, res) => {
     res.json({
       message: "Routes are registered correctly",
       timestamp: new Date().toISOString()
+    });
+  });
+  
+  // Health check endpoint (more reliable than WebSocket for initial testing)
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
+      serverInfo: {
+        websocket: !!global.wss,
+        activeConnections: global.wss ? Array.from(global.wss.clients).length : 0,
+        isReplit: !!process.env.REPL_ID
+      }
     });
   });
   

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Generation Demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    .btn {
+      background-color: #4a6da7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #3a5a8e;
+    }
+    .options {
+      margin-bottom: 15px;
+    }
+    .option-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .preview {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test PDF Generator</h1>
+  <p>Generate a simple PDF file with text content for testing extraction.</p>
+  
+  <div class="card">
+    <div class="options">
+      <div class="option-group">
+        <label for="documentTitle">Document Title:</label>
+        <input type="text" id="documentTitle" value="Test Financial Statement" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+      </div>
+      
+      <div class="option-group">
+        <label for="fontSize">Font Size:</label>
+        <select id="fontSize" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          <option value="10">10pt</option>
+          <option value="12" selected>12pt</option>
+          <option value="14">14pt</option>
+          <option value="16">16pt</option>
+        </select>
+      </div>
+    </div>
+    
+    <label for="pdfContent">PDF Content:</label>
+    <textarea id="pdfContent">FINANCIAL STATEMENT
+ABC Corporation
+For the Year Ended December 31, 2024
+
+BALANCE SHEET
+Assets
+Current Assets:
+  Cash and Cash Equivalents         $1,250,000
+  Short-term Investments            $750,000
+  Accounts Receivable               $2,100,000
+  Inventory                         $1,800,000
+  Prepaid Expenses                  $350,000
+Total Current Assets                $6,250,000
+
+Non-Current Assets:
+  Property, Plant and Equipment     $8,500,000
+  Less: Accumulated Depreciation    ($2,300,000)
+  Goodwill                          $1,500,000
+  Intangible Assets                 $950,000
+Total Non-Current Assets            $8,650,000
+
+Total Assets                        $14,900,000
+
+Liabilities
+Current Liabilities:
+  Accounts Payable                  $1,350,000
+  Short-term Borrowings             $800,000
+  Current Portion of Long-term Debt $450,000
+  Accrued Expenses                  $550,000
+Total Current Liabilities           $3,150,000
+
+Non-Current Liabilities:
+  Long-term Debt                    $3,500,000
+  Deferred Tax Liabilities          $650,000
+  Pension Obligations               $1,200,000
+Total Non-Current Liabilities       $5,350,000
+
+Total Liabilities                   $8,500,000
+
+Equity
+  Share Capital                     $2,000,000
+  Retained Earnings                 $3,800,000
+  Other Comprehensive Income        $600,000
+Total Equity                        $6,400,000
+
+Total Liabilities and Equity        $14,900,000
+</textarea>
+    
+    <div class="controls">
+      <button id="generateBtn" class="btn">Generate PDF</button>
+      <button id="loadSampleBtn" class="btn" style="background-color: #28a745;">Load Sample Data</button>
+    </div>
+  </div>
+  
+  <script>
+    // Initialize jsPDF
+    const { jsPDF } = window.jspdf;
+    
+    document.getElementById('generateBtn').addEventListener('click', generatePDF);
+    document.getElementById('loadSampleBtn').addEventListener('click', loadSampleData);
+    
+    function generatePDF() {
+      const title = document.getElementById('documentTitle').value || 'Test Document';
+      const content = document.getElementById('pdfContent').value;
+      const fontSize = parseInt(document.getElementById('fontSize').value, 10);
+      
+      try {
+        // Create new PDF document
+        const doc = new jsPDF();
+        
+        // Set font size and other properties
+        doc.setFontSize(fontSize);
+        
+        // Add title
+        doc.setFontSize(fontSize + 4);
+        doc.text(title, 105, 15, { align: 'center' });
+        
+        // Reset font size for content
+        doc.setFontSize(fontSize);
+        
+        // Split content into lines and add to document
+        const lines = content.split('\n');
+        let y = 30;
+        
+        for (const line of lines) {
+          if (y > 280) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(line, 10, y);
+          y += 7;
+        }
+        
+        // Save the PDF
+        doc.save(`${title.replace(/\s+/g, '_')}.pdf`);
+        
+        alert('PDF generated successfully!');
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert(`Error generating PDF: ${error.message}`);
+      }
+    }
+    
+    function loadSampleData() {
+      document.getElementById('documentTitle').value = 'Financial Statement - XYZ Corp';
+      document.getElementById('pdfContent').value = `XYZ CORPORATION
+CONSOLIDATED INCOME STATEMENT
+For the Year Ended December 31, 2024
+(In thousands of dollars, except per share amounts)
+
+REVENUE
+  Sales Revenue                               $35,750
+  Service Revenue                             $12,250
+  Other Operating Revenue                     $2,000
+TOTAL REVENUE                                 $50,000
+
+OPERATING EXPENSES
+  Cost of Goods Sold                          $18,500
+  Selling, General & Administrative Expenses  $8,750
+  Research and Development                    $3,500
+  Depreciation and Amortization               $2,250
+TOTAL OPERATING EXPENSES                      $33,000
+
+OPERATING INCOME                              $17,000
+
+OTHER INCOME (EXPENSE)
+  Interest Income                             $750
+  Interest Expense                            ($1,500)
+  Gain on Sale of Assets                      $500
+TOTAL OTHER INCOME (EXPENSE)                  ($250)
+
+INCOME BEFORE TAXES                           $16,750
+  Income Tax Expense                          $4,188
+NET INCOME                                    $12,562
+
+Earnings Per Share:
+  Basic                                       $2.51
+  Diluted                                     $2.48
+
+Weighted-Average Shares Outstanding:
+  Basic                                       5,000
+  Diluted                                     5,065
+
+CONSOLIDATED BALANCE SHEET
+As of December 31, 2024
+(In thousands of dollars)
+
+ASSETS
+Current Assets:
+  Cash and Cash Equivalents                   $15,750
+  Short-term Investments                      $8,000
+  Accounts Receivable, net                    $12,500
+  Inventory                                   $9,250
+  Prepaid Expenses                            $1,500
+Total Current Assets                          $47,000
+
+Non-Current Assets:
+  Property, Plant and Equipment               $45,000
+  Less: Accumulated Depreciation              ($12,500)
+  Goodwill                                    $8,500
+  Intangible Assets, net                      $6,750
+  Deferred Tax Assets                         $1,250
+  Other Long-term Assets                      $2,000
+Total Non-Current Assets                      $51,000
+
+TOTAL ASSETS                                  $98,000
+
+LIABILITIES AND SHAREHOLDERS' EQUITY
+Current Liabilities:
+  Accounts Payable                            $8,750
+  Short-term Borrowings                       $5,000
+  Current Portion of Long-term Debt           $2,500
+  Accrued Expenses                            $4,250
+  Income Taxes Payable                        $1,750
+Total Current Liabilities                     $22,250
+
+Non-Current Liabilities:
+  Long-term Debt                              $20,000
+  Deferred Tax Liabilities                    $3,500
+  Pension Obligations                         $6,250
+  Other Long-term Liabilities                 $2,000
+Total Non-Current Liabilities                 $31,750
+
+TOTAL LIABILITIES                             $54,000
+
+Shareholders' Equity:
+  Common Stock ($1 par value)                 $5,000
+  Additional Paid-in Capital                  $12,500
+  Retained Earnings                           $29,750
+  Accumulated Other Comprehensive Income      $750
+  Treasury Stock                              ($4,000)
+Total Shareholders' Equity                    $44,000
+
+TOTAL LIABILITIES AND SHAREHOLDERS' EQUITY    $98,000`;
+      
+      alert('Sample data loaded. Click "Generate PDF" to create the PDF file.');
+    }
+  </script>
+</body>
+</html>

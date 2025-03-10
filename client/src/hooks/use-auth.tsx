@@ -86,7 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check content type to ensure we're getting JSON
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") !== -1) {
-        return await response.json();
+        const data = await response.json();
+        
+        // Set the isAdmin property on the Firebase user if available in the backend response
+        if (data.user && typeof data.user.isAdmin === 'boolean') {
+          // This extends the Firebase user object with our custom property
+          firebaseUser.isAdmin = data.user.isAdmin;
+          console.log("Admin status set on user:", data.user.isAdmin);
+        }
+        
+        return data;
       } else {
         console.error("Non-JSON response received:", contentType);
         // If we received HTML instead of JSON, return a default response
@@ -102,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       console.log("Auth state changed:", firebaseUser ? "User logged in" : "User logged out");
       
       // If user is logged in but email is not verified, log them out immediately
@@ -110,8 +119,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Only set the user temporarily to trigger the handleUnverifiedUser function
         setUser(firebaseUser);
         // We'll handle the logout in a separate function to avoid race conditions
+      } else if (firebaseUser) {
+        // For logged in users with verified emails, sync with backend to get admin status
+        try {
+          // This will update the user's isAdmin property
+          await syncUserWithBackend(firebaseUser);
+          setUser(firebaseUser);
+        } catch (error) {
+          console.error("Error syncing user on auth state change:", error);
+          // Still set the user to maintain login state even if sync fails
+          setUser(firebaseUser);
+        }
       } else {
-        setUser(firebaseUser);
+        // For logged out users
+        setUser(null);
       }
       
       setIsLoading(false);

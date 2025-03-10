@@ -7,7 +7,7 @@ export function AdminProtectedRoute({
   component: Component,
 }: {
   path: string;
-  component: () => React.JSX.Element;
+  component: () => React.JSX.Element | null;
 }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
@@ -30,7 +30,10 @@ export function AdminProtectedRoute({
         }
 
         // If user is logged in but not an admin, redirect to home
-        if (!user.isAdmin) {
+        // Need to handle the case where isAdmin property might not exist on user object
+        // Log the admin status to help with debugging
+        console.log("Admin check:", user.uid, "isAdmin:", user.isAdmin);
+        if (!user || user.isAdmin !== true) {
           return (
             <div className="flex flex-col items-center justify-center min-h-screen">
               <ShieldAlert className="h-16 w-16 text-destructive mb-4" />

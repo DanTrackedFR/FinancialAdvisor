@@ -1,11 +1,12 @@
 import { useCallback, useState, useRef, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { FileIcon, Upload, Loader2, XCircle } from "lucide-react";
+import { FileIcon, Upload, Loader2, XCircle, AlertCircle } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { extractTextFromPDF, cancelExtraction } from "@/lib/pdf";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "./ui/alert";
 
 interface UploadAreaProps {
   onContentExtracted: (content: string) => void;
@@ -20,6 +21,7 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
   const [progress, setProgress] = useState(0);
   const [extractionId, setExtractionId] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<string | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Clean up on unmount
@@ -63,8 +65,36 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
+      // Reset error state first
+      setErrorState(null);
+      
       const file = acceptedFiles[0];
       if (!file) return;
+      
+      // Basic file validation
+      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+        setErrorState('Please upload a PDF file.');
+        toast({
+          title: "Invalid File Type",
+          description: "Please upload a PDF file.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
+      }
+      
+      // Check file size (max 20MB)
+      const maxSizeInBytes = 20 * 1024 * 1024;
+      if (file.size > maxSizeInBytes) {
+        setErrorState('The PDF file is too large. Please upload a file smaller than 20MB.');
+        toast({
+          title: "File Too Large",
+          description: "The PDF file is too large. Please upload a file smaller than 20MB.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
+      }
       
       // If there's an active extraction, cancel it
       if (extractionId) {
@@ -111,8 +141,34 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
         }, 1000);
 
         console.log("Calling extractTextFromPDF function...");
-        const text = await extractTextFromPDF(file, newExtractionId);
-        console.log("PDF text extraction successful. Text length:", text.length);
+        
+        // Add progressive progress updates during extraction
+        let progressUpdateInterval = setInterval(() => {
+          // Increment progress in smaller steps during extraction
+          setProgress(prev => {
+            const increment = prev < 50 ? 5 : prev < 75 ? 2 : 1;
+            const newProgress = Math.min(prev + increment, 90);
+            if (onProgress) onProgress(newProgress);
+            return newProgress;
+          });
+        }, 800);
+        
+        let extractedText: string;
+        try {
+          // Perform the actual PDF extraction
+          extractedText = await extractTextFromPDF(file, newExtractionId);
+          clearInterval(progressUpdateInterval);
+          
+          // Validate the extracted text
+          if (!extractedText || extractedText.trim().length === 0) {
+            throw new Error('No text content could be extracted from this PDF.');
+          }
+          
+          console.log("PDF text extraction successful. Text length:", extractedText.length);
+        } catch (extractionError) {
+          clearInterval(progressUpdateInterval);
+          throw extractionError; // Re-throw to be caught by outer catch
+        }
         
         // Clear the progress interval
         if (progressIntervalRef.current) {
@@ -132,7 +188,8 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
           setExtractionId(null);
         }, 1500);
         
-        onContentExtracted(text);
+        // Use the extracted text we saved earlier
+        onContentExtracted(extractedText);
         if (onAnalyzing) onAnalyzing(false);
 
         toast({
@@ -142,8 +199,14 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
         });
       } catch (error) {
         console.error("Error processing file:", error);
-        const errorMessage = error instanceof Error ? error.message : "Failed to process PDF file";
-        console.log("Error details:", error);
+        
+        let errorMessage = "Failed to process PDF file";
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          console.log("Error details:", error.name, error.message, error.stack || '');
+        } else {
+          console.log("Unknown error type:", typeof error, error);
+        }
 
         // Clear the progress interval
         if (progressIntervalRef.current) {
@@ -166,6 +229,19 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
         
         setExtractionId(null);
         if (onAnalyzing) onAnalyzing(false);
+        
+        // Set the error state to display in UI - clean up any HTML or long error messages
+        errorMessage = errorMessage
+          .replace(/<\/?[^>]+(>|$)/g, '')  // Remove HTML tags if any
+          .replace(/Error Processing PDF: /g, '') // Remove prefix if present
+          .trim();
+        
+        // Set a maximum error message length
+        if (errorMessage.length > 150) {
+          errorMessage = errorMessage.substring(0, 150) + '...';
+        }
+        
+        setErrorState(errorMessage);
 
         toast({
           title: "Error Processing PDF",
@@ -173,9 +249,26 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
           variant: "destructive",
           duration: 5000,
         });
+        
+        // If the error is related to file format, suggest uploading text instead
+        if (
+          errorMessage.includes('valid PDF') || 
+          errorMessage.includes('could not be processed') ||
+          errorMessage.includes('Failed to load PDF') ||
+          errorMessage.includes('No text content') ||
+          errorMessage.includes('may be scanned')
+        ) {
+          setTimeout(() => {
+            toast({
+              title: "Try manual text input",
+              description: "You can also manually paste the document text if PDF upload is not working.",
+              duration: 8000,
+            });
+          }, 1000);
+        }
       }
     },
-    [onContentExtracted, onProgress, onAnalyzing, toast, extractionId]
+    [onContentExtracted, onProgress, onAnalyzing, toast, extractionId, setErrorState]
   );
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -188,14 +281,35 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
     noClick: showProgress, // Disable click when progress is shown
   });
 
+  // Handle custom retry logic
+  const handleRetry = useCallback(() => {
+    setErrorState(null);
+    // Allow retrying the upload
+    open();
+  }, [open]);
+
+  // Reset error state when new file is dropped
+  useEffect(() => {
+    if (fileName) {
+      setErrorState(null);
+    }
+  }, [fileName]);
+
   // Render the upload area with progress indicator
   return (
-    <div className="w-full">
+    <div className="w-full space-y-2">
+      {errorState && (
+        <Alert variant="destructive" className="mb-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errorState}</AlertDescription>
+        </Alert>
+      )}
+      
       <Card
         {...getRootProps()}
         className={`p-4 border-2 border-dashed cursor-pointer transition-colors ${
           isDragActive ? "border-primary bg-primary/5" : "border-border"
-        } ${(isLoading || !!extractionId) ? "opacity-70" : ""}`}
+        } ${(isLoading || !!extractionId) ? "opacity-70" : ""} ${errorState ? "border-destructive/50" : ""}`}
       >
         <input {...getInputProps()} />
         
@@ -233,12 +347,30 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
             <span className="text-sm">Drop here</span>
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-2">
-            <Upload className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm">Upload PDF (Optional)</span>
+          <div className="flex flex-col items-center justify-center space-y-2 py-4">
+            <Upload className="w-8 h-8 text-muted-foreground" />
+            <div className="text-center">
+              <p className="text-sm font-medium">Upload PDF (Optional)</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Drag & drop or click to select
+              </p>
+            </div>
           </div>
         )}
       </Card>
+      
+      {errorState && (
+        <div className="flex justify-center mt-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRetry} 
+            size="sm" 
+            className="text-xs"
+          >
+            Try again with a different file
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
