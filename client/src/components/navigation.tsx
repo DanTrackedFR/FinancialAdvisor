@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MessageCircle, User, LogOut, BarChart2, Menu, Star, TestTube, Shield } from "lucide-react";
+import { MessageCircle, User, LogOut, BarChart2, Menu, Star, Shield } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FeedbackDialog } from "./feedback-dialog";
@@ -66,12 +66,7 @@ export function Navigation() {
                 Profile
               </Link>
             </Button>
-            <Button variant={location === "/test-pages" ? "default" : "ghost"} asChild>
-              <Link to="/test-pages" className="flex items-center">
-                <TestTube className="h-4 w-4 mr-2" />
-                Test Pages
-              </Link>
-            </Button>
+
             
             {/* Admin Dashboard Link - Only visible to admins */}
             {user.isAdmin && (
@@ -134,12 +129,7 @@ export function Navigation() {
                       Profile
                     </Button>
                   </Link>
-                  <Link to="/test-pages" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start" size="lg">
-                      <TestTube className="h-4 w-4 mr-2" />
-                      Test Pages
-                    </Button>
-                  </Link>
+
                   
                   {/* Admin Link - Only visible to admins */}
                   {user.isAdmin && (

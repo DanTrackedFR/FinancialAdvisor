@@ -89,7 +89,33 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
 
     // Firebase user exists and email is verified, now check our database
     try {
-      const user = await storage.getUserByFirebaseUid(firebaseUid);
+      let user = await storage.getUserByFirebaseUid(firebaseUid);
+      
+      // If user doesn't exist in database but is authenticated in Firebase,
+      // attempt to auto-register them
+      if (!user && email) {
+        console.log(`Firebase user ${firebaseUid} (${email}) not found in database - attempting auto-registration`);
+        
+        try {
+          // Import authService dynamically to avoid circular dependencies
+          const { authService } = require('../services/auth-service');
+          
+          // Process login/registration using the auth service
+          user = await authService.processUserLogin({
+            uid: firebaseUid,
+            email: email,
+            emailVerified: emailVerified,
+            displayName: displayName
+          });
+          
+          console.log(`Auto-registered user ${email} (ID: ${user.id})`);
+        } catch (regError) {
+          console.error(`Failed to auto-register user ${email}:`, regError);
+          // Continue with the user not found response
+        }
+      }
+      
+      // Still check if user exists after auto-registration attempt
       if (!user) {
         console.log(`Firebase user ${firebaseUid} (${email}) not found in application database`);
         return res.status(404).json({

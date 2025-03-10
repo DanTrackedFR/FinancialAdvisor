@@ -58,7 +58,24 @@ export default function Home() {
         
         if (!response.ok) {
           console.error("Profile fetch failed:", response.status, response.statusText);
-          throw new Error("Failed to fetch profile");
+          
+          // If this is a 401 or 403 error, attempt to use the users/profile endpoint as fallback
+          // which might have less strict authentication requirements
+          if (response.status === 401 || response.status === 403) {
+            console.log("Attempting to fetch profile using alternative endpoint");
+            const fallbackResponse = await fetch("/api/auth/users/profile", {
+              headers: {
+                "firebase-uid": user.uid,
+                "Content-Type": "application/json",
+              },
+            });
+            
+            if (fallbackResponse.ok) {
+              return fallbackResponse.json();
+            }
+          }
+          
+          throw new Error(`Failed to fetch profile: ${response.status}`);
         }
         
         return response.json();
@@ -621,19 +638,49 @@ export default function Home() {
             ) : (
               <Card className="p-6 max-w-xl mx-auto">
                 <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-red-500">
+                  <div className="flex items-center space-x-2 text-amber-500">
                     <AlertCircle className="h-5 w-5" />
-                    <h3 className="font-medium">Error loading profile</h3>
+                    <h3 className="font-medium">Syncing your profile</h3>
                   </div>
-                  <p className="text-muted-foreground">
-                    There was a problem loading your profile information. Please try again or contact support if the issue persists.
-                  </p>
-                  <Button 
-                    onClick={() => window.location.reload()}
-                    variant="outline"
-                  >
-                    Refresh page
-                  </Button>
+                  
+                  {profileError ? (
+                    <>
+                      <p className="text-muted-foreground">
+                        We're having trouble accessing your profile information. This is common for new accounts.
+                      </p>
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => window.location.reload()}
+                          variant="outline"
+                        >
+                          Refresh page
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            // Force a new authentication cycle and profile sync
+                            if (user) {
+                              user.getIdToken(true)
+                                .then(() => window.location.reload())
+                                .catch(err => console.error("Error refreshing token:", err));
+                            } else {
+                              window.location.reload();
+                            }
+                          }}
+                        >
+                          Sync profile
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground">
+                        Creating and initializing your account. This should only take a moment...
+                      </p>
+                      <div className="flex justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    </>
+                  )}
                 </div>
               </Card>
             )}
