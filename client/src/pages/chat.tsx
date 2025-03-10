@@ -174,7 +174,8 @@ export default function ChatPage() {
       }
 
       setIsLocalUpdate(false);
-      setShowUpload(false);
+      // Directly set showUpload to false after content extraction with a small delay
+      setTimeout(() => setShowUpload(false), 500);
     } catch (error: any) {
       setIsLocalUpdate(false);
       toast({
@@ -366,28 +367,31 @@ export default function ChatPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="max-w-6xl mx-auto">
             {showUpload ? (
-              <div className="mb-4">
+              <div className="mb-1 max-w-3xl mx-auto">
                 <UploadArea
                   onContentExtracted={handleContentExtracted}
                   onProgress={setUploadProgress}
                   onAnalyzing={setIsAnalyzing}
                 />
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <Progress value={uploadProgress} className="w-full mt-2" />
-                )}
-                {isAnalyzing && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Analyzing document...</span>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setShowUpload(false)}
-                >
-                  Cancel Upload
-                </Button>
+                <div className="flex items-center gap-2 mt-2">
+                  {(uploadProgress > 0 && uploadProgress < 100) && (
+                    <Progress value={uploadProgress} className="w-full h-1.5" />
+                  )}
+                  {isAnalyzing && (
+                    <div className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span className="text-xs">Analyzing...</span>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 ml-auto text-xs"
+                    onClick={() => setShowUpload(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex gap-4 relative">

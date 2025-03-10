@@ -203,7 +203,8 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
           setExtractionId(null);
         }, 1500);
         
-        // Use the extracted text we saved earlier
+        // Call parent's callback with the extracted text
+        // This should be done before the timeout to ensure the parent processes it immediately
         onContentExtracted(extractedText);
         if (onAnalyzing) onAnalyzing(false);
 
@@ -322,51 +323,51 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
       
       <Card
         {...getRootProps()}
-        className={`p-4 border-2 border-dashed cursor-pointer transition-colors ${
+        className={`p-2 border border-dashed cursor-pointer transition-colors ${
           isDragActive ? "border-primary bg-primary/5" : "border-border"
         } ${(isLoading || !!extractionId) ? "opacity-70" : ""} ${errorState ? "border-destructive/50" : ""}`}
       >
         <input {...getInputProps()} />
         
         {showProgress ? (
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileIcon className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium truncate max-w-[150px]">{fileName}</span>
+              <div className="flex items-center gap-1">
+                <FileIcon className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium truncate max-w-[200px]">{fileName}</span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleCancel}
                 type="button"
-                className="h-8 w-8 p-0"
+                className="h-6 w-6 p-0"
               >
-                <XCircle className="h-5 w-5 text-muted-foreground hover:text-destructive" />
+                <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive" />
               </Button>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-1.5" />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Processing PDF...</span>
-              <span>{progress}%</span>
+              <span className="text-[10px]">Processing PDF...</span>
+              <span className="text-[10px]">{progress}%</span>
             </div>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="text-sm">Processing...</span>
+          <div className="flex items-center justify-center gap-1 py-1">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span className="text-xs">Processing...</span>
           </div>
         ) : isDragActive ? (
-          <div className="flex items-center justify-center gap-2">
-            <FileIcon className="w-5 h-5 text-primary" />
-            <span className="text-sm">Drop here</span>
+          <div className="flex items-center justify-center gap-1 py-1">
+            <FileIcon className="w-4 h-4 text-primary" />
+            <span className="text-xs">Drop here</span>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center space-y-2 py-4">
-            <Upload className="w-8 h-8 text-muted-foreground" />
-            <div className="text-center">
-              <p className="text-sm font-medium">Upload PDF (Optional)</p>
-              <p className="text-xs text-muted-foreground mt-1">
+          <div className="flex items-center justify-center space-x-3 py-2">
+            <Upload className="w-6 h-6 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Upload PDF</p>
+              <p className="text-xs text-muted-foreground">
                 Drag & drop or click to select
               </p>
             </div>
