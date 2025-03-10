@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF + WebSocket Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .card {
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      background-color: #fff;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .card-header h3 {
+      margin: 0;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .status-good {
+      background-color: #28a745;
+    }
+    .status-bad {
+      background-color: #dc3545;
+    }
+    .status-warning {
+      background-color: #ffc107;
+    }
+    .status-unknown {
+      background-color: #6c757d;
+    }
+    .log-area {
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      background-color: #f6f8fa;
+      border: 1px solid #e1e4e8;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      color: #28a745;
+    }
+    .error {
+      color: #dc3545;
+    }
+    .warning {
+      color: #ffc107;
+    }
+    .info {
+      color: #17a2b8;
+    }
+    button {
+      padding: 8px 15px;
+      background-color: #0366d6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #0255b3;
+    }
+    button:disabled {
+      background-color: #a0a0a0;
+      cursor: not-allowed;
+    }
+    .dragdrop {
+      border: 2px dashed #ddd;
+      padding: 20px;
+      text-align: center;
+      margin: 15px 0;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+    .dragdrop.active {
+      border-color: #0366d6;
+      background-color: rgba(3, 102, 214, 0.1);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 10px 0;
+    }
+    progress {
+      width: 100%;
+      height: 15px;
+      margin: 10px 0;
+    }
+    .message-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #6c757d;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDF + WebSocket Integration Demo</h1>
+  <p>This demo shows PDF.js and WebSocket functionality working together in a real-world scenario.</p>
+  
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div id="pdfStatusIndicator" class="status-indicator status-unknown"></div>
+        <h3>PDF Processing</h3>
+      </div>
+      
+      <div class="dragdrop" id="dropZone">
+        <p>Drag and drop a PDF file here or click to select</p>
+        <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+        <button id="selectFileButton">Select PDF File</button>
+      </div>
+      
+      <progress id="pdfProgress" value="0" max="100" style="display: none;"></progress>
+      
+      <div class="controls">
+        <button id="checkPdfButton">Check PDF.js Configuration</button>
+        <button id="extractTextButton" disabled>Extract Text</button>
+        <button id="clearPdfLogButton">Clear Log</button>
+      </div>
+      
+      <div id="pdfLog" class="log-area">PDF Processing Log</div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <div id="wsStatusIndicator" class="status-indicator status-unknown"></div>
+        <h3>WebSocket Communication</h3>
+      </div>
+      
+      <div class="controls">
+        <button id="connectButton">Connect</button>
+        <button id="disconnectButton" disabled>Disconnect</button>
+        <button id="pingButton" disabled>Send Ping</button>
+        <button id="clearWsLogButton">Clear Log</button>
+      </div>
+      
+      <div>
+        <input type="text" id="messageInput" placeholder="Type a message to send..." class="message-input" disabled>
+        <button id="sendButton" disabled>Send</button>
+      </div>
+      
+      <div id="wsLog" class="log-area">WebSocket Log</div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3>Integration Actions</h3>
+    <p>Perform actions that use both PDF processing and WebSocket communication</p>
+    
+    <div class="controls">
+      <button id="sendPdfTextButton" disabled>Send PDF Text via WebSocket</button>
+      <button id="runCombinedTestButton">Run Combined Test</button>
+    </div>
+    
+    <div id="integrationLog" class="log-area">Integration Log</div>
+  </div>
+  
+  <div class="footer">
+    <p>PDF.js Version: <span id="pdfVersion">Checking...</span> | Environment: Replit</p>
+  </div>
+  
+  <!-- PDF.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  
+  <!-- Configure PDF.js worker -->
+  <script src="/pdf.worker.config.js"></script>
+  
+  <script>
+    // DOM elements
+    const pdfStatusIndicator = document.getElementById('pdfStatusIndicator');
+    const wsStatusIndicator = document.getElementById('wsStatusIndicator');
+    const pdfLog = document.getElementById('pdfLog');
+    const wsLog = document.getElementById('wsLog');
+    const integrationLog = document.getElementById('integrationLog');
+    const pdfProgress = document.getElementById('pdfProgress');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const messageInput = document.getElementById('messageInput');
+    const pdfVersion = document.getElementById('pdfVersion');
+    
+    // Buttons
+    const selectFileButton = document.getElementById('selectFileButton');
+    const checkPdfButton = document.getElementById('checkPdfButton');
+    const extractTextButton = document.getElementById('extractTextButton');
+    const clearPdfLogButton = document.getElementById('clearPdfLogButton');
+    const connectButton = document.getElementById('connectButton');
+    const disconnectButton = document.getElementById('disconnectButton');
+    const pingButton = document.getElementById('pingButton');
+    const clearWsLogButton = document.getElementById('clearWsLogButton');
+    const sendButton = document.getElementById('sendButton');
+    const sendPdfTextButton = document.getElementById('sendPdfTextButton');
+    const runCombinedTestButton = document.getElementById('runCombinedTestButton');
+    
+    // State variables
+    let selectedFile = null;
+    let extractedText = '';
+    let socket = null;
+    
+    // Utility functions
+    function setStatus(indicator, status) {
+      indicator.className = `status-indicator status-${status}`;
+    }
+    
+    function log(container, message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const formattedMessage = `[${timestamp}] ${message}`;
+      console.log(`[${container.id}] ${formattedMessage}`);
+      
+      let className = '';
+      if (type === 'error') className = 'error';
+      else if (type === 'success') className = 'success';
+      else if (type === 'warning') className = 'warning';
+      else if (type === 'info') className = 'info';
+      
+      container.innerHTML += `\n${className ? `<span class="${className}">` : ''}${formattedMessage}${className ? '</span>' : ''}`;
+      container.scrollTop = container.scrollHeight;
+    }
+    
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' bytes';
+      else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      else return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+    
+    // PDF Functions
+    async function checkPdfConfiguration() {
+      log(pdfLog, 'Checking PDF.js configuration...');
+      
+      if (typeof pdfjsLib === 'undefined') {
+        log(pdfLog, 'PDF.js is not available!', 'error');
+        setStatus(pdfStatusIndicator, 'bad');
+        return false;
+      }
+      
+      log(pdfLog, 'PDF.js detected', 'success');
+      
+      if (pdfjsLib.version) {
+        log(pdfLog, `PDF.js version: ${pdfjsLib.version}`, 'success');
+        pdfVersion.textContent = pdfjsLib.version;
+      }
+      
+      if (pdfjsLib.GlobalWorkerOptions && pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        log(pdfLog, `Worker source: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`, 'success');
+      } else {
+        log(pdfLog, 'Worker source not configured!', 'warning');
+        setStatus(pdfStatusIndicator, 'warning');
+        return false;
+      }
+      
+      // Test with a complete minimal PDF
+      log(pdfLog, 'Testing PDF.js with a minimal valid PDF...');
+      
+      try {
+        // Complete minimal PDF structure
+        const pdfData = new Uint8Array([
+          0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, // %PDF-1.7
+          0x31, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 1 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x43, 0x61, 0x74, 0x61, 0x6c, 0x6f, 0x67, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <<Type/Catalog/Pages 2 0 R>>;
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x32, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 2 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x2f, 0x4b, 0x69, 0x64, 0x73, 0x5b, 0x33, 0x20, 0x30, 0x20, 0x52, 0x5d, 0x2f, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x20, 0x31, 0x3e, 0x3e, 0x0a, // <</Type/Pages/Kids[3 0 R]/Count 1>>
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x33, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 3 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x2f, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x2f, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x73, 0x20, 0x34, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <</Type/Page/Parent 2 0 R/Contents 4 0 R>>
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x34, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 4 0 obj
+          0x3c, 0x3c, 0x2f, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x20, 0x34, 0x34, 0x3e, 0x3e, 0x0a, // <</Length 44>>
+          0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x0a, // stream
+          0x42, 0x54, 0x0a, 0x2f, 0x46, 0x31, 0x20, 0x31, 0x38, 0x20, 0x54, 0x66, 0x0a, 0x31, 0x30, 0x30, 0x20, 0x31, 0x30, 0x30, 0x20, 0x54, 0x64, 0x0a, 0x28, 0x50, 0x44, 0x46, 0x20, 0x54, 0x65, 0x73, 0x74, 0x29, 0x20, 0x54, 0x6a, 0x0a, 0x45, 0x54, 0x0a, // BT /F1 18 Tf 100 100 Td (PDF Test) Tj ET
+          0x65, 0x6e, 0x64, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x0a, // endstream
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x78, 0x72, 0x65, 0x66, 0x0a, // xref
+          0x30, 0x20, 0x35, 0x0a, // 0 5
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x36, 0x35, 0x35, 0x33, 0x35, 0x20, 0x66, 0x0a, // 0000000000 65535 f
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x30, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000010 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x36, 0x35, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000065 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x33, 0x30, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000130 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x32, 0x30, 0x31, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000201 00000 n
+          0x74, 0x72, 0x61, 0x69, 0x6c, 0x65, 0x72, 0x0a, // trailer
+          0x3c, 0x3c, 0x2f, 0x53, 0x69, 0x7a, 0x65, 0x20, 0x35, 0x2f, 0x52, 0x6f, 0x6f, 0x74, 0x20, 0x31, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <</Size 5/Root 1 0 R>>
+          0x73, 0x74, 0x61, 0x72, 0x74, 0x78, 0x72, 0x65, 0x66, 0x0a, // startxref
+          0x33, 0x33, 0x30, 0x0a, // 330
+          0x25, 0x25, 0x45, 0x4f, 0x46, 0x0a // %%EOF
+        ]);
+        
+        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+        const pdf = await loadingTask.promise;
+        
+        log(pdfLog, `Test PDF loaded with ${pdf.numPages} pages`, 'success');
+        
+        // Try to extract text
+        const page = await pdf.getPage(1);
+        const textContent = await page.getTextContent();
+        
+        if (textContent && textContent.items) {
+          const text = textContent.items
+            .filter(item => typeof item.str === 'string')
+            .map(item => item.str)
+            .join(' ');
+          
+          if (text.includes('PDF Test')) {
+            log(pdfLog, 'Text extraction successful: "' + text + '"', 'success');
+            setStatus(pdfStatusIndicator, 'good');
+            return true;
+          } else {
+            log(pdfLog, 'Text extracted but content unexpected: "' + text + '"', 'warning');
+            setStatus(pdfStatusIndicator, 'warning');
+            return false;
+          }
+        } else {
+          log(pdfLog, 'No text content found in test PDF', 'warning');
+          setStatus(pdfStatusIndicator, 'warning');
+          return false;
+        }
+      } catch (error) {
+        log(pdfLog, 'PDF test failed: ' + error.message, 'error');
+        setStatus(pdfStatusIndicator, 'bad');
+        return false;
+      }
+    }
+    
+    async function readFileAsArrayBuffer(file, onProgress) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+          if (reader.result instanceof ArrayBuffer) {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Failed to read file as ArrayBuffer'));
+          }
+        };
+        
+        reader.onerror = () => reject(reader.error || new Error('File reading failed'));
+        
+        if (onProgress) {
+          reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = event.loaded / event.total;
+              onProgress(percentComplete);
+            }
+          };
+        }
+        
+        reader.readAsArrayBuffer(file);
+      });
+    }
+    
+    async function extractTextFromPdf() {
+      if (!selectedFile) {
+        log(pdfLog, 'No file selected', 'error');
+        return '';
+      }
+      
+      log(pdfLog, `Extracting text from ${selectedFile.name}...`);
+      pdfProgress.style.display = 'block';
+      pdfProgress.value = 0;
+      
+      try {
+        const arrayBuffer = await readFileAsArrayBuffer(selectedFile, (percent) => {
+          pdfProgress.value = percent * 20; // First 20% for loading
+        });
+        
+        log(pdfLog, `File loaded (${formatFileSize(arrayBuffer.byteLength)})`);
+        
+        // Load PDF document
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          disableRange: true,
+          disableStream: true,
+          disableAutoFetch: true
+        });
+        
+        const pdf = await loadingTask.promise;
+        log(pdfLog, `PDF loaded successfully with ${pdf.numPages} pages`, 'success');
+        
+        // Extract text from each page
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const progressValue = 20 + (i / pdf.numPages) * 80; // Remaining 80% for processing
+          pdfProgress.value = progressValue;
+          
+          log(pdfLog, `Processing page ${i}/${pdf.numPages}...`);
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          
+          // Extract text from items
+          const pageText = textContent.items
+            .map(item => {
+              if (typeof item === 'object' && 'str' in item) {
+                return item.str;
+              }
+              return '';
+            })
+            .join(' ');
+            
+          fullText += pageText + '\n\n';
+        }
+        
+        pdfProgress.value = 100;
+        log(pdfLog, 'Text extraction completed successfully!', 'success');
+        
+        // Show a sample of extracted text
+        const sampleText = fullText.substring(0, 200) + (fullText.length > 200 ? '...' : '');
+        log(pdfLog, `Extracted ${fullText.length} characters. Sample: "${sampleText}"`);
+        
+        // Hide progress after a delay
+        setTimeout(() => {
+          pdfProgress.style.display = 'none';
+        }, 2000);
+        
+        // Enable the send via WebSocket button if connected
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          sendPdfTextButton.disabled = false;
+        }
+        
+        return fullText;
+      } catch (error) {
+        pdfProgress.style.display = 'none';
+        log(pdfLog, 'Text extraction failed: ' + error.message, 'error');
+        return '';
+      }
+    }
+    
+    // WebSocket Functions
+    function connectWebSocket() {
+      if (socket) {
+        log(wsLog, 'Already connected or connecting', 'warning');
+        return false;
+      }
+      
+      log(wsLog, 'Connecting to WebSocket...');
+      setStatus(wsStatusIndicator, 'warning');
+      
+      try {
+        // Create WebSocket connection
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        log(wsLog, `Connecting to: ${wsUrl}`);
+        socket = new WebSocket(wsUrl);
+        
+        // Connection opened
+        socket.addEventListener('open', (event) => {
+          log(wsLog, 'Connection established!', 'success');
+          setStatus(wsStatusIndicator, 'good');
+          
+          // Enable WebSocket controls
+          disconnectButton.disabled = false;
+          pingButton.disabled = false;
+          messageInput.disabled = false;
+          sendButton.disabled = false;
+          connectButton.disabled = true;
+          
+          // Enable integration button if we have extracted text
+          if (extractedText) {
+            sendPdfTextButton.disabled = false;
+          }
+        });
+        
+        // Listen for messages
+        socket.addEventListener('message', (event) => {
+          try {
+            // Try to parse as JSON
+            const data = JSON.parse(event.data);
+            if (data.type === 'pong') {
+              log(wsLog, `Received pong: ${JSON.stringify(data)}`, 'success');
+            } else {
+              log(wsLog, `Received message: ${JSON.stringify(data)}`, 'info');
+            }
+          } catch (e) {
+            // Not JSON, just log as text
+            log(wsLog, `Received: ${event.data}`, 'info');
+          }
+        });
+        
+        // Connection closed
+        socket.addEventListener('close', (event) => {
+          if (event.wasClean) {
+            log(wsLog, `Connection closed cleanly, code=${event.code} reason=${event.reason}`, 'warning');
+          } else {
+            log(wsLog, 'Connection died unexpectedly', 'error');
+          }
+          
+          socket = null;
+          setStatus(wsStatusIndicator, 'bad');
+          
+          // Disable WebSocket controls
+          disconnectButton.disabled = true;
+          pingButton.disabled = true;
+          messageInput.disabled = true;
+          sendButton.disabled = true;
+          connectButton.disabled = false;
+          sendPdfTextButton.disabled = true;
+        });
+        
+        // Connection error
+        socket.addEventListener('error', (error) => {
+          log(wsLog, `WebSocket error: ${error.message || 'Unknown error'}`, 'error');
+        });
+        
+        return true;
+      } catch (error) {
+        log(wsLog, 'Failed to connect: ' + error.message, 'error');
+        socket = null;
+        setStatus(wsStatusIndicator, 'bad');
+        
+        // Reset controls
+        disconnectButton.disabled = true;
+        pingButton.disabled = true;
+        messageInput.disabled = true;
+        sendButton.disabled = true;
+        connectButton.disabled = false;
+        sendPdfTextButton.disabled = true;
+        
+        return false;
+      }
+    }
+    
+    function disconnectWebSocket() {
+      if (socket) {
+        log(wsLog, 'Disconnecting...');
+        socket.close(1000, 'User initiated disconnect');
+        return true;
+      } else {
+        log(wsLog, 'Not connected', 'warning');
+        return false;
+      }
+    }
+    
+    function sendPing() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        const pingMessage = JSON.stringify({
+          type: 'ping',
+          timestamp: Date.now()
+        });
+        
+        socket.send(pingMessage);
+        log(wsLog, `Sent ping: ${pingMessage}`);
+        return true;
+      } else {
+        log(wsLog, 'Not connected, cannot send ping', 'error');
+        return false;
+      }
+    }
+    
+    function sendWebSocketMessage(message) {
+      if (!message) {
+        log(wsLog, 'Message cannot be empty', 'warning');
+        return false;
+      }
+      
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+          // Try to parse as JSON
+          JSON.parse(message);
+          // If parsing succeeds, send as is
+          socket.send(message);
+          log(wsLog, `Sent: ${message}`);
+        } catch (error) {
+          // Not valid JSON, send as formatted message
+          const formattedMessage = JSON.stringify({
+            type: 'message',
+            content: message,
+            timestamp: Date.now()
+          });
+          
+          socket.send(formattedMessage);
+          log(wsLog, `Sent: ${formattedMessage}`);
+        }
+        
+        messageInput.value = '';
+        return true;
+      } else {
+        log(wsLog, 'Not connected, cannot send message', 'error');
+        return false;
+      }
+    }
+    
+    // Integration functions
+    function sendPdfTextViaWebSocket() {
+      if (!extractedText) {
+        log(integrationLog, 'No PDF text has been extracted yet', 'error');
+        return false;
+      }
+      
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        log(integrationLog, 'WebSocket is not connected', 'error');
+        return false;
+      }
+      
+      // Determine length to send (large PDFs will be truncated)
+      const maxLength = 10000; // 10KB max
+      const textToSend = extractedText.length > maxLength 
+        ? extractedText.substring(0, maxLength) + '... (truncated)'
+        : extractedText;
+      
+      try {
+        const message = JSON.stringify({
+          type: 'pdf_content',
+          contentLength: extractedText.length,
+          sentLength: textToSend.length,
+          truncated: extractedText.length > maxLength,
+          content: textToSend,
+          timestamp: Date.now()
+        });
+        
+        socket.send(message);
+        log(integrationLog, `PDF text sent via WebSocket (${textToSend.length} chars)`, 'success');
+        log(wsLog, `Sent PDF content (${textToSend.length} chars)`, 'success');
+        return true;
+      } catch (error) {
+        log(integrationLog, 'Failed to send PDF text: ' + error.message, 'error');
+        return false;
+      }
+    }
+    
+    async function runCombinedTest() {
+      log(integrationLog, 'Starting combined PDF + WebSocket test...', 'info');
+      
+      // Step 1: Check PDF.js configuration
+      log(integrationLog, 'Step 1: Checking PDF.js configuration');
+      const pdfConfigSuccess = await checkPdfConfiguration();
+      
+      if (!pdfConfigSuccess) {
+        log(integrationLog, 'PDF.js configuration check failed', 'error');
+        return;
+      }
+      
+      log(integrationLog, 'PDF.js check passed', 'success');
+      
+      // Step 2: Connect to WebSocket
+      log(integrationLog, 'Step 2: Establishing WebSocket connection');
+      const wsConnectSuccess = connectWebSocket();
+      
+      if (!wsConnectSuccess) {
+        log(integrationLog, 'WebSocket connection failed', 'error');
+        return;
+      }
+      
+      // Wait for connection to establish
+      await new Promise(resolve => {
+        const checkConnection = () => {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            resolve();
+          } else if (!socket) {
+            resolve(); // Connection failed
+          } else {
+            setTimeout(checkConnection, 100);
+          }
+        };
+        checkConnection();
+      });
+      
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        log(integrationLog, 'WebSocket connection timed out', 'error');
+        return;
+      }
+      
+      log(integrationLog, 'WebSocket connection established', 'success');
+      
+      // Step 3: Generate test PDF data and process it
+      log(integrationLog, 'Step 3: Processing test PDF data');
+      
+      try {
+        const pdfData = new Uint8Array([
+          0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, // %PDF-1.7
+          0x31, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 1 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x43, 0x61, 0x74, 0x61, 0x6c, 0x6f, 0x67, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <<Type/Catalog/Pages 2 0 R>>;
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x32, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 2 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x73, 0x2f, 0x4b, 0x69, 0x64, 0x73, 0x5b, 0x33, 0x20, 0x30, 0x20, 0x52, 0x5d, 0x2f, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x20, 0x31, 0x3e, 0x3e, 0x0a, // <</Type/Pages/Kids[3 0 R]/Count 1>>
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x33, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 3 0 obj
+          0x3c, 0x3c, 0x2f, 0x54, 0x79, 0x70, 0x65, 0x2f, 0x50, 0x61, 0x67, 0x65, 0x2f, 0x50, 0x61, 0x72, 0x65, 0x6e, 0x74, 0x20, 0x32, 0x20, 0x30, 0x20, 0x52, 0x2f, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x73, 0x20, 0x34, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <</Type/Page/Parent 2 0 R/Contents 4 0 R>>
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x34, 0x20, 0x30, 0x20, 0x6f, 0x62, 0x6a, 0x0a, // 4 0 obj
+          0x3c, 0x3c, 0x2f, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x20, 0x35, 0x32, 0x3e, 0x3e, 0x0a, // <</Length 52>>
+          0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x0a, // stream
+          0x42, 0x54, 0x0a, 0x2f, 0x46, 0x31, 0x20, 0x31, 0x38, 0x20, 0x54, 0x66, 0x0a, 0x31, 0x30, 0x30, 0x20, 0x31, 0x30, 0x30, 0x20, 0x54, 0x64, 0x0a, 0x28, 0x49, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x54, 0x65, 0x73, 0x74, 0x29, 0x20, 0x54, 0x6a, 0x0a, 0x45, 0x54, 0x0a, // BT /F1 18 Tf 100 100 Td (Integration Test) Tj ET
+          0x65, 0x6e, 0x64, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x0a, // endstream
+          0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a, 0x0a, // endobj
+          0x78, 0x72, 0x65, 0x66, 0x0a, // xref
+          0x30, 0x20, 0x35, 0x0a, // 0 5
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x36, 0x35, 0x35, 0x33, 0x35, 0x20, 0x66, 0x0a, // 0000000000 65535 f
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x30, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000010 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x36, 0x35, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000065 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, 0x33, 0x30, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000130 00000 n
+          0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x32, 0x30, 0x31, 0x20, 0x30, 0x30, 0x30, 0x30, 0x30, 0x20, 0x6e, 0x0a, // 0000000201 00000 n
+          0x74, 0x72, 0x61, 0x69, 0x6c, 0x65, 0x72, 0x0a, // trailer
+          0x3c, 0x3c, 0x2f, 0x53, 0x69, 0x7a, 0x65, 0x20, 0x35, 0x2f, 0x52, 0x6f, 0x6f, 0x74, 0x20, 0x31, 0x20, 0x30, 0x20, 0x52, 0x3e, 0x3e, 0x0a, // <</Size 5/Root 1 0 R>>
+          0x73, 0x74, 0x61, 0x72, 0x74, 0x78, 0x72, 0x65, 0x66, 0x0a, // startxref
+          0x33, 0x33, 0x38, 0x0a, // 338
+          0x25, 0x25, 0x45, 0x4f, 0x46, 0x0a // %%EOF
+        ]);
+        
+        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+        const pdf = await loadingTask.promise;
+        
+        log(integrationLog, `Test PDF loaded with ${pdf.numPages} pages`, 'success');
+        
+        // Extract text
+        const page = await pdf.getPage(1);
+        const textContent = await page.getTextContent();
+        
+        if (!textContent || !textContent.items) {
+          throw new Error('No text content found');
+        }
+        
+        const text = textContent.items
+          .filter(item => typeof item.str === 'string')
+          .map(item => item.str)
+          .join(' ');
+        
+        log(integrationLog, `Text extracted: "${text}"`, 'success');
+        
+        // Step 4: Send the extracted text over WebSocket
+        log(integrationLog, 'Step 4: Sending extracted text over WebSocket');
+        
+        const message = JSON.stringify({
+          type: 'pdf_test_content',
+          content: text,
+          timestamp: Date.now()
+        });
+        
+        socket.send(message);
+        log(integrationLog, 'Test message sent successfully', 'success');
+        
+        // Wait for a response (optional)
+        log(integrationLog, 'Waiting for server response...');
+        
+        // Send a ping to verify
+        sendPing();
+        
+        log(integrationLog, 'Test completed successfully!', 'success');
+      } catch (error) {
+        log(integrationLog, 'Test failed: ' + error.message, 'error');
+      }
+    }
+    
+    // Event Listeners
+    selectFileButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+    
+    fileInput.addEventListener('change', (event) => {
+      if (event.target.files && event.target.files.length > 0) {
+        selectedFile = event.target.files[0];
+        log(pdfLog, `File selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`, 'success');
+        extractTextButton.disabled = false;
+      }
+    });
+    
+    // Drag and drop handlers
+    dropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropZone.classList.add('active');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('active');
+    });
+    
+    dropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropZone.classList.remove('active');
+      
+      if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        selectedFile = event.dataTransfer.files[0];
+        log(pdfLog, `File dropped: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`, 'success');
+        extractTextButton.disabled = false;
+      }
+    });
+    
+    // Button event listeners
+    checkPdfButton.addEventListener('click', checkPdfConfiguration);
+    
+    extractTextButton.addEventListener('click', async () => {
+      extractedText = await extractTextFromPdf();
+      if (extractedText && socket && socket.readyState === WebSocket.OPEN) {
+        sendPdfTextButton.disabled = false;
+      }
+    });
+    
+    clearPdfLogButton.addEventListener('click', () => {
+      pdfLog.innerHTML = 'PDF Processing Log';
+    });
+    
+    connectButton.addEventListener('click', connectWebSocket);
+    disconnectButton.addEventListener('click', disconnectWebSocket);
+    pingButton.addEventListener('click', sendPing);
+    
+    clearWsLogButton.addEventListener('click', () => {
+      wsLog.innerHTML = 'WebSocket Log';
+    });
+    
+    sendButton.addEventListener('click', () => {
+      sendWebSocketMessage(messageInput.value);
+    });
+    
+    messageInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        sendWebSocketMessage(messageInput.value);
+      }
+    });
+    
+    sendPdfTextButton.addEventListener('click', sendPdfTextViaWebSocket);
+    runCombinedTestButton.addEventListener('click', runCombinedTest);
+    
+    // Initialize
+    window.addEventListener('load', () => {
+      log(pdfLog, 'PDF processing module initialized');
+      log(wsLog, 'WebSocket module initialized');
+      log(integrationLog, 'Integration module initialized');
+      
+      // Check PDF.js availability
+      if (typeof pdfjsLib === 'undefined') {
+        log(pdfLog, 'PDF.js not available', 'error');
+        setStatus(pdfStatusIndicator, 'bad');
+        checkPdfButton.disabled = true;
+        extractTextButton.disabled = true;
+      } else {
+        log(pdfLog, 'PDF.js detected - click "Check Configuration" to validate', 'info');
+        pdfVersion.textContent = pdfjsLib.version || 'Unknown';
+      }
+    });
+  </script>
+</body>
+</html>

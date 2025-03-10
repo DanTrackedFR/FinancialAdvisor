@@ -8,7 +8,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Zap, Cpu } from "lucide-react";
+import { FileText, Zap, Cpu, BarChart2 } from "lucide-react";
 
 export default function TestPages() {
   return (
@@ -20,7 +20,7 @@ export default function TestPages() {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -86,6 +86,29 @@ export default function TestPages() {
           <CardFooter>
             <Button asChild className="w-full">
               <a href="/pdfjs-websocket-test.html" target="_blank">Open Combined Test</a>
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart2 className="h-5 w-5" />
+              PDF + WebSocket Demo
+            </CardTitle>
+            <CardDescription>
+              Interactive demo with real-time PDF processing
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              This demo shows how PDF.js and WebSockets work together in a real-world scenario.
+              Process PDFs and transmit data in real-time through WebSockets.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button asChild className="w-full">
+              <a href="/pdf-websocket-demo.html" target="_blank">Open Interactive Demo</a>
             </Button>
           </CardFooter>
         </Card>
