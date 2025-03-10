@@ -150,10 +150,15 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
     try {
       console.log("Loading PDF document with PDF.js...");
       
+      // Check if PDF.js is available in the global scope
+      if (typeof window.pdfjsLib === 'undefined') {
+        console.error("PDF.js is not available as global object");
+        throw new Error('PDF.js library is not available. Please refresh the page and try again.');
+      }
+      
       // Enhanced options for PDF.js to improve reliability
-      // Use window.pdfjsLib when available (from CDN) or fall back to import
-      const pdfLib = (window.pdfjsLib || pdfjsLib);
-      const loadingTask = pdfLib.getDocument({ 
+      // Always use the global pdfjsLib from CDN for consistency
+      const loadingTask = window.pdfjsLib.getDocument({ 
         data: arrayBuffer,
         disableRange: true,    // Disable range requests
         disableStream: true,   // Disable streaming
@@ -220,9 +225,13 @@ export async function extractTextFromPDF(file: File, extractionId: string = `pdf
         console.log("Attempting alternative PDF loading method...");
         
         // Create a new loading task with different options
-        // Use window.pdfjsLib when available (from CDN) or fall back to import
-        const pdfLib = (window.pdfjsLib || pdfjsLib);
-        const alternativeLoadingTask = pdfLib.getDocument({
+        // Always use the global pdfjsLib from CDN for consistency
+        if (typeof window.pdfjsLib === 'undefined') {
+          console.error("PDF.js is not available as global object for alternative method");
+          throw new Error('PDF.js library is not available. Please refresh the page and try again.');
+        }
+        
+        const alternativeLoadingTask = window.pdfjsLib.getDocument({
           data: arrayBuffer,
           disableRange: true,
           disableStream: true,

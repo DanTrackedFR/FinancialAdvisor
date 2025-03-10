@@ -595,8 +595,19 @@
       
       let testSuccess = true;
       
-      // Step 1: Check PDF.js configuration
-      logIntegration('Step 1: Checking PDF.js configuration');
+      // Step 1: Verify PDF.js CDN loading
+      logIntegration('Step 1: Verifying PDF.js global availability');
+      if (typeof window.pdfjsLib === 'undefined') {
+        logIntegration('PDF.js is not available as a global object', 'error');
+        testSuccess = false;
+        updateStatus(integrationStatusIndicator, integrationStatus, 'bad', 'Integration: PDF.js not available');
+        return; // Stop the test entirely if PDF.js isn't loaded
+      } else {
+        logIntegration('PDF.js is available from CDN', 'success');
+      }
+      
+      // Step 2: Check PDF.js configuration
+      logIntegration('Step 2: Checking PDF.js configuration');
       const pdfConfigSuccess = await checkPdfConfiguration();
       if (!pdfConfigSuccess) {
         logIntegration('PDF.js configuration check failed', 'error');
@@ -605,8 +616,8 @@
         logIntegration('PDF.js configuration check passed', 'success');
       }
       
-      // Step 2: Connect to WebSocket
-      logIntegration('Step 2: Connecting to WebSocket');
+      // Step 3: Connect to WebSocket
+      logIntegration('Step 3: Connecting to WebSocket');
       const wsConnectSuccess = connectWebSocket();
       if (!wsConnectSuccess) {
         logIntegration('WebSocket connection failed', 'error');
@@ -617,8 +628,8 @@
         // Wait for the connection to fully establish
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Step 3: Send a ping message
-        logIntegration('Step 3: Sending ping message over WebSocket');
+        // Step 4: Send a ping message
+        logIntegration('Step 4: Sending ping message over WebSocket');
         const pingSuccess = sendPing();
         if (!pingSuccess) {
           logIntegration('Failed to send ping message', 'error');

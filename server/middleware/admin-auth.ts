@@ -58,6 +58,12 @@ export async function isAdmin(req: AuthenticatedRequest, res: express.Response, 
       });
     }
 
+    // Use the security check function to log and handle admin access attempts
+    const { authService } = await import('../services/auth-service');
+    
+    // Whether user has admin status or not, log the access attempt for security auditing
+    await authService.checkAdminAccessAttempt(user.id, user.email, !!user.isAdmin);
+    
     // User exists but is not an admin
     if (!user.isAdmin) {
       console.log(`Admin auth failed: User ${firebaseUid} (${user.email}) is not an admin`);

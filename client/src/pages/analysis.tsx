@@ -148,10 +148,10 @@ export default function AnalysisPage() {
 
   // Sync server messages with local optimistic messages
   useEffect(() => {
-    if (!isLocalUpdate) {
+    if (!isLocalUpdate && JSON.stringify(messages) !== JSON.stringify(localMessages)) {
       setLocalMessages(messages);
     }
-  }, [messages, isLocalUpdate]);
+  }, [messages, isLocalUpdate, localMessages]);
 
   const { mutate: updateContent } = useMutation({
     mutationFn: async (content: string) => {

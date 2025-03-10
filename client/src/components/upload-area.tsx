@@ -71,12 +71,27 @@ export function UploadArea({ onContentExtracted, onProgress, onAnalyzing, isLoad
       const file = acceptedFiles[0];
       if (!file) return;
       
-      // Basic file validation
-      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
-        setErrorState('Please upload a PDF file.');
+      // Enhanced file validation
+      const isPdfByMimeType = file.type.includes('pdf');
+      const isPdfByExtension = file.name.toLowerCase().endsWith('.pdf');
+      
+      if (!isPdfByMimeType && !isPdfByExtension) {
+        setErrorState('Please upload a PDF file. Only PDF documents are supported.');
         toast({
           title: "Invalid File Type",
-          description: "Please upload a PDF file.",
+          description: "Please upload a PDF file. Only PDF documents are supported.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
+      }
+      
+      // Additional validation for potential file issues
+      if (file.size < 100) {
+        setErrorState('The file appears to be empty or corrupted. Please upload a valid PDF document.');
+        toast({
+          title: "Invalid File",
+          description: "The file appears to be empty or corrupted. Please upload a valid PDF document.",
           variant: "destructive",
           duration: 5000,
         });

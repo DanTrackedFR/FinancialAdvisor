@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MessageCircle, User, LogOut, BarChart2, Menu, Star, TestTube } from "lucide-react";
+import { MessageCircle, User, LogOut, BarChart2, Menu, Star, TestTube, Shield } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FeedbackDialog } from "./feedback-dialog";
+import { Badge } from "@/components/ui/badge";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -71,6 +72,22 @@ export function Navigation() {
                 Test Pages
               </Link>
             </Button>
+            
+            {/* Admin Dashboard Link - Only visible to admins */}
+            {user.isAdmin && (
+              <Button 
+                variant={location.startsWith("/admin") ? "default" : "ghost"} 
+                asChild
+                className="bg-primary/10 hover:bg-primary/20"
+              >
+                <Link to="/admin" className="flex items-center">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                  <Badge className="ml-2 text-xs px-1.5 py-0" variant="outline">Admin</Badge>
+                </Link>
+              </Button>
+            )}
+            
             <Button variant="ghost" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
@@ -123,6 +140,22 @@ export function Navigation() {
                       Test Pages
                     </Button>
                   </Link>
+                  
+                  {/* Admin Link - Only visible to admins */}
+                  {user.isAdmin && (
+                    <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start bg-primary/10 hover:bg-primary/20" 
+                        size="lg"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                        <Badge className="ml-2 text-xs px-1.5 py-0" variant="outline">Admin</Badge>
+                      </Button>
+                    </Link>
+                  )}
+                  
                   <Button 
                     variant="ghost" 
                     className="w-full justify-start" 

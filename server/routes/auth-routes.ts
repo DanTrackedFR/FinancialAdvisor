@@ -28,6 +28,11 @@ router.post('/login', async (req, res) => {
     // Get email verification status from Firebase
     const firebaseUserRecord = await admin.auth().getUser(firebaseUser.uid);
     
+    // For security purposes, log admin logins separately
+    if (user.isAdmin) {
+      console.log(`ADMIN LOGIN: User ${user.email} (ID: ${user.id}) authenticated with admin privileges`);
+    }
+    
     return res.status(200).json({
       success: true,
       user: {
@@ -39,6 +44,7 @@ router.post('/login', async (req, res) => {
         emailVerified: firebaseUserRecord.emailVerified,
         subscriptionStatus: user.subscriptionStatus,
         trialEndsAt: user.trialEndsAt,
+        isAdmin: user.isAdmin || false, // Include admin status
       }
     });
   } catch (error) {
@@ -54,16 +60,20 @@ router.get('/me', isAuthenticated, (req: AuthenticatedRequest, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     
+    // Include email verification status from the req.firebaseUser if available
+    const emailVerified = req.firebaseUser?.emailVerified || true; // Default to true if not available
+    
     return res.status(200).json({
       id: req.user.id,
       email: req.user.email,
       firstName: req.user.firstName,
       surname: req.user.surname,
       company: req.user.company,
-      // Get email verification status directly from Firebase in the isAuthenticated middleware
+      emailVerified: emailVerified,
       subscriptionStatus: req.user.subscriptionStatus,
       trialEndsAt: req.user.trialEndsAt,
       subscriptionEndsAt: req.user.subscriptionEndsAt,
+      isAdmin: req.user.isAdmin || false, // Include admin status
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -122,6 +132,23 @@ router.patch('/users/profile', async (req, res) => {
 });
 
 // DELETE user account
+// Admin status verification endpoint
+router.get('/admin-status', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    // Return only the admin status without exposing other user data
+    return res.status(200).json({
+      isAdmin: req.user.isAdmin || false,
+    });
+  } catch (error) {
+    console.error('Admin status check error:', error);
+    return res.status(500).json({ error: 'Failed to verify admin status' });
+  }
+});
+
 router.delete('/account', isAuthenticated, async (req: AuthenticatedRequest, res) => {
   console.log("DELETE /api/auth/account endpoint hit");
   

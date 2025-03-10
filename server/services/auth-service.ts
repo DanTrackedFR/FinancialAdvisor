@@ -27,7 +27,19 @@ export class AuthService {
   async getUserByFirebaseId(firebaseUid: string): Promise<User | null> {
     try {
       const result = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
-      return result[0] || null;
+      
+      // Check if we found a user
+      if (result.length === 0) {
+        return null;
+      }
+      
+      // Add some debug logging for the admin status
+      const user = result[0];
+      if (user.isAdmin) {
+        console.log(`User ${user.email} has admin privileges`);
+      }
+      
+      return user;
     } catch (error) {
       console.error('Error fetching user by Firebase UID:', error);
       throw new Error('Database error when fetching user');
@@ -44,11 +56,19 @@ export class AuthService {
     surname?: string;
     company?: string;
     emailVerified: boolean;
+    isAdmin?: boolean;
   }): Promise<User> {
     try {
       const now = new Date();
       const trialEndsAt = new Date();
       trialEndsAt.setDate(now.getDate() + 14); // 14-day trial
+
+      // Check for specific admin domains or email patterns that should get admin access
+      // This is just an example - you can customize this logic based on your requirements
+      const isAdminEmail = 
+        userData.isAdmin === true || // If explicitly set to true
+        userData.email.endsWith('@trackedfr.com') || // Company domain
+        userData.email === 'danhastings06@gmail.com'; // Specific admin email
 
       const newUser = {
         firebaseUid: userData.firebaseUid,
@@ -59,7 +79,12 @@ export class AuthService {
         subscriptionStatus: 'trial' as const,
         trialEndsAt,
         createdAt: now,
+        isAdmin: isAdminEmail, // Set admin status based on email
       };
+
+      if (newUser.isAdmin) {
+        console.log(`Creating user with admin privileges: ${userData.email}`);
+      }
 
       const result = await db.insert(users).values([newUser]).returning();
       return result[0];
@@ -79,6 +104,28 @@ export class AuthService {
         .where(eq(users.id, userId));
     } catch (error) {
       console.error('Error updating last login:', error);
+    }
+  }
+
+  /**
+   * Check if a user is attempting to access admin areas
+   * This helps with additional security logging
+   */
+  async checkAdminAccessAttempt(userId: number, email: string, isAdmin: boolean) {
+    const now = new Date();
+    const timestamp = now.toISOString();
+    
+    // Log all admin access attempts (successful or not)
+    console.log(`[AUTH EVENT] [${timestamp}] User ID: ${userId}, Email: ${email}, Admin Access: ${isAdmin ? 'GRANTED' : 'DENIED'}`);
+    
+    // For non-admin users attempting to access admin areas, we can implement
+    // additional security measures like rate limiting or alerting in the future
+    if (!isAdmin) {
+      console.warn(`[SECURITY WARNING] [${timestamp}] Possible unauthorized admin access attempt by User ID: ${userId}, Email: ${email}`);
+      // Here we could implement additional security measures like
+      // - Rate limiting for failed admin attempts
+      // - Notifying administrators
+      // - Temporarily locking the account
     }
   }
 
@@ -112,7 +159,13 @@ export class AuthService {
       } else {
         // Update last login for existing user
         await this.updateLastLogin(user.id);
-        console.log('User logged in:', user.id);
+        
+        // Add specialized admin login logging
+        if (user.isAdmin) {
+          console.log(`Admin user logged in: ${user.email} (ID: ${user.id})`);
+        } else {
+          console.log('User logged in:', user.id);
+        }
       }
 
       return user;
