@@ -26,6 +26,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -120,19 +130,83 @@ export default function AuthPage() {
         // Set explicit flag to prevent home page redirection
         localStorage.setItem("signupInProgress", "true");
         
-        // Show verification dialog immediately before attempting to sign up
-        // This prevents the momentary flash of the home page
-        setShowVerificationDialog(true);
-        
         try {
-          // Process the sign-up in the background
+          // Save the email to use in verification dialog
+          const userEmail = signUpData.email;
+          setVerificationEmail(userEmail);
+          
+          // Store the email in localStorage so we can recover it if needed
+          localStorage.setItem("verificationEmail", userEmail);
+          
+          // First process the sign-up
           await signUp(signUpData);
           
-          // No need to handle success here - the verification dialog is already shown
-          // The auth context will handle the redirect to login page
+          console.log("Sign up successful, showing verification dialog");
+          
+          // Force immediate rendering of dialog using various techniques
+          
+          // 1. Add the verification pending class to prevent navigation
+          document.body.classList.add('verification-pending');
+          
+          // 2. Set immediate state
+          setShowVerificationDialog(true);
+          console.log("Dialog visibility set to true initially");
+          
+          // 3. Use a microtask to ensure rendering occurs after current stack
+          Promise.resolve().then(() => {
+            setShowVerificationDialog(true);
+            console.log("Dialog visibility set via microtask");
+          });
+          
+          // 4. Multiple timed attempts to ensure dialog appears 
+          // First check/retry after 100ms
+          setTimeout(() => {
+            const dialogElement = document.querySelector('.verification-dialog-content');
+            if (!dialogElement) {
+              console.log("Dialog not visible after 100ms, forcing display");
+              setShowVerificationDialog(false);
+              
+              requestAnimationFrame(() => {
+                setShowVerificationDialog(true);
+                console.log("Dialog visibility forced via requestAnimationFrame");
+              });
+            }
+          }, 100);
+          
+          // Second check/retry after 500ms
+          setTimeout(() => {
+            const dialogElement = document.querySelector('.verification-dialog-content');
+            if (!dialogElement) {
+              console.log("Dialog not visible after 500ms, forcing display");
+              setShowVerificationDialog(false);
+              
+              setTimeout(() => {
+                setShowVerificationDialog(true);
+                console.log("Dialog visibility forced again");
+                
+                // Set up a continuous interval to keep checking and enforcing visibility
+                const visibilityInterval = setInterval(() => {
+                  if (!document.querySelector('.verification-dialog-content') && 
+                      localStorage.getItem("signupInProgress") === "true") {
+                    console.log("Dialog disappeared, forcing display again");
+                    setShowVerificationDialog(true);
+                  }
+                }, 1000);
+                
+                // Clean up after 30 seconds
+                setTimeout(() => clearInterval(visibilityInterval), 30000);
+              }, 50);
+            }
+          }, 500);
+          
+          // Toast notification for email verification 
+          toast({
+            title: "Sign Up Successful",
+            description: "Please check your email to verify your account.",
+          });
+          
         } catch (signupError) {
-          // If signup failed, hide the verification dialog and show error
-          setShowVerificationDialog(false);
+          // Remove the flag since signup failed
           localStorage.removeItem("signupInProgress");
           
           toast({
@@ -164,19 +238,81 @@ export default function AuthPage() {
   }, [loginForm, signUpForm]);
 
   const handleVerificationDialogClose = () => {
+    console.log("Closing verification dialog");
+    
+    // First set the dialog state to closed
     setShowVerificationDialog(false);
+    
+    // Reset the form
     signUpForm.reset();
+    
+    // Switch to login mode
     setMode("login");
     
     // Clean up all signup flags to ensure consistent state
     localStorage.removeItem("signupInProgress");
+    localStorage.removeItem("justSignedUp");
+    localStorage.removeItem("verificationEmail");
+    
+    // Remove the verification pending class
+    document.body.classList.remove('verification-pending');
     
     // Show toast to remind user to check email
     toast({
       title: "Check your email",
       description: "Please verify your account by clicking the link we sent to your email (check spam/junk folder if not visible).",
     });
+    
+    // Add a log to verify everything was cleaned up
+    console.log("Verification dialog closed, flags cleaned up");
   };
+
+  // Check for pending verification on component mount
+  useEffect(() => {
+    // If there's a signup in progress flag, show the verification dialog
+    if (localStorage.getItem("signupInProgress") === "true") {
+      console.log("Found signupInProgress flag, restoring verification dialog");
+      // Attempt to restore the email being verified
+      const email = localStorage.getItem("verificationEmail");
+      if (email) {
+        setVerificationEmail(email);
+      }
+      
+      // Show the dialog with a small delay to ensure DOM is ready
+      setTimeout(() => {
+        setShowVerificationDialog(true);
+        console.log("Verification dialog restored");
+        
+        // Add the verification pending class
+        document.body.classList.add('verification-pending');
+        
+        // Set up an interval to periodically check if dialog is visible
+        // and force it to be visible if it's not
+        const dialogCheckInterval = setInterval(() => {
+          const dialogElement = document.querySelector('.verification-dialog-content');
+          if (!dialogElement && localStorage.getItem("signupInProgress") === "true") {
+            console.log("Dialog not found, forcing display");
+            setShowVerificationDialog(false);
+            
+            // Use a microtask to ensure state updates properly
+            Promise.resolve().then(() => {
+              setShowVerificationDialog(true);
+              console.log("Dialog visibility forced true");
+            });
+          }
+        }, 500); // Check every 500ms
+        
+        // Clean up interval after 30 seconds
+        setTimeout(() => {
+          clearInterval(dialogCheckInterval);
+        }, 30000);
+        
+        return () => {
+          clearInterval(dialogCheckInterval);
+        };
+      }, 100);
+    }
+  }, []);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -534,33 +670,82 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <Dialog open={showVerificationDialog} onOpenChange={setShowVerificationDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Verify Your Email</DialogTitle>
-            <DialogDescription>
-              We've sent a verification email to <span className="font-medium">{verificationEmail}</span>.
-              Please click the link in that email to verify your account.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 text-sm text-muted-foreground">
-            <p className="mb-2 font-bold">
-              You won't be able to log in until you verify your email address.
-            </p>
-            <p className="mb-2">
-              If you don't see the email in your inbox, please check your spam or junk folder.
-            </p>
-            <p>
-              Once your email is verified, you can sign in to your account using your credentials.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleVerificationDialogClose}>
-              I'll check my email
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog 
+        open={showVerificationDialog} 
+        onOpenChange={(open) => {
+          // Only allow changes when closing
+          if (!open) {
+            handleVerificationDialogClose();
+          }
+        }}
+      >
+        <div 
+          className="verification-dialog-overlay" 
+          onClick={(e) => {
+            // Stop propagation to prevent accidental closing
+            e.stopPropagation();
+            
+            // Focus the dialog button when clicking anywhere on overlay
+            const actionButton = document.querySelector('.verification-dialog-content button');
+            if (actionButton) {
+              (actionButton as HTMLElement).focus();
+            }
+          }}
+        >
+          <AlertDialogContent 
+            className="verification-dialog-content" 
+            onEscapeKeyDown={(e) => {
+              // Prevent accidental escape key dismissal
+              e.preventDefault();
+            }}
+            // Force focus trap to ensure keyboard accessibility
+            onOpenAutoFocus={(e) => {
+              e.preventDefault();
+              const actionButton = document.querySelector('.verification-dialog-content button');
+              if (actionButton) {
+                (actionButton as HTMLElement).focus();
+              }
+            }}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-bold text-center">
+                Email Verification Required
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-center">
+                <p className="font-medium text-lg">
+                  We've sent a verification email to:
+                </p>
+                <p className="font-bold text-primary text-lg mt-2 mb-2">
+                  {verificationEmail}
+                </p>
+                <p className="mt-2">
+                  You must verify your email before continuing.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4 text-sm text-muted-foreground bg-slate-50 rounded-md p-4 my-2">
+              <p className="mb-2 font-bold text-base text-red-500">
+                IMPORTANT: You won't be able to log in until you verify your email address.
+              </p>
+              <p className="mb-2">
+                ✉️ If you don't see the email in your inbox, please check your spam or junk folder.
+              </p>
+              <p>
+                ✅ Once your email is verified, you can sign in to your account using your credentials.
+              </p>
+            </div>
+            <AlertDialogFooter className="flex justify-center">
+              <AlertDialogAction 
+                onClick={handleVerificationDialogClose}
+                className="bg-primary hover:bg-primary/90 font-bold text-base px-8 py-2"
+                autoFocus
+              >
+                I'll check my email now
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </div>
+      </AlertDialog>
 
       <div className="hidden lg:block bg-slate-50">
         <div className="h-full flex items-center justify-center p-8">

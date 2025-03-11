@@ -5,6 +5,7 @@ import { AuthenticatedRequest, isAuthenticated } from '../middleware/auth-middle
 import { storage } from '../storage';
 import admin from 'firebase-admin';
 import z from 'zod';
+import { createCustomer, createCheckoutSession } from '../services/stripe';
 
 const router = Router();
 
@@ -182,6 +183,42 @@ router.delete('/account', isAuthenticated, async (req: AuthenticatedRequest, res
   } catch (error: any) {
     console.error('Account deletion error:', error);
     return res.status(500).json({ error: 'Failed to process account deletion request' });
+  }
+});
+
+// Add subscription management endpoint
+router.post('/subscriptions/manage', isAuthenticated, async (req: AuthenticatedRequest, res) => {
+  try {
+    console.log("POST /api/auth/subscriptions/manage endpoint hit");
+    
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userId = req.user.id;
+    
+    if (!req.user.stripeCustomerId) {
+      // Create a new customer if they don't have one
+      const customer = await createCustomer(
+        userId,
+        req.user.email,
+        `${req.user.firstName} ${req.user.surname}`
+      );
+      await storage.updateStripeCustomerId(userId, customer.id);
+      req.user.stripeCustomerId = customer.id;
+    }
+    
+    // Create checkout session
+    console.log('Creating checkout session with customerId:', req.user.stripeCustomerId);
+    const session = await createCheckoutSession(req.user.stripeCustomerId, userId);
+    console.log('Checkout session created:', session.id);
+    console.log('Checkout URL:', session.url);
+    
+    // Send the checkout URL in the response
+    res.status(200).json({ url: session.url });
+  } catch (error: any) {
+    console.error("Error managing subscription:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 

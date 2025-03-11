@@ -10,4 +10,60 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  
+  /* Style for blocking navigation during verification */
+  body.verification-pending {
+    overflow: hidden;
+  }
+  
+  /* Ensure dialogs are visible over any other content */
+  [role="dialog"] {
+    z-index: 9999;
+  }
+}
+
+/* Special styling for verification dialog */
+.verification-dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.95) !important; /* Almost black overlay */
+  z-index: 99999 !important; /* Highest possible z-index */
+  position: fixed !important; /* Force fixed positioning */
+  inset: 0 !important; /* Cover the entire screen */
+  backdrop-filter: blur(10px) !important; /* Add blur effect */
+  display: flex !important; /* Use flexbox for centering */
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Create an additional backdrop with animation */
+.verification-dialog-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.2), transparent 70%);
+  animation: pulse-background 3s infinite ease-in-out !important;
+}
+
+.verification-dialog-content {
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.8) !important; /* Enhanced glowing blue effect */
+  border: 4px solid rgb(59, 130, 246) !important;
+  animation: pulse 2s infinite !important; /* Add pulsing animation */
+  position: relative !important; /* Change to relative since parent is flex */
+  max-width: 90vw !important; /* Ensure visibility on mobile */
+  width: 450px !important; /* Set width for better visibility */
+  z-index: 100000 !important; /* Higher than the overlay */
+  background-color: white !important; /* Ensure background is solid */
+}
+
+/* Add pulsing animation for better visibility */
+@keyframes pulse {
+  0% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+  50% { box-shadow: 0 0 45px rgba(59, 130, 246, 1); }
+  100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+}
+
+/* Background pulse animation */
+@keyframes pulse-background {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.5; }
 }

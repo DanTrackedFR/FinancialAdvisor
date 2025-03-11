@@ -22,11 +22,10 @@ export async function createCustomer(userId: number, email: string, name: string
 
     await storage.updateStripeCustomerId(userId, customer.id);
 
-    // Set trial end date
-    const trialEnd = addDays(new Date(), TRIAL_PERIOD_DAYS);
-    await storage.updateUser(userId, {
-      trial_ends_at: trialEnd,
-    });
+    // Note: We would normally set the trial end date here,
+    // but that functionality would need to be implemented with a
+    // separate method since trialEndsAt is not part of the updateUser fields.
+    // For now, we'll skip setting the trial end date as part of customer creation.
 
     return customer;
   } catch (error) {

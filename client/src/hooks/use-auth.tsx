@@ -298,10 +298,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!inSignupProcess) {
         // Redirect to login page to avoid flashing of home page
         window.location.href = '/auth?mode=login';
+        
+        // Only remove the flag if we're redirecting
+        // Otherwise keep it so the dialog can be shown
+        localStorage.removeItem("signupInProgress");
       }
       
-      // Clear the signup in progress flag
-      localStorage.removeItem("signupInProgress");
+      // DO NOT remove the signupInProgress flag here 
+      // It will be removed when the verification dialog is closed
 
       toast({
         title: "Verification Email Sent",
