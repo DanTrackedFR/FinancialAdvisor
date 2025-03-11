@@ -9,6 +9,91 @@
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <!-- Configure PDF.js worker -->
     <script src="/pdf.worker.config.js"></script>
+    <!-- WebSocket error handling for Replit environment -->
+    <script>
+      // Handle Vite WebSocket connection issues in Replit environment
+      (function(){
+        // Silence WebSocket connection errors in console
+        const originalConsoleError = console.error;
+        console.error = function() {
+          // Filter out Vite WebSocket connection errors
+          if (arguments[0] && typeof arguments[0] === 'string' && 
+              (arguments[0].includes('WebSocket connection') || 
+               arguments[0].includes('failed to connect to websocket'))) {
+            // Suppress these errors
+            return;
+          }
+          // Pass through other errors
+          return originalConsoleError.apply(console, arguments);
+        };
+        
+        // Override WebSocket to make the application more resilient
+        const OriginalWebSocket = window.WebSocket;
+        const wsOpenCallbacks = [];
+        const wsCloseCallbacks = [];
+        const wsErrorCallbacks = [];
+        
+        // Create a more resilient WebSocket that works better in Replit
+        window.WebSocket = function(url, protocols) {
+          // Add special handling for our custom WebSocket path
+          if (url.includes('/ws')) {
+            console.log('[WebSocket Wrapper] Creating wrapped WebSocket for:', url);
+            
+            const isReplit = window.location.hostname.includes('.replit.dev') || 
+                          window.location.hostname.includes('.repl.co') ||
+                          window.location.hostname.includes('.replit.app');
+                          
+            if (isReplit) {
+              const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+              
+              // Try different URL format for Replit
+              const hostname = window.location.hostname;
+              const newUrl = `${protocol}//${hostname}/ws`;
+              console.log('[WebSocket Wrapper] Using optimized URL for Replit:', newUrl);
+              url = newUrl;
+            }
+          }
+          
+          // Create the original WebSocket
+          const socket = new OriginalWebSocket(url, protocols);
+          
+          // Track connections centrally
+          socket.addEventListener('open', function() {
+            wsOpenCallbacks.forEach(cb => cb(socket, url));
+          });
+          
+          socket.addEventListener('close', function(event) {
+            wsCloseCallbacks.forEach(cb => cb(socket, event));
+          });
+          
+          socket.addEventListener('error', function(event) {
+            wsErrorCallbacks.forEach(cb => cb(socket, event));
+          });
+          
+          return socket;
+        };
+        
+        // Copy over original properties
+        for (let prop in OriginalWebSocket) {
+          if (OriginalWebSocket.hasOwnProperty(prop)) {
+            window.WebSocket[prop] = OriginalWebSocket[prop];
+          }
+        }
+        
+        // Add ability to register global handlers
+        window.WebSocket.addOpenCallback = function(cb) {
+          wsOpenCallbacks.push(cb);
+        };
+        
+        window.WebSocket.addCloseCallback = function(cb) {
+          wsCloseCallbacks.push(cb);
+        };
+        
+        window.WebSocket.addErrorCallback = function(cb) {
+          wsErrorCallbacks.push(cb);
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

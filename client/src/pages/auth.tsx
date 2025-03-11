@@ -313,6 +313,73 @@ export default function AuthPage() {
       }, 100);
     }
   }, []);
+  
+  // Special keyboard and focus handling for the verification dialog
+  useEffect(() => {
+    if (!showVerificationDialog) return;
+    
+    console.log("Setting up enhanced keyboard and focus handling for verification dialog");
+    
+    // Focus the button initially and when needed
+    const focusActionButton = () => {
+      setTimeout(() => {
+        const actionButton = document.querySelector('.verification-dialog-content button[type="button"]');
+        if (actionButton) {
+          (actionButton as HTMLElement).focus();
+          console.log("Focused verification dialog button");
+        }
+      }, 100);
+    };
+    
+    // Focus button on mount
+    focusActionButton();
+    
+    // Set up a continuous focus check to ensure the button remains focused
+    const focusCheckInterval = setInterval(() => {
+      if (document.querySelector('.verification-dialog-content')) {
+        // If dialog is open but focus is outside, refocus
+        const isDialogFocused = document.activeElement && 
+          document.querySelector('.verification-dialog-content')?.contains(document.activeElement);
+        
+        if (!isDialogFocused) {
+          focusActionButton();
+        }
+      } else {
+        // Dialog not found but should be open, clear interval
+        clearInterval(focusCheckInterval);
+      }
+    }, 1000);
+    
+    // Handle attention animation for certain key presses
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // Prevent default escape key behavior
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Show attention animation
+        const dialogContent = document.querySelector('.verification-dialog-content');
+        if (dialogContent) {
+          dialogContent.classList.add('dialog-attention');
+          setTimeout(() => {
+            dialogContent.classList.remove('dialog-attention');
+          }, 500);
+        }
+        
+        // Refocus button
+        focusActionButton();
+      }
+    };
+    
+    // Add keyboard event listener
+    document.addEventListener("keydown", handleKeyDown, true);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      clearInterval(focusCheckInterval);
+    };
+  }, [showVerificationDialog]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -671,80 +738,55 @@ export default function AuthPage() {
       </div>
 
       <AlertDialog 
-        open={showVerificationDialog} 
+        open={showVerificationDialog}
         onOpenChange={(open) => {
           // Only allow changes when closing
           if (!open) {
             handleVerificationDialogClose();
+          } else {
+            // Force open state when trying to open
+            document.body.classList.add('verification-pending');
           }
         }}
       >
-        <div 
-          className="verification-dialog-overlay" 
-          onClick={(e) => {
-            // Stop propagation to prevent accidental closing
-            e.stopPropagation();
-            
-            // Focus the dialog button when clicking anywhere on overlay
-            const actionButton = document.querySelector('.verification-dialog-content button');
-            if (actionButton) {
-              (actionButton as HTMLElement).focus();
-            }
-          }}
-        >
-          <AlertDialogContent 
-            className="verification-dialog-content" 
-            onEscapeKeyDown={(e) => {
-              // Prevent accidental escape key dismissal
-              e.preventDefault();
-            }}
-            // Force focus trap to ensure keyboard accessibility
-            onOpenAutoFocus={(e) => {
-              e.preventDefault();
-              const actionButton = document.querySelector('.verification-dialog-content button');
-              if (actionButton) {
-                (actionButton as HTMLElement).focus();
-              }
-            }}
-          >
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl font-bold text-center">
-                Email Verification Required
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-center">
-                <p className="font-medium text-lg">
-                  We've sent a verification email to:
-                </p>
-                <p className="font-bold text-primary text-lg mt-2 mb-2">
-                  {verificationEmail}
-                </p>
-                <p className="mt-2">
-                  You must verify your email before continuing.
-                </p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4 text-sm text-muted-foreground bg-slate-50 rounded-md p-4 my-2">
-              <p className="mb-2 font-bold text-base text-red-500">
-                IMPORTANT: You won't be able to log in until you verify your email address.
+        <AlertDialogContent className="verification-dialog-content">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-center">
+              Email Verification Required
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              <p className="font-medium text-lg">
+                We've sent a verification email to:
               </p>
-              <p className="mb-2">
-                ✉️ If you don't see the email in your inbox, please check your spam or junk folder.
+              <p className="font-bold text-primary text-lg mt-2 mb-2">
+                {verificationEmail}
               </p>
-              <p>
-                ✅ Once your email is verified, you can sign in to your account using your credentials.
+              <p className="mt-2">
+                You must verify your email before continuing.
               </p>
-            </div>
-            <AlertDialogFooter className="flex justify-center">
-              <AlertDialogAction 
-                onClick={handleVerificationDialogClose}
-                className="bg-primary hover:bg-primary/90 font-bold text-base px-8 py-2"
-                autoFocus
-              >
-                I'll check my email now
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4 text-sm text-muted-foreground bg-slate-50 rounded-md p-4 my-2">
+            <p className="mb-2 font-bold text-base text-red-500">
+              IMPORTANT: You won't be able to log in until you verify your email address.
+            </p>
+            <p className="mb-2">
+              ✉️ If you don't see the email in your inbox, please check your spam or junk folder.
+            </p>
+            <p>
+              ✅ Once your email is verified, you can sign in to your account using your credentials.
+            </p>
+          </div>
+          <AlertDialogFooter className="flex justify-center">
+            <AlertDialogAction 
+              onClick={handleVerificationDialogClose}
+              className="bg-primary hover:bg-primary/90 font-bold text-base px-8 py-2"
+              autoFocus
+            >
+              I'll check my email now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       <div className="hidden lg:block bg-slate-50">

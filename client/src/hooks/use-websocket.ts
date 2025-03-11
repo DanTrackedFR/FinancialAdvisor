@@ -90,16 +90,20 @@ const createWebSocketConnection = (
       connectionStrategies.push(strategy1);
       console.log('[WebSocket] Connection strategy #1:', strategy1);
       
-      // Strategy 2: Use origin-based URL
-      const originUrlBase = window.location.origin.replace(/^http/, '');
-      const strategy2 = `${protocol}${originUrlBase}/ws`;
+      // Strategy 2: Use origin-based URL with explicit port 443 for SSL connections
+      const strategy2 = `${protocol}//${window.location.hostname}:443/ws`;
       connectionStrategies.push(strategy2);
       console.log('[WebSocket] Connection strategy #2:', strategy2);
       
-      // Strategy 3: Use full host with port (if present in URL)
-      const strategy3 = `${protocol}//${window.location.host}/ws`;
+      // Strategy 3: Use full origin with pathname
+      const strategy3 = `${window.location.origin.replace(/^http/, protocol)}/ws`;
       connectionStrategies.push(strategy3);
       console.log('[WebSocket] Connection strategy #3:', strategy3);
+      
+      // Strategy 4: Use full host with port (if present in URL)
+      const strategy4 = `${protocol}//${window.location.host}/ws`;
+      connectionStrategies.push(strategy4);
+      console.log('[WebSocket] Connection strategy #4:', strategy4);
       
       // Use the first strategy by default
       currentWsUrl = connectionStrategies[0];
@@ -202,19 +206,22 @@ const createWebSocketConnection = (
             
             // Try different URL formats based on the reconnect attempt number
             // This helps work around different Replit proxy configurations
-            if (globalReconnectAttempts % 3 === 0) {
+            if (globalReconnectAttempts % 4 === 0) {
               // First attempt: use hostname without port
               currentWsUrl = `${protocol}//${window.location.hostname}/ws`;
-            } else if (globalReconnectAttempts % 3 === 1) {
-              // Second attempt: use origin-based approach (full URL with path)
+            } else if (globalReconnectAttempts % 4 === 1) {
+              // Second attempt: use hostname with explicit port 443 for SSL
+              currentWsUrl = `${protocol}//${window.location.hostname}:443/ws`;
+            } else if (globalReconnectAttempts % 4 === 2) {
+              // Third attempt: use origin-based approach (full URL with path)
               const origin = window.location.origin.replace(/^http/, protocol === 'wss:' ? 'https' : 'http');
               currentWsUrl = `${origin.replace(/^http/, protocol)}/ws`;
             } else {
-              // Third attempt: use host (may include port if present in browser URL)
+              // Fourth attempt: use host (may include port if present in browser URL)
               currentWsUrl = `${protocol}//${window.location.host}/ws`;
             }
             
-            console.log(`[WebSocket] Using URL format #${(globalReconnectAttempts % 3) + 1}: ${currentWsUrl}`);
+            console.log(`[WebSocket] Using URL format #${(globalReconnectAttempts % 4) + 1}: ${currentWsUrl}`);
           }
           
           createWebSocketConnection(

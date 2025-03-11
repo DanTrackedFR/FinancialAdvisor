@@ -13,29 +13,32 @@
   
   /* Style for blocking navigation during verification */
   body.verification-pending {
-    overflow: hidden;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
   }
   
   /* Ensure dialogs are visible over any other content */
   [role="dialog"] {
     z-index: 9999;
   }
+  
+  /* Ensure alert dialogs have highest priority */
+  [role="alertdialog"] {
+    z-index: 99999;
+  }
 }
 
-/* Special styling for verification dialog */
-.verification-dialog-overlay {
+/* Special styling for verification dialog overlay */
+body.verification-pending [data-radix-alert-dialog-overlay] {
   background-color: rgba(0, 0, 0, 0.95) !important; /* Almost black overlay */
   z-index: 99999 !important; /* Highest possible z-index */
-  position: fixed !important; /* Force fixed positioning */
-  inset: 0 !important; /* Cover the entire screen */
   backdrop-filter: blur(10px) !important; /* Add blur effect */
-  display: flex !important; /* Use flexbox for centering */
-  align-items: center !important;
-  justify-content: center !important;
 }
 
 /* Create an additional backdrop with animation */
-.verification-dialog-overlay::before {
+body.verification-pending [data-radix-alert-dialog-overlay]::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -43,15 +46,17 @@
   animation: pulse-background 3s infinite ease-in-out !important;
 }
 
+/* Target the AlertDialogContent */
 .verification-dialog-content {
   box-shadow: 0 0 40px rgba(59, 130, 246, 0.8) !important; /* Enhanced glowing blue effect */
   border: 4px solid rgb(59, 130, 246) !important;
   animation: pulse 2s infinite !important; /* Add pulsing animation */
-  position: relative !important; /* Change to relative since parent is flex */
   max-width: 90vw !important; /* Ensure visibility on mobile */
   width: 450px !important; /* Set width for better visibility */
-  z-index: 100000 !important; /* Higher than the overlay */
   background-color: white !important; /* Ensure background is solid */
+  transform: scale(1.05) !important; /* Slightly larger for attention */
+  transition: all 0.3s ease-in-out !important;
+  border-radius: 12px !important; /* Slightly rounded corners */
 }
 
 /* Add pulsing animation for better visibility */
@@ -66,4 +71,19 @@
   0% { opacity: 0.5; }
   50% { opacity: 0.8; }
   100% { opacity: 0.5; }
+}
+
+/* Attention animation for dialog interactions */
+.dialog-attention {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both !important;
+  transform: translate3d(0, 0, 0) !important;
+  backface-visibility: hidden !important;
+  perspective: 1000px !important;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
