@@ -347,8 +347,107 @@ export default function Home() {
             </div>
           </section>
 
-          {/* About Tracked Section */}
+          {/* Security Section */}
           <section className="py-16 bg-slate-100">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-8">
+                Security You Can Trust
+              </h2>
+              <div className="max-w-5xl mx-auto">
+                <div className="text-center mb-8">
+                  <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-6">
+                    At Tracked, we take security seriously. Your financial data is sensitive, and we implement enterprise-grade security measures to ensure it stays protected.
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                  <Card className="bg-white border-t-4 border-t-blue-600">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center mb-2">
+                        <CheckCircle2 className="h-5 w-5 text-blue-600 mr-2" />
+                        <CardTitle className="text-lg">Data Protection</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>End-to-end encryption for all data</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Continuous application monitoring</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Password-based authentication with Firebase</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white border-t-4 border-t-blue-600">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center mb-2">
+                        <CheckCircle2 className="h-5 w-5 text-blue-600 mr-2" />
+                        <CardTitle className="text-lg">Compliance</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Privacy-focused data handling</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Role-based access controls</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Working towards SOC2 certification</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white border-t-4 border-t-blue-600">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center mb-2">
+                        <CheckCircle2 className="h-5 w-5 text-blue-600 mr-2" />
+                        <CardTitle className="text-lg">Infrastructure</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Firebase JWT authentication tokens</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>Continuous security monitoring</span>
+                        </li>
+                        <li className="flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>High-availability cloud infrastructure</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="mt-10 text-center">
+                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+                    We're committed to achieving SOC2 certification to further validate our security practices and provide you with additional assurance that your data is protected according to industry standards.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* About Tracked Section */}
+          <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">
                 About Tracked
@@ -389,7 +488,7 @@ export default function Home() {
           </section>
 
           {/* Partners Section with responsive logos */}
-          <section className="py-8 md:py-16 bg-white">
+          <section className="py-8 md:py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
                 Built by alumni who know what great looks like
@@ -415,7 +514,7 @@ export default function Home() {
           </section>
 
           {/* Customers Section */}
-          <section className="py-16 bg-slate-100">
+          <section className="py-16 bg-white">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold text-center mb-12">
                 Who are our customers?
@@ -446,7 +545,7 @@ export default function Home() {
           </section>
 
           {/* Testimonials Section with mobile optimization */}
-          <section className="py-8 md:py-16 bg-white">
+          <section className="py-8 md:py-16 bg-slate-100">
             <div className="container mx-auto px-4">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12">
                 What Our Users Say
@@ -487,7 +586,7 @@ export default function Home() {
           </section>
 
           {/* CTA Section */}
-          <section className="py-16 bg-slate-100">
+          <section className="py-16 bg-white">
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-3xl font-bold mb-4">
                 Experience automated financial statements
