@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -40,10 +41,12 @@ import { FeedbackDialog } from "@/components/feedback-dialog";
 
 export default function Home() {
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
 
   const { 
     data: profile, 
@@ -602,9 +605,9 @@ export default function Home() {
                 Contact Us
               </h2>
               <div className="max-w-4xl mx-auto">
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className="grid md:grid-cols-1 gap-8">
                   {/* Contact Information */}
-                  <div className="space-y-6">
+                  <div>
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center">
@@ -628,7 +631,7 @@ export default function Home() {
                   
                   {/* Contact Form */}
                   <div>
-                    <Card className="h-full flex flex-col">
+                    <Card className="flex flex-col">
                       <CardHeader>
                         <CardTitle>Send Us a Message</CardTitle>
                         <CardDescription>
@@ -637,11 +640,92 @@ export default function Home() {
                       </CardHeader>
                       <CardContent className="flex-grow">
                         <form
-                          onSubmit={(e) => {
+                          onSubmit={async (e) => {
                             e.preventDefault();
-                            // In a real application, this would send the form data to the server
-                            alert("Message sent! We'll get back to you soon.");
-                            // Reset form fields here
+                            const form = e.target as HTMLFormElement;
+                            const formData = new FormData(form);
+                            
+                            // Get form values
+                            const name = formData.get('name') as string;
+                            const email = formData.get('email') as string;
+                            const message = formData.get('message') as string;
+                            
+                            // Validate form data
+                            if (!name || !email || !message) {
+                              toast({
+                                title: "Error",
+                                description: "Please fill in all the fields",
+                                variant: "destructive",
+                                duration: 5000,
+                              });
+                              return;
+                            }
+
+                            try {
+                              // Set loading state
+                              setIsSubmittingContact(true);
+                              
+                              // Send data to the server
+                              const response = await fetch('/api/contact', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  name,
+                                  email,
+                                  message
+                                }),
+                              });
+
+                              // Handle non-OK responses
+                              if (!response.ok) {
+                                const errorData = await response.json().catch(() => null);
+                                
+                                if (errorData && errorData.errors && errorData.errors.length > 0) {
+                                  // If we have validation errors, throw with the first error message
+                                  throw new Error(errorData.errors[0].message || 'Failed to send message');
+                                } else if (errorData && errorData.message) {
+                                  // If we have a general error message
+                                  throw new Error(errorData.message);
+                                } else {
+                                  // Default error message
+                                  throw new Error('Failed to send message. Please try again later.');
+                                }
+                              }
+
+                              // Show success toast notification
+                              toast({
+                                title: "Message Sent",
+                                description: "Thanks very much for the message, we'll get back to you as soon as possible.",
+                                variant: "default",
+                                duration: 5000,
+                              });
+                              
+                              // Reset form fields
+                              form.reset();
+                            } catch (error) {
+                              console.error('Error sending contact message:', error);
+                              
+                              // Try to extract the validation error message if it's a response from the server
+                              let errorMessage = "Failed to send your message. Please try again later.";
+                              
+                              if (error instanceof Error) {
+                                errorMessage = error.message;
+                              }
+                              
+                              // No need to process Response objects since we're already handling them above
+                              
+                              toast({
+                                title: "Error",
+                                description: errorMessage,
+                                variant: "destructive",
+                                duration: 5000,
+                              });
+                            } finally {
+                              // Reset loading state
+                              setIsSubmittingContact(false);
+                            }
                           }}
                           className="space-y-4"
                         >
@@ -650,6 +734,7 @@ export default function Home() {
                               <Label htmlFor="name">Name</Label>
                               <Input 
                                 id="name"
+                                name="name"
                                 type="text" 
                                 placeholder="Your name" 
                                 required
@@ -659,6 +744,7 @@ export default function Home() {
                               <Label htmlFor="email">Email</Label>
                               <Input 
                                 id="email"
+                                name="email"
                                 type="email" 
                                 placeholder="Your email" 
                                 required
@@ -669,12 +755,26 @@ export default function Home() {
                             <Label htmlFor="message">Message</Label>
                             <Textarea 
                               id="message"
-                              placeholder="Your message" 
+                              name="message"
+                              placeholder="Your message (minimum 10 characters)" 
                               rows={4}
                               required
+                              minLength={10}
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Please provide a message of at least 10 characters
+                            </p>
                           </div>
-                          <Button type="submit" className="w-full">Send Message</Button>
+                          <Button type="submit" className="w-full" disabled={isSubmittingContact}>
+                            {isSubmittingContact ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              "Send Message"
+                            )}
+                          </Button>
                         </form>
                       </CardContent>
                     </Card>

@@ -1,8 +1,9 @@
-import { analyses, messages, users, subscriptions, pageViews, userSessions, userActions, feedback,
+import { analyses, messages, users, subscriptions, pageViews, userSessions, userActions, feedback, contactMessages,
   type Analysis, type InsertAnalysis, type Message, type InsertMessage, 
   type User, type InsertUser, type Subscription, type InsertSubscription,
   type PageView, type InsertPageView, type UserSession, type InsertUserSession,
-  type UserAction, type InsertUserAction, type Feedback, type InsertFeedback } from "@shared/schema";
+  type UserAction, type InsertUserAction, type Feedback, type InsertFeedback,
+  type ContactMessage, type InsertContactMessage } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, between, sql } from "drizzle-orm";
 
@@ -62,6 +63,12 @@ export interface IStorage {
   getUserFeedback(userId: number): Promise<Feedback[]>;
   getAllFeedback(): Promise<Feedback[]>;
   updateFeedbackResolution(id: number, resolved: boolean, adminResponse?: string): Promise<void>;
+  
+  // Contact message methods
+  createContactMessage(contactData: InsertContactMessage): Promise<ContactMessage>;
+  getContactMessages(): Promise<ContactMessage[]>;
+  getContactMessage(id: number): Promise<ContactMessage | undefined>;
+  updateContactMessageStatus(id: number, read: boolean, resolved?: boolean, notes?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -393,6 +400,39 @@ export class DatabaseStorage implements IStorage {
     await db.update(feedback)
       .set(updateData)
       .where(eq(feedback.id, id));
+  }
+
+  // Contact message methods
+  async createContactMessage(contactData: InsertContactMessage): Promise<ContactMessage> {
+    const [result] = await db.insert(contactMessages).values(contactData).returning();
+    return result;
+  }
+
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return db.select()
+      .from(contactMessages)
+      .orderBy(desc(contactMessages.createdAt));
+  }
+
+  async getContactMessage(id: number): Promise<ContactMessage | undefined> {
+    const [result] = await db.select().from(contactMessages).where(eq(contactMessages.id, id));
+    return result;
+  }
+
+  async updateContactMessageStatus(id: number, read: boolean, resolved?: boolean, notes?: string): Promise<void> {
+    const updateData: any = { read };
+    
+    if (resolved !== undefined) {
+      updateData.resolved = resolved;
+    }
+    
+    if (notes) {
+      updateData.notes = notes;
+    }
+    
+    await db.update(contactMessages)
+      .set(updateData)
+      .where(eq(contactMessages.id, id));
   }
 }
 

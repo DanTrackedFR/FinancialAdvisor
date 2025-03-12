@@ -9,6 +9,7 @@ import chatRoutes from "./routes/chat";
 import authRoutes from "./routes/auth-routes"; // Updated to use auth-routes.ts
 import analyticsRoutes from "./routes/analytics";
 import feedbackRoutes from "./routes/feedback";
+import contactRoutes from "./routes/contact"; // Import contact routes
 // import bigqueryRoutes from "./routes/bigquery"; // Removed as per the changes
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -39,6 +40,7 @@ export function registerRoutes(app: Express) {
   app.use("/api/auth", authRoutes); //Use new auth routes
   app.use("/api", analyticsRoutes);
   app.use("/api", feedbackRoutes);
+  app.use("/api", contactRoutes); // Add contact routes
   // app.use("/api", bigqueryRoutes); // BigQuery routes removed as requested
 
   // Serve PDF.js worker file

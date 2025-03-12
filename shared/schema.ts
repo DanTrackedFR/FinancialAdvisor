@@ -69,6 +69,18 @@ export const feedback = pgTable("feedback", {
   respondedAt: timestamp("responded_at"),
 });
 
+// Contact messages table for storing website contact form submissions
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  read: boolean("read").default(false),
+  resolved: boolean("resolved").default(false),
+  notes: text("notes"),
+});
+
 // Schema for inserting users
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -107,6 +119,15 @@ export const insertFeedbackSchema = createInsertSchema(feedback).omit({
   resolved: true,
   adminResponse: true,
   respondedAt: true,
+});
+
+// Schema for inserting contact messages
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  createdAt: true,
+  read: true,
+  resolved: true,
+  notes: true,
 });
 
 export const pageViews = pgTable("page_views", {
@@ -164,6 +185,8 @@ export type UserAction = typeof userActions.$inferSelect;
 export type InsertUserAction = z.infer<typeof insertUserActionSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 
 // Keep existing exports
 export type User = typeof users.$inferSelect;
