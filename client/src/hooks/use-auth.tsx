@@ -14,7 +14,7 @@ import {
   signInWithPopup
 } from "firebase/auth";
 import { useToast } from "./use-toast";
-import { auth, signIn, register as firebaseRegister, logOut, signInWithGoogle as firebaseSignInWithGoogle } from "@/lib/firebase-client";
+import { auth, signIn, register as firebaseRegister, logOut, signInWithGoogle as firebaseSignInWithGoogle, sendPasswordReset } from "@/lib/firebase-client";
 
 
 // Define the authentication context type
@@ -27,6 +27,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<FirebaseUser>;
   sendVerificationEmail: (user: FirebaseUser) => Promise<void>;
   verifyEmail: (email: string) => Promise<FirebaseUser>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 // Define the sign-up data type
@@ -440,6 +441,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   };
+  
+  // Reset password for a user
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      setIsLoading(true);
+      await sendPasswordReset(email);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your email to reset your password. Don't forget to check your spam folder if you don't see it in your inbox.",
+      });
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      
+      // Provide user-friendly error messages
+      const errorMessage = 
+        error.code === "auth/user-not-found" 
+          ? "No account found with this email address."
+          : error.code === "auth/invalid-email"
+          ? "Please enter a valid email address."
+          : "Failed to send password reset email. Please try again.";
+      
+      toast({
+        title: "Password Reset Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // The authentication context value
   const value = {
@@ -451,6 +483,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle,
     sendVerificationEmail,
     verifyEmail,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

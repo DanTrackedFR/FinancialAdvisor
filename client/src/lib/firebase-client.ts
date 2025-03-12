@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   sendEmailVerification,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
   signOut
@@ -57,7 +58,8 @@ export function initializeFirebase() {
     return getApps()[0];
   } catch (error) {
     console.error("Firebase initialization error:", error);
-    return null;
+    // Return undefined instead of null to satisfy TypeScript
+    return undefined;
   }
 }
 
@@ -92,6 +94,10 @@ export const signInWithGoogle = (): Promise<UserCredential> => {
   return signInWithPopup(auth, googleProvider);
 };
 
+export const sendPasswordReset = (email: string): Promise<void> => {
+  return sendPasswordResetEmail(auth, email);
+};
+
 // Default export with all auth functions
 export default {
   auth,
@@ -100,5 +106,6 @@ export default {
   signIn,
   register,
   logOut,
-  signInWithGoogle
+  signInWithGoogle,
+  sendPasswordReset
 };

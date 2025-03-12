@@ -76,11 +76,14 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
-  const { user, isLoading, signUp, login, signInWithGoogle } = useAuth();
+  const { user, isLoading, signUp, login, signInWithGoogle, resetPassword } = useAuth();
   const [, setLocation] = useLocation();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [showForgotPasswordDialog, setShowForgotPasswordDialog] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
   const { toast } = useToast();
 
   const loginForm = useForm<LoginFormData>({
@@ -265,6 +268,39 @@ export default function AuthPage() {
     
     // Add a log to verify everything was cleaned up
     console.log("Verification dialog closed, flags cleaned up");
+  };
+  
+  // Handle the password reset request
+  const handlePasswordReset = async () => {
+    // Validate email format
+    if (!forgotPasswordEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotPasswordEmail)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setResetPasswordLoading(true);
+      
+      // Call the resetPassword function from the auth hook
+      await resetPassword(forgotPasswordEmail);
+      
+      // Close the dialog
+      setShowForgotPasswordDialog(false);
+      
+      // Reset the email field
+      setForgotPasswordEmail("");
+      
+      // Success toast already shown by the resetPassword function
+    } catch (error) {
+      console.error("Password reset error:", error);
+      // Error toast already shown by the resetPassword function
+    } finally {
+      setResetPasswordLoading(false);
+    }
   };
 
   // Check for pending verification on component mount
@@ -505,6 +541,17 @@ export default function AuthPage() {
                       )}
                     </Button>
                     
+                    <div className="text-center mb-4">
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm text-primary p-0 h-auto"
+                        onClick={() => setShowForgotPasswordDialog(true)}
+                      >
+                        Forgot your password?
+                      </Button>
+                    </div>
+                    
                     <div className="relative my-4">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t" />
@@ -697,6 +744,15 @@ export default function AuthPage() {
                       )}
                     </Button>
                     
+                    <div className="text-sm text-center text-slate-700 bg-slate-50 p-3 rounded-md border border-slate-200 mb-4">
+                      <p className="font-medium">
+                        Once you create your account, please check your email for a verification link.
+                      </p>
+                      <p className="mt-1 text-xs">
+                        ✉️ Remember to check your spam or junk folder if you don't see the email in your inbox.
+                      </p>
+                    </div>
+                    
                     <div className="relative my-4">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t" />
@@ -802,6 +858,71 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+
+      {/* Password Reset Dialog */}
+      <AlertDialog 
+        open={showForgotPasswordDialog}
+        onOpenChange={setShowForgotPasswordDialog}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-center">
+              Reset Your Password
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              <p className="font-medium text-base">
+                Enter your email address and we'll send you a link to reset your password.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  id="resetEmail"
+                  placeholder="Enter your email address"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-md my-2 text-sm">
+            <p className="font-medium">
+              ✉️ We'll send you an email with a link to reset your password.
+            </p>
+            <p className="mt-2 text-muted-foreground">
+              If you don't see the email in your inbox, please check your spam or junk folder.
+            </p>
+          </div>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowForgotPasswordDialog(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handlePasswordReset}
+              className="w-full sm:w-auto"
+              disabled={resetPasswordLoading}
+            >
+              {resetPasswordLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Send Reset Link
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
