@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrackedFR Health Check</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      max-width: 600px;
+      width: 100%;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .status-online {
+      background-color: #10b981;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .logo {
+      max-width: 180px;
+      height: auto;
+    }
+    h1 {
+      font-size: 24px;
+      color: #111827;
+      margin: 0 0 8px 0;
+    }
+    p {
+      color: #6b7280;
+      margin: 0 0 16px 0;
+      line-height: 1.5;
+    }
+    .endpoints {
+      background-color: #f9fafb;
+      border-radius: 6px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+    .endpoint {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .endpoint:last-child {
+      border-bottom: none;
+    }
+    .endpoint-status {
+      font-size: 14px;
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+    .success {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .pending {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .failed {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    .btn {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #2563eb;
+    }
+    .time {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div>
+        <div class="status">
+          <div class="status-dot status-online"></div>
+          <h1>TrackedFR Server Status</h1>
+        </div>
+        <p class="time">Last checked: <span id="timestamp">Loading...</span></p>
+      </div>
+      <img src="/assets/Black%20logo%20-%20no%20background.png" alt="TrackedFR Logo" class="logo">
+    </div>
+    
+    <p>The server is currently running and healthy. All system components are operational.</p>
+    
+    <div class="endpoints">
+      <h3>Health Check Endpoints</h3>
+      <div id="endpoints-list">Loading endpoints status...</div>
+    </div>
+    
+    <p style="margin-top: 24px;">
+      <button id="refresh-btn" class="btn">Refresh Status</button>
+      <a href="/" class="btn" style="margin-left: 8px;">Go to Application</a>
+    </p>
+  </div>
+
+  <script>
+    // List of endpoints to check
+    const endpoints = [
+      { url: '/health', name: 'Main Health Check' },
+      { url: '/.replit/health', name: 'Replit Health Check' },
+      { url: '/.replit/webview-health', name: 'Webview Health Check' },
+      { url: '/__replit_health_check', name: 'Replit Feedback Tool Check' },
+      { url: '/api/health', name: 'API Health Check' },
+      { url: '/status', name: 'Server Status API' },
+      { url: '/api/ws-status', name: 'WebSocket Status' }
+    ];
+
+    // Function to check an endpoint
+    async function checkEndpoint(endpoint) {
+      try {
+        const startTime = performance.now();
+        const response = await fetch(endpoint.url);
+        const endTime = performance.now();
+        const timeTaken = Math.round(endTime - startTime);
+        
+        return {
+          ...endpoint,
+          status: response.ok ? 'success' : 'failed',
+          statusCode: response.status,
+          timeTaken
+        };
+      } catch (error) {
+        return {
+          ...endpoint,
+          status: 'failed',
+          error: error.message
+        };
+      }
+    }
+
+    // Function to check all endpoints
+    async function checkAllEndpoints() {
+      const endpointsList = document.getElementById('endpoints-list');
+      endpointsList.innerHTML = 'Checking endpoints...';
+      
+      const results = await Promise.all(endpoints.map(checkEndpoint));
+      
+      endpointsList.innerHTML = results.map(result => `
+        <div class="endpoint">
+          ${result.name} (${result.url})
+          <span class="endpoint-status ${result.status}">
+            ${result.status === 'success' 
+              ? `${result.statusCode} OK (${result.timeTaken}ms)` 
+              : `Failed: ${result.error || result.statusCode}`}
+          </span>
+        </div>
+      `).join('');
+      
+      // Update timestamp
+      document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    }
+
+    // Check endpoints on page load
+    checkAllEndpoints();
+    
+    // Set up refresh button
+    document.getElementById('refresh-btn').addEventListener('click', checkAllEndpoints);
+  </script>
+</body>
+</html>

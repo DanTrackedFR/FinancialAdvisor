@@ -94,6 +94,43 @@ export function registerRoutes(app: Express) {
     });
   });
   
+  // Simple health check endpoint for tools
+  app.get("/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+  
+  // Additional endpoints for web application feedback tool compatibility
+  app.get("/.replit/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+  
+  // Endpoint specifically for Replit webview feedback tool
+  app.get("/.replit/webview-health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+  
+  // Health check endpoint in expected Replit feedback tool format
+  app.get("/__replit_health_check", (_req, res) => {
+    res.status(200).send("OK");
+  });
+  
+  app.get("/status", (_req, res) => {
+    res.status(200).json({
+      status: "online",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+      replit: !!process.env.REPL_ID,
+      port: process.env.PORT || "5000",
+      replId: process.env.REPL_ID || null,
+      wsAvailable: !!global.wss
+    });
+  });
+  
+  // Serve the health check HTML page
+  app.get("/health-check", (_req, res) => {
+    res.sendFile(path.resolve("client/public/health-check.html"));
+  });
+  
   // WebSocket status endpoint for diagnostics
   app.get("/api/ws-status", (_req, res) => {
     res.json({

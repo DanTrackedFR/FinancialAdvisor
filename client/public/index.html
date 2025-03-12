@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrackedFR - Financial Report Analysis</title>
+  <script type="module" src="/src/main.tsx"></script>
+  <!-- Add a fallback script to detect if the application fails to load -->
+  <script>
+    // Detect if the application fails to load within 5 seconds
+    const fallbackTimeout = setTimeout(() => {
+      // If the main app div is still empty after 5 seconds, show a fallback message
+      const rootDiv = document.getElementById('root');
+      if (rootDiv && (!rootDiv.children || rootDiv.children.length === 0)) {
+        rootDiv.innerHTML = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 100px auto; text-align: center; padding: 20px;">
+            <h1>TrackedFR is starting up...</h1>
+            <p>The application server is currently initializing.</p>
+            <p>If this message persists, please try refreshing the page.</p>
+            <div style="margin: 30px 0;">
+              <a href="/" style="background: #4a5568; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none;">Refresh Page</a>
+              <a href="/health-check" style="background: #718096; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin-left: 10px;">Check Server Status</a>
+            </div>
+          </div>
+        `;
+      }
+    }, 5000);
+
+    // Clear the timeout if the application loads successfully
+    window.addEventListener('load', () => {
+      clearTimeout(fallbackTimeout);
+    });
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
