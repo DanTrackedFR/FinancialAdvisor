@@ -11,6 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Menu, 
   Loader2, 
@@ -22,7 +25,14 @@ import {
   User as UserIcon,
   LogOut,
   BarChart2,
-  Star
+  Star,
+  Mail,
+  Shield,
+  Lock,
+  CpuIcon,
+  BriefcaseIcon,
+  RotateCw,
+  Upload
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -584,9 +594,98 @@ export default function Home() {
               </div>
             </div>
           </section>
-
-          {/* CTA Section */}
+          
+          {/* Contact Us Section */}
           <section className="py-16 bg-white">
+            <div className="container mx-auto px-4">
+              <h2 className="text-3xl font-bold text-center mb-8">
+                Contact Us
+              </h2>
+              <div className="max-w-4xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-8">
+                  {/* Contact Information */}
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Mail className="h-5 w-5 mr-2 text-blue-600" />
+                          Email Us
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground mb-2">
+                          Have questions or need support? Reach out to us directly:
+                        </p>
+                        <a 
+                          href="mailto:info@trackedfr.com"
+                          className="text-blue-600 hover:underline font-medium"
+                        >
+                          info@trackedfr.com
+                        </a>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Contact Form */}
+                  <div>
+                    <Card className="h-full flex flex-col">
+                      <CardHeader>
+                        <CardTitle>Send Us a Message</CardTitle>
+                        <CardDescription>
+                          Fill out the form below and we'll get back to you soon.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-grow">
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            // In a real application, this would send the form data to the server
+                            alert("Message sent! We'll get back to you soon.");
+                            // Reset form fields here
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="name">Name</Label>
+                              <Input 
+                                id="name"
+                                type="text" 
+                                placeholder="Your name" 
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="email">Email</Label>
+                              <Input 
+                                id="email"
+                                type="email" 
+                                placeholder="Your email" 
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="message">Message</Label>
+                            <Textarea 
+                              id="message"
+                              placeholder="Your message" 
+                              rows={4}
+                              required
+                            />
+                          </div>
+                          <Button type="submit" className="w-full">Send Message</Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+            
+          {/* CTA Section */}
+          <section className="py-16 bg-slate-100">
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-3xl font-bold mb-4">
                 Experience automated financial statements
