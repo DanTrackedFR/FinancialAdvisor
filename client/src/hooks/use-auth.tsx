@@ -348,8 +348,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error("Google sign-in error:", error);
 
-      // Don't show error for user cancellation
-      if (error.code !== "auth/popup-closed-by-user") {
+      // Provide more specific error messages based on the error code
+      if (error.code === "auth/popup-closed-by-user") {
+        // User closed the popup, don't show error toast
+        console.log("User closed the Google sign-in popup");
+      } else if (error.code === "auth/unauthorized-domain") {
+        toast({
+          title: "Domain Error",
+          description: "This domain is not authorized for authentication. Please contact support.",
+          variant: "destructive",
+        });
+      } else if (error.code === "auth/internal-error") {
+        toast({
+          title: "Authentication Error",
+          description: "There was a problem with Google authentication. Please try again later.",
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Sign In Failed",
           description: "Failed to sign in with Google. Please try again.",
