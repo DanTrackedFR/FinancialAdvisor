@@ -57,13 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Function to synchronize the user with the backend
   const syncUserWithBackend = async (firebaseUser: FirebaseUser) => {
     try {
+      // Force token refresh to ensure we have the most recent token (important after domain changes)
+      await firebaseUser.getIdToken(true); 
       const idToken = await firebaseUser.getIdToken();
-
+      
+      console.log("Syncing user with backend (domain: " + window.location.hostname + ")");
+      
+      // When using custom domains, include both authorization methods for better compatibility
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`
+          "Authorization": `Bearer ${idToken}`,
+          "firebase-uid": firebaseUser.uid // Add UID header as fallback
         },
         body: JSON.stringify({
           firebaseUser: {

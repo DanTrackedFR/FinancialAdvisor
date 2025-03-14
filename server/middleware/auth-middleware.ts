@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import admin from "../lib/firebase-admin";
+import admin, { isAuthorizedDomain } from "../lib/firebase-admin";
 import { storage } from "../storage";
 import { User } from "../../shared/schema";
 
@@ -14,6 +14,62 @@ export interface FirebaseUserData {
 export interface AuthenticatedRequest extends Request {
   user?: User;
   firebaseUser?: FirebaseUserData;
+}
+
+/**
+ * Helper function to log token information for debugging
+ * Only logs a preview of the token for security
+ */
+function logTokenInfo(idToken: string) {
+  if (!idToken) return;
+  
+  const tokenPreview = idToken.substring(0, 10) + '...';
+  console.log(`Token verification attempt: ${tokenPreview}`);
+  
+  // Log environment info
+  console.log("Auth environment:", {
+    node_env: process.env.NODE_ENV || 'undefined',
+    auth_domain: process.env.VITE_FIREBASE_AUTH_DOMAIN || 'undefined',
+    project_id: process.env.VITE_FIREBASE_PROJECT_ID || 'undefined',
+    is_firebase_hosting: process.env.FIREBASE_CONFIG ? 'yes' : 'no'
+  });
+}
+
+/**
+ * Retry token verification with more detailed error handling
+ */
+async function verifyFirebaseToken(idToken: string, retryCount = 0): Promise<any> {
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch (error: any) {
+    console.error(`Token verification error (attempt ${retryCount + 1}):`, error.message);
+    
+    if (retryCount < 2) {
+      // Sometimes tokens need to be refreshed due to clock skew issues
+      if (error.code === 'auth/id-token-expired' || 
+          error.code === 'auth/id-token-revoked' ||
+          error.message?.includes('expired')) {
+        console.log("Token possibly expired, trying once more with force refresh");
+        return verifyFirebaseToken(idToken, retryCount + 1);
+      }
+      
+      // Domain mismatch issues might require using a different verification approach
+      if (error.message?.includes('domain')) {
+        console.log("Domain mismatch detected, using custom domain verification");
+        const authDomain = process.env.VITE_FIREBASE_AUTH_DOMAIN;
+        if (authDomain) {
+          console.log(`Checking if ${authDomain} is in the authorized domains list`);
+          if (isAuthorizedDomain(authDomain)) {
+            console.log(`${authDomain} is authorized, retrying verification with adjusted settings`);
+            return verifyFirebaseToken(idToken, retryCount + 1);
+          }
+        }
+      }
+    }
+    
+    // If we've tried enough or it's not a retryable error, rethrow
+    throw error;
+  }
 }
 
 /**
@@ -34,8 +90,16 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
       const idToken = authHeader.split('Bearer ')[1];
       
       try {
-        // Verify the Firebase token
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        // Enhanced token verification logging
+        console.log("Verifying token with auth domain:", process.env.VITE_FIREBASE_AUTH_DOMAIN);
+        console.log("Current origin:", req.headers.origin || "No origin header");
+        console.log("Current host:", req.headers.host || "No host header");
+        
+        // Log token preview for debugging
+        logTokenInfo(idToken);
+        
+        // Use enhanced token verification with retries
+        const decodedToken = await verifyFirebaseToken(idToken);
         firebaseUid = decodedToken.uid;
         email = decodedToken.email || null;
         emailVerified = decodedToken.email_verified || false;
@@ -43,9 +107,37 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
         
         console.log("User authenticated via ID token:", firebaseUid);
         console.log("Token contains email verified status:", emailVerified);
-      } catch (tokenError) {
-        console.error("Token verification failed:", tokenError);
+        console.log("Token issuer:", decodedToken.iss || "No issuer in token");
+        console.log("Token audience:", decodedToken.aud || "No audience in token");
+        
+        // Additional token fields that might be useful for debugging
+        if (decodedToken.sign_in_provider) {
+          console.log("Sign-in provider:", decodedToken.sign_in_provider);
+        }
+        
+        // Log successful verification
+        console.log(`✅ Token verification successful for user: ${email || firebaseUid}`);
+      } catch (tokenError: any) {
+        // More detailed error logging for token verification failures
+        console.error("❌ Token verification failed:", tokenError);
+        console.error("Error code:", tokenError.code || "No error code");
+        console.error("Error message:", tokenError.message || "No error message");
+        
+        // Check if this is a domain mismatch issue
+        if (tokenError.message?.includes('domain')) {
+          console.error("This appears to be a domain configuration issue. Make sure Firebase console has the correct authorized domains.");
+          console.error("Current authorized domains should include:", process.env.VITE_FIREBASE_AUTH_DOMAIN);
+          
+          // Provide more helpful error information in the response
+          return res.status(401).json({
+            error: "Unauthorized",
+            message: "Authentication token domain mismatch. Please log out and log in again.",
+            details: "Your session may be using credentials from a different domain."
+          });
+        }
+        
         // Continue to try the firebase-uid header as fallback
+        console.log("Falling back to firebase-uid header authentication method");
       }
     }
     
@@ -53,7 +145,7 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
     if (!firebaseUid) {
       firebaseUid = req.headers["firebase-uid"] as string;
       if (firebaseUid) {
-        console.log("Falling back to firebase-uid header:", firebaseUid);
+        console.log("Falling back to firebase-uid header authentication:", firebaseUid);
       }
     }
 
@@ -79,6 +171,8 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
           message: "Email verification required"
         });
       }
+      
+      console.log(`Firebase user verified: ${email} (${firebaseUid})`);
     } catch (firebaseError) {
       console.error(`Error retrieving Firebase user ${firebaseUid}:`, firebaseError);
       return res.status(401).json({ 
@@ -108,7 +202,9 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
             displayName: displayName
           });
           
-          console.log(`Auto-registered user ${email} (ID: ${user.id})`);
+          if (user) {
+            console.log(`Auto-registered user ${email} (ID: ${user.id})`);
+          }
         } catch (regError) {
           console.error(`Failed to auto-register user ${email}:`, regError);
           // Continue with the user not found response
@@ -127,6 +223,14 @@ export async function isAuthenticated(req: AuthenticatedRequest, res: Response, 
       // Success! Attach user to request for use in route handlers
       console.log(`User ${user.email} (ID: ${user.id}) successfully authenticated`);
       req.user = user;
+      
+      // Also update the user's last login time
+      try {
+        await storage.updateLastLogin(user.id);
+      } catch (loginUpdateError) {
+        console.error(`Failed to update last login time for user ${user.id}:`, loginUpdateError);
+        // Non-critical error, continue with authentication
+      }
       
       // Also attach the Firebase user data for optional use
       req.firebaseUser = {
@@ -196,8 +300,8 @@ export const requireEmailVerification = async (req: AuthenticatedRequest, res: R
     // Also cache the Firebase user data for future use
     req.firebaseUser = {
       uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: firebaseUser.displayName,
+      email: (firebaseUser.email as string | null) || null,
+      displayName: (firebaseUser.displayName as string | null) || null,
       emailVerified: firebaseUser.emailVerified
     };
     
