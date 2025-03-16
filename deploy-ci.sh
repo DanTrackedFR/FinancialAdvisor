@@ -133,14 +133,23 @@ deploy() {
   # Set environment variable for Firebase authentication
   export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/firebase-service-account.json"
   
+  # Ensure firebase-tools is installed
+  log_info "Ensuring firebase-tools is installed..."
+  # In GitHub Actions, we may need sudo for global install
+  if [ "$CI" = "true" ]; then
+    sudo npm install -g firebase-tools
+  else
+    npm install -g firebase-tools
+  fi
+  
   # Run deployment
   log_info "Deploying to Firebase Hosting..."
   
   if [ "$CI_DEBUG" = "true" ]; then
     log_info "Running in debug mode - extra verbosity enabled"
-    npx firebase-tools deploy --only hosting --json
+    firebase deploy --only hosting --json
   else
-    npx firebase-tools deploy --only hosting
+    firebase deploy --only hosting
   fi
   
   # Check deployment status
