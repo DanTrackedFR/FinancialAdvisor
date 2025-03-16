@@ -9,114 +9,101 @@
  * 3. Install required dependencies: npm install firebase-admin firebase-tools
  */
 
-const admin = require('firebase-admin');
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { initializeApp, cert } from 'firebase-admin/app';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
-// Colors for console output
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m'
-};
+// ANSI color codes for console output
+const RESET = "\x1b[0m";
+const BOLD = "\x1b[1m";
+const GREEN = "\x1b[32m";
+const YELLOW = "\x1b[33m";
+const RED = "\x1b[31m";
+const CYAN = "\x1b[36m";
 
 /**
  * Print a formatted header
  */
 function printHeader(text) {
-  console.log(`\n${colors.blue}===== ${text} =====${colors.reset}\n`);
+  console.log(`\n${BOLD}${CYAN}${text}${RESET}`);
+  console.log("=".repeat(text.length));
 }
 
 /**
  * Print a success message
  */
 function printSuccess(text) {
-  console.log(`${colors.green}✓ ${text}${colors.reset}`);
+  console.log(`${GREEN}✓ ${text}${RESET}`);
 }
 
 /**
  * Print an error message
  */
 function printError(text) {
-  console.log(`${colors.red}✗ ${text}${colors.reset}`);
+  console.log(`${RED}✗ ${text}${RESET}`);
 }
 
 /**
  * Print a warning message
  */
 function printWarning(text) {
-  console.log(`${colors.yellow}⚠ ${text}${colors.reset}`);
+  console.log(`${YELLOW}⚠ ${text}${RESET}`);
 }
 
 /**
  * Verify build output exists
  */
 function verifyBuildOutput() {
-  printHeader('Verifying Build Output');
+  printHeader("Verifying Build Output");
   
-  const distPath = path.join(__dirname, 'dist');
-  const publicPath = path.join(distPath, 'public');
-  const indexPath = path.join(publicPath, 'index.html');
+  const buildPath = path.join(process.cwd(), 'dist', 'public');
   
-  if (!fs.existsSync(distPath)) {
-    printError('dist directory not found. Run npm run build first.');
+  try {
+    const stats = fs.statSync(buildPath);
+    if (!stats.isDirectory()) {
+      throw new Error("Build path is not a directory");
+    }
+    
+    const indexPath = path.join(buildPath, 'index.html');
+    fs.statSync(indexPath);
+    
+    printSuccess(`Build output verified: ${buildPath}`);
+    return true;
+  } catch (error) {
+    printError(`Build output not found: ${error.message}`);
+    printWarning("Please run 'npm run build' before deployment");
     return false;
   }
-  
-  if (!fs.existsSync(publicPath)) {
-    printError('dist/public directory not found. Make sure the build process is correct.');
-    return false;
-  }
-  
-  if (!fs.existsSync(indexPath)) {
-    printError('dist/public/index.html not found. Build may be incomplete.');
-    return false;
-  }
-  
-  printSuccess('Build output verified successfully.');
-  return true;
 }
 
 /**
  * Initialize Firebase Admin SDK
  */
 function initializeFirebaseAdmin() {
-  printHeader('Initializing Firebase Admin SDK');
+  printHeader("Initializing Firebase Admin SDK");
   
   try {
-    // Check if service account is provided as environment variable
-    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!serviceAccountString) {
-      printError('FIREBASE_SERVICE_ACCOUNT environment variable not set.');
-      return false;
+    // Check for service account in environment variable
+    const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (!serviceAccountEnv) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable not set");
     }
     
-    let serviceAccount;
-    try {
-      serviceAccount = JSON.parse(serviceAccountString);
-    } catch (error) {
-      printError('Failed to parse FIREBASE_SERVICE_ACCOUNT as JSON.');
-      console.error(error);
-      return false;
-    }
+    // Parse service account JSON
+    const serviceAccount = JSON.parse(serviceAccountEnv);
     
-    // Initialize the Admin SDK
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+    // Initialize Firebase Admin
+    initializeApp({
+      credential: cert(serviceAccount)
     });
     
-    printSuccess('Firebase Admin SDK initialized successfully.');
-    return true;
+    printSuccess(`Firebase Admin SDK initialized with project: ${serviceAccount.project_id}`);
+    return { success: true, projectId: serviceAccount.project_id };
   } catch (error) {
-    printError('Failed to initialize Firebase Admin SDK.');
-    console.error(error);
-    return false;
+    printError(`Failed to initialize Firebase Admin SDK: ${error.message}`);
+    return { success: false, error: error.message };
   }
 }
 
@@ -124,28 +111,70 @@ function initializeFirebaseAdmin() {
  * Deploy to Firebase Hosting
  */
 async function deployToFirebaseHosting() {
-  printHeader('Deploying to Firebase Hosting');
+  printHeader("Deploying to Firebase Hosting");
   
   try {
-    // Generate a temporary token for deployment
-    const firebaseToken = await admin.auth().createCustomToken('deploy-user');
+    // Temporarily create a file for credentials
+    const tempServiceAccountPath = path.join(process.cwd(), 'firebase-service-account-temp.json');
+    await fs.writeFile(tempServiceAccountPath, process.env.FIREBASE_SERVICE_ACCOUNT);
     
-    // Set environment variable for the token
-    process.env.FIREBASE_TOKEN = firebaseToken;
+    // Set path as environment variable for firebase-tools
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = tempServiceAccountPath;
     
-    // Run firebase deploy
-    console.log('Running firebase deploy command...');
-    execSync('npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN"', {
-      stdio: 'inherit',
-      env: process.env
+    // Run the firebase deploy command
+    console.log("Running deployment...");
+    const output = execSync('npx firebase-tools deploy --only hosting --json', { 
+      encoding: 'utf8', 
+      stdio: 'pipe'
     });
     
-    printSuccess('Deployment completed successfully!');
-    return true;
+    // Clean up temporary file
+    await fs.unlink(tempServiceAccountPath);
+    
+    // Parse the deployment result
+    const result = JSON.parse(output);
+    
+    if (result.status === 'success') {
+      printSuccess("Deployment completed successfully!");
+      console.log(`\n${BOLD}Your site is now live at:${RESET}`);
+      console.log(`• https://trackedfr.com`);
+      console.log(`• https://trackedfr.web.app`);
+      
+      // If result has details, print them
+      if (result.result && result.result.hosting) {
+        const hostingResult = result.result.hosting;
+        console.log(`\n${BOLD}Deployment details:${RESET}`);
+        console.log(`• Version: ${hostingResult.version}`);
+        console.log(`• Updated files: ${hostingResult.updatedFiles || 0}`);
+        console.log(`• Deleted files: ${hostingResult.deletedFiles || 0}`);
+      }
+      
+      return { success: true };
+    } else {
+      throw new Error(result.error || "Unknown deployment error");
+    }
   } catch (error) {
-    printError('Deployment failed.');
-    console.error(error);
-    return false;
+    printError(`Deployment failed: ${error.message}`);
+    
+    // Check if the error might be due to missing firebase-tools
+    if (error.message.includes('firebase-tools')) {
+      printWarning("It appears firebase-tools is not installed. Installing it now...");
+      
+      try {
+        execSync('npm install firebase-tools --no-save', { stdio: 'inherit' });
+        printSuccess("firebase-tools installed. Please run this script again.");
+      } catch (installError) {
+        printError(`Failed to install firebase-tools: ${installError.message}`);
+      }
+    }
+    
+    // Provide alternate deployment instructions
+    displayManualInstructions();
+    
+    return { 
+      success: false, 
+      error: error.message
+    };
   }
 }
 
@@ -153,70 +182,64 @@ async function deployToFirebaseHosting() {
  * Display manual deployment instructions
  */
 function displayManualInstructions() {
-  printHeader('Alternative Deployment Options');
+  printHeader("Manual Deployment Instructions");
   
-  printWarning('Since automatic deployment is difficult in Replit, consider these alternatives:');
+  console.log(`${YELLOW}If automated deployment fails, you can deploy manually:${RESET}`);
+  console.log("\n1. Install Firebase CLI globally:");
+  console.log("   npm install -g firebase-tools");
   
-  console.log(`${colors.yellow}1. Deploy via Firebase CLI on your local machine:${colors.reset}`);
-  console.log('   • Download this project to your local machine');
-  console.log('   • Run: firebase login');
-  console.log('   • Run: firebase deploy --only hosting');
-  console.log('');
+  console.log("\n2. Login to Firebase:");
+  console.log("   firebase login");
   
-  console.log(`${colors.yellow}2. Set up GitHub Actions:${colors.reset}`);
-  console.log('   • Push this project to GitHub');
-  console.log('   • Set up GitHub Actions for Firebase deployment');
-  console.log('   • Firebase will automatically deploy when you push changes');
-  console.log('');
+  console.log("\n3. Deploy the application:");
+  console.log("   firebase deploy --only hosting");
   
-  console.log(`${colors.yellow}3. Manual upload via Firebase Console:${colors.reset}`);
-  console.log('   • Create a ZIP of the ./dist/public directory');
-  console.log('   • Download it to your local machine and extract it');
-  console.log('   • Go to Firebase Console: https://console.firebase.google.com/project/trackedfr/hosting');
-  console.log('   • Click "Upload" and select the extracted files');
-  console.log('');
-  
-  printWarning('Important Firebase Project Settings');
-  console.log('• Ensure "trackedfr.com" and "www.trackedfr.com" are added to:');
-  console.log('  Firebase Console > Authentication > Settings > Authorized domains');
-  console.log('• Verify your DNS settings are correctly pointing to Firebase');
-  console.log('• Update .env files to use "trackedfr.com" as the authentication domain');
+  console.log("\nAlternatively, you can use the Firebase Console to deploy:");
+  console.log("1. Go to https://console.firebase.google.com/project/trackedfr/hosting");
+  console.log("2. Click 'Get started' or 'Add another site'");
+  console.log("3. Follow the instructions to upload your dist/public folder");
 }
 
 /**
  * Main function
  */
 async function main() {
-  printHeader('Firebase Hosting Deployment Script');
+  console.log(`${BOLD}TrackedFR Firebase Deployment Script${RESET}`);
+  console.log("This script deploys the application to Firebase Hosting");
   
   // Verify build output
   if (!verifyBuildOutput()) {
-    displayManualInstructions();
     process.exit(1);
   }
   
-  // Try to initialize Firebase Admin and deploy
-  // Note: This approach has limitations and may not work in Replit environment
-  if (initializeFirebaseAdmin()) {
-    try {
-      await deployToFirebaseHosting();
-    } catch (error) {
-      printError('Deployment failed unexpectedly.');
-      console.error(error);
-      displayManualInstructions();
-      process.exit(1);
-    }
+  // Initialize Firebase Admin
+  const adminResult = initializeFirebaseAdmin();
+  if (!adminResult.success) {
+    process.exit(1);
+  }
+  
+  // Deploy to Firebase Hosting
+  const deployResult = await deployToFirebaseHosting();
+  
+  if (deployResult.success) {
+    console.log(`\n${BOLD}${GREEN}Deployment completed successfully!${RESET}`);
+    process.exit(0);
   } else {
-    printWarning('Firebase Admin SDK initialization failed. Showing manual instructions instead.');
-    displayManualInstructions();
+    console.log(`\n${BOLD}${RED}Deployment failed.${RESET} Please check the errors above.`);
     process.exit(1);
   }
 }
 
-// Run the script
-main().catch(error => {
-  printError('Unexpected error occurred:');
-  console.error(error);
-  displayManualInstructions();
-  process.exit(1);
-});
+// Check if running directly
+if (require.main === module) {
+  main().catch(error => {
+    printError(`Unhandled error: ${error.message}`);
+    process.exit(1);
+  });
+}
+
+export {
+  verifyBuildOutput,
+  initializeFirebaseAdmin,
+  deployToFirebaseHosting
+};

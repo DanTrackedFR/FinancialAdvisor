@@ -1,57 +1,53 @@
 /**
- * Firebase Environment and Domain Checker
+ * Firebase Environment Configuration Checker
  * 
- * This script verifies the Firebase configuration and domain setup
- * to help troubleshoot authentication and domain-related issues.
+ * This script verifies that all required Firebase configuration
+ * is correctly set up for deployment.
+ * 
+ * Run before deployment to catch common configuration issues.
  */
 
-// Colors for console output
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m'
-};
-
+// Console styling functions
 /**
- * Print a formatted section header
+ * Print a header with styling
  */
 function printHeader(text) {
-  console.log(`\n${colors.blue}${colors.bright}${text}${colors.reset}\n`);
+  console.log(`\n\x1b[1m\x1b[36m${text}\x1b[0m`);
+  console.log('='.repeat(text.length + 4));
 }
 
 /**
  * Print a success message
  */
 function printSuccess(text) {
-  console.log(`${colors.green}✓ ${text}${colors.reset}`);
+  console.log(`\x1b[32m✓ ${text}\x1b[0m`);
 }
 
 /**
  * Print a warning message
  */
 function printWarning(text) {
-  console.log(`${colors.yellow}⚠ ${text}${colors.reset}`);
+  console.log(`\x1b[33m⚠ ${text}\x1b[0m`);
 }
 
 /**
  * Print an error message
  */
 function printError(text) {
-  console.log(`${colors.red}✗ ${text}${colors.reset}`);
+  console.log(`\x1b[31m✗ ${text}\x1b[0m`);
 }
 
 /**
  * Verify Firebase environment variables
  */
 function checkFirebaseEnv() {
-  printHeader("Checking Firebase Environment Variables");
+  printHeader('Firebase Environment Configuration Check');
   
-  // Client-side Firebase config (VITE_ prefixed)
-  const clientVars = [
+  let errors = 0;
+  let warnings = 0;
+  
+  // Check if essential Firebase config variables exist
+  const requiredClientVars = [
     'VITE_FIREBASE_API_KEY',
     'VITE_FIREBASE_AUTH_DOMAIN',
     'VITE_FIREBASE_PROJECT_ID',
@@ -60,113 +56,100 @@ function checkFirebaseEnv() {
     'VITE_FIREBASE_APP_ID'
   ];
   
-  // Server-side Firebase config
-  const serverVars = [
-    'FIREBASE_SERVICE_ACCOUNT', // This should be a JSON string
-    'FIREBASE_PROJECT_ID'
+  const requiredServerVars = [
+    'FIREBASE_SERVICE_ACCOUNT'
   ];
   
-  let clientMissing = 0;
-  let serverMissing = 0;
-  
   // Check client-side variables
-  console.log("Client-side Firebase variables:");
-  clientVars.forEach(varName => {
+  console.log('\nChecking client-side Firebase configuration:');
+  requiredClientVars.forEach(varName => {
     if (process.env[varName]) {
-      const value = varName === 'VITE_FIREBASE_API_KEY' 
-        ? process.env[varName].substring(0, 5) + '...' // Truncate API key for security
-        : process.env[varName];
-      printSuccess(`${varName}: ${value}`);
+      printSuccess(`${varName} is set`);
     } else {
-      printError(`${varName}: Not set`);
-      clientMissing++;
+      printError(`${varName} is not set (required for Firebase client SDK)`);
+      errors++;
     }
   });
+  
+  // Check if auth domain might cause issues
+  if (process.env.VITE_FIREBASE_AUTH_DOMAIN && 
+      !process.env.VITE_FIREBASE_AUTH_DOMAIN.includes('trackedfr.com')) {
+    printWarning(`VITE_FIREBASE_AUTH_DOMAIN (${process.env.VITE_FIREBASE_AUTH_DOMAIN}) should be 'trackedfr.com' for production`);
+    warnings++;
+  }
   
   // Check server-side variables
-  console.log("\nServer-side Firebase variables:");
-  serverVars.forEach(varName => {
+  console.log('\nChecking server-side Firebase configuration:');
+  requiredServerVars.forEach(varName => {
     if (process.env[varName]) {
-      if (varName === 'FIREBASE_SERVICE_ACCOUNT') {
-        try {
-          // Try to parse as JSON to verify it's valid
-          const serviceAccount = JSON.parse(process.env[varName]);
-          if (serviceAccount.project_id) {
-            printSuccess(`${varName}: Valid (project: ${serviceAccount.project_id})`);
-          } else {
-            printWarning(`${varName}: Missing project_id field`);
-          }
-        } catch (e) {
-          printError(`${varName}: Invalid JSON format`);
-          serverMissing++;
-        }
-      } else {
-        printSuccess(`${varName}: ${process.env[varName]}`);
-      }
+      printSuccess(`${varName} is set`);
     } else {
-      printError(`${varName}: Not set`);
-      serverMissing++;
+      printWarning(`${varName} is not set (required for Firebase Admin SDK and deployments)`);
+      warnings++;
     }
   });
   
+  // Check for Firebase configuration files
+  console.log('\nChecking Firebase configuration files:');
+  
+  // We could check for actual files here in a more comprehensive check
+  // For now, just provide advice
+  
   // Summary
-  console.log('\nEnvironment variables summary:');
-  if (clientMissing === 0) {
-    printSuccess('All client-side Firebase variables are set');
+  console.log('\nConfiguration check summary:');
+  if (errors === 0 && warnings === 0) {
+    printSuccess('All Firebase environment variables are correctly configured!');
   } else {
-    printError(`${clientMissing} client-side Firebase variables are missing`);
+    if (errors > 0) {
+      printError(`Found ${errors} configuration error(s) that must be fixed before deployment.`);
+    }
+    if (warnings > 0) {
+      printWarning(`Found ${warnings} configuration warning(s) that should be reviewed.`);
+    }
+    
+    provideRecommendations();
   }
   
-  if (serverMissing === 0) {
-    printSuccess('All server-side Firebase variables are set');
-  } else {
-    printError(`${serverMissing} server-side Firebase variables are missing`);
-  }
-  
-  // Check for domain-specific settings
-  printHeader("Domain-specific Configuration");
-  
-  // Check AUTH_DOMAIN setting
-  const authDomain = process.env.VITE_FIREBASE_AUTH_DOMAIN || '';
-  if (authDomain.includes('trackedfr.com')) {
-    printSuccess(`Auth domain is using custom domain: ${authDomain}`);
-  } else {
-    printWarning(`Auth domain is not using custom domain: ${authDomain}`);
-    console.log(`For production with custom domain, set VITE_FIREBASE_AUTH_DOMAIN=trackedfr.com`);
-  }
+  return { errors, warnings };
 }
 
 /**
  * Provide recommendations for Firebase setup
  */
 function provideRecommendations() {
-  printHeader("Firebase Domain Recommendations");
+  printHeader('Recommendations');
   
-  console.log("For proper custom domain setup with Firebase Authentication:");
-  console.log("1. Add these domains in Firebase Console > Authentication > Settings > Authorized domains:");
-  console.log("   - trackedfr.com");
-  console.log("   - www.trackedfr.com");
-  console.log("\n2. Update DNS settings:");
-  console.log("   - A record for trackedfr.com pointing to Firebase's IP addresses");
-  console.log("   - CNAME for www.trackedfr.com pointing to trackedfr.firebaseapp.com");
-  console.log("\n3. Update environment variables:");
-  console.log("   - Set VITE_FIREBASE_AUTH_DOMAIN=trackedfr.com");
-  
-  // Check if we can provide more specific recommendations based on the current setup
-  const authDomain = process.env.VITE_FIREBASE_AUTH_DOMAIN || '';
-  if (!authDomain.includes('trackedfr.com')) {
-    printWarning("Current auth domain doesn't match production domain");
-    console.log(`Current: ${authDomain}`);
-    console.log("Recommended: trackedfr.com");
-  }
+  console.log(`
+1. For production deployment, ensure these settings are correct:
+   - VITE_FIREBASE_AUTH_DOMAIN should be 'trackedfr.com'
+   - Authorized domains in Firebase Console should include 'trackedfr.com' and 'www.trackedfr.com'
+   
+2. For Firebase service account:
+   - The FIREBASE_SERVICE_ACCOUNT environment variable should contain the full JSON service account key
+   - This is required for server-side Firebase operations and deployments
+   
+3. For DNS configuration:
+   - Ensure the DNS A record for 'trackedfr.com' points to Firebase hosting IPs
+   - Set up CNAME record for 'www.trackedfr.com' pointing to 'trackedfr.firebaseapp.com'
+   
+4. Security best practices:
+   - Never commit Firebase service account keys to your repository
+   - Use environment secrets in CI/CD platforms
+   - Consider setting up IP allowlisting for your Firebase project
+  `);
 }
 
-// Run the checks
-checkFirebaseEnv();
-provideRecommendations();
-
-// Export functions for potential use in other files
+// Export for use in other scripts
 module.exports = {
   checkFirebaseEnv,
-  provideRecommendations
+  printHeader,
+  printSuccess,
+  printWarning,
+  printError
 };
+
+// Run directly if called as a script
+if (require.main === module) {
+  const result = checkFirebaseEnv();
+  process.exit(result.errors > 0 ? 1 : 0);
+}

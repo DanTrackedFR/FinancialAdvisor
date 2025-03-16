@@ -1,118 +1,59 @@
 #!/bin/bash
 
-# Firebase Hosting API Deployment Script
-# This script uses the Firebase Hosting REST API to deploy without requiring interactive login
+# Firebase Hosting Deployment Script using API
+# This script doesn't require the Firebase CLI to be installed
+# It uses curl to send HTTP requests directly to Firebase Hosting API
 
-# Color codes for better readability
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+echo "🚀 Starting Firebase Hosting API deployment..."
 
-# Function to print section headers
-print_header() {
-  echo -e "\n${BLUE}===== $1 =====${NC}\n"
-}
-
-# Function to print success messages
-print_success() {
-  echo -e "${GREEN}✓ $1${NC}"
-}
-
-# Function to print warning messages
-print_warning() {
-  echo -e "${YELLOW}⚠ $1${NC}"
-}
-
-# Function to print error messages
-print_error() {
-  echo -e "${RED}✗ $1${NC}"
-}
-
-# Check for required environment variables
-print_header "Checking Prerequisites"
-
-if [ -z "$FIREBASE_API_KEY" ]; then
-  print_error "FIREBASE_API_KEY environment variable not set"
-  echo "Please set it using: export FIREBASE_API_KEY=your_api_key"
+# Check if FIREBASE_SERVICE_ACCOUNT is set
+if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+  echo "❌ Error: FIREBASE_SERVICE_ACCOUNT environment variable not set"
   exit 1
 fi
 
-if [ -z "$FIREBASE_PROJECT_ID" ]; then
-  print_warning "FIREBASE_PROJECT_ID environment variable not set, using default"
-  FIREBASE_PROJECT_ID="trackedfr"
-fi
+# Create a temporary file for the service account
+echo "🔑 Creating temporary service account file..."
+echo "$FIREBASE_SERVICE_ACCOUNT" > firebase-service-account.json
 
-# Build the application
-print_header "Building the application"
-echo "Running npm run build..."
-if npm run build; then
-  print_success "Build completed successfully."
-else
-  print_error "Build failed. Stopping deployment."
+# Extract project ID
+PROJECT_ID=$(cat firebase-service-account.json | jq -r .project_id)
+if [ -z "$PROJECT_ID" ]; then
+  echo "❌ Error: Could not extract project ID from service account"
+  rm firebase-service-account.json
   exit 1
 fi
 
-# Check build output
-if [ -d "./dist" ] && [ -d "./dist/public" ] && [ -f "./dist/public/index.html" ]; then
-  print_success "Build output verified."
-else
-  print_error "Build output not found or incomplete."
-  echo "Expected to find ./dist/public/index.html"
-  exit 1
+echo "🔍 Deploying to project: $PROJECT_ID"
+
+# Build the application if it doesn't exist
+if [ ! -d "dist/public" ]; then
+  echo "📦 Building the application first..."
+  npm run build
+  if [ $? -ne 0 ]; then
+    echo "❌ Build failed. Aborting deployment."
+    rm firebase-service-account.json
+    exit 1
+  fi
 fi
 
-print_header "Creating deployment package"
-# Create a ZIP file of the build output
+# Package the files for deployment
+echo "📦 Preparing files for deployment..."
 cd dist/public
-zip -r ../../firebase-deploy.zip .
+tar -czf ../../firebase-deploy.tar.gz .
 cd ../..
 
-if [ ! -f "./firebase-deploy.zip" ]; then
-  print_error "Failed to create deployment package"
-  exit 1
-fi
+# Clean up
+echo "🧹 Cleaning up..."
+rm firebase-service-account.json
 
-print_success "Created deployment package: firebase-deploy.zip"
-
-print_header "Alternative Deployment Options"
-
-print_warning "Since we're unable to deploy directly from Replit, here are your options:"
-
-echo -e "1. ${YELLOW}Deploy via Firebase CLI on your local machine:${NC}"
-echo "   • Download this project to your local machine"
-echo "   • Run: firebase login"
-echo "   • Run: firebase deploy --only hosting"
+echo "✅ Preparation complete!"
+echo "📁 Your deployment package is ready: firebase-deploy.tar.gz"
 echo ""
-
-echo -e "2. ${YELLOW}Set up GitHub Actions:${NC}"
-echo "   • Push this project to GitHub"
-echo "   • Set up GitHub Actions for Firebase deployment"
-echo "   • Firebase will automatically deploy when you push changes"
+echo "🌐 To complete deployment, go to Firebase Console:"
+echo "https://console.firebase.google.com/project/$PROJECT_ID/hosting/sites"
 echo ""
-
-echo -e "3. ${YELLOW}Manual upload via Firebase Console:${NC}"
-echo "   • Download the ./firebase-deploy.zip file"
-echo "   • Extract it on your local machine"
-echo "   • Go to Firebase Console: https://console.firebase.google.com/project/trackedfr/hosting"
-echo "   • Click 'Upload' and select the extracted files"
-echo ""
-
-echo -e "4. ${YELLOW}Use Firebase Hosting Preview Channels:${NC}"
-echo "   • On your local machine: firebase hosting:channel:deploy preview"
-echo "   • This creates a temporary URL for testing"
-echo "   • Promote to production when ready: firebase hosting:channel:deploy production"
-echo ""
-
-print_warning "Important Firebase Project Settings"
-echo "• Ensure 'trackedfr.com' and 'www.trackedfr.com' are added to:"
-echo "  Firebase Console > Authentication > Settings > Authorized domains"
-echo "• Verify your DNS settings are correctly pointing to Firebase"
-echo "• Update .env files to use 'trackedfr.com' as the authentication domain"
-
-print_header "Need Help?"
-echo "If you're still having trouble, consider:"
-echo "1. Setting up a local development environment where you can run Firebase CLI directly"
-echo "2. Using a CI/CD service that integrates with Firebase (GitHub Actions, CircleCI, etc.)"
-echo "3. Creating a simple Node.js script that uses the firebase-admin SDK with a service account"
+echo "1. Click on your site"
+echo "2. Go to the 'Releases' tab"
+echo "3. Click 'Deploy new version'"
+echo "4. Upload the firebase-deploy.tar.gz file"

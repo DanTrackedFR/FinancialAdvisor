@@ -192,7 +192,7 @@ export default function Home() {
 
               {/* Hero section with responsive text */}
               <div className="text-center space-y-6 md:space-y-8">
-                <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500 leading-tight">
+                <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500 leading-tight pb-1">
                   Automated Financial Reporting
                 </h1>
                 <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
