@@ -60,9 +60,16 @@ This option allows deployment without interactive login, useful for CI/CD pipeli
 
 1. Ensure the `FIREBASE_SERVICE_ACCOUNT` environment variable is set with the service account JSON.
 
-2. Run the Firebase deployment script:
+2. Run one of the following deployment scripts:
+   
+   **JavaScript deployment script (with detailed output):**
    ```
    node firebase-deploy-script.js
+   ```
+   
+   **Bash deployment script (simple and reliable):**
+   ```
+   bash deploy-with-token.sh
    ```
 
 ### Option 4: CI/CD Deployment with GitHub Actions

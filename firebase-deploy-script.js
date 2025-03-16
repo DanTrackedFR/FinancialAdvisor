@@ -7,12 +7,23 @@
  * 1. Set FIREBASE_SERVICE_ACCOUNT environment variable with the JSON service account key
  * 2. Run npm run build before running this script
  * 3. Install required dependencies: npm install firebase-admin firebase-tools
+ * 
+ * Note: This script uses ES modules (import/export) instead of CommonJS (require).
  */
 
-import { initializeApp, cert } from 'firebase-admin/app';
+import { fileURLToPath } from 'url';
+import { promisify } from 'util';
+import { exec, execSync } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { initializeApp, cert } from 'firebase-admin/app';
+
+// Convert to ES module compatible paths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Promisify exec
+const execPromise = promisify(exec);
 
 // ANSI color codes for console output
 const RESET = "\x1b[0m";
@@ -54,19 +65,20 @@ function printWarning(text) {
 /**
  * Verify build output exists
  */
-function verifyBuildOutput() {
+async function verifyBuildOutput() {
   printHeader("Verifying Build Output");
   
   const buildPath = path.join(process.cwd(), 'dist', 'public');
   
   try {
-    const stats = fs.statSync(buildPath);
+    // Use the stat method from fs.promises (aliased as fs)
+    const stats = await fs.stat(buildPath);
     if (!stats.isDirectory()) {
       throw new Error("Build path is not a directory");
     }
     
     const indexPath = path.join(buildPath, 'index.html');
-    fs.statSync(indexPath);
+    await fs.stat(indexPath);
     
     printSuccess(`Build output verified: ${buildPath}`);
     return true;
@@ -208,7 +220,8 @@ async function main() {
   console.log("This script deploys the application to Firebase Hosting");
   
   // Verify build output
-  if (!verifyBuildOutput()) {
+  const buildVerified = await verifyBuildOutput();
+  if (!buildVerified) {
     process.exit(1);
   }
   
@@ -230,8 +243,15 @@ async function main() {
   }
 }
 
-// Check if running directly
-if (require.main === module) {
+// In ES modules, this is how we check if file is being run directly
+import { fileURLToPath as _fileURLToPath } from 'url';
+const currentFilePath = _fileURLToPath(import.meta.url);
+const currentFilePathNormalized = process.platform === 'win32' 
+  ? currentFilePath.replace(/\\/g, '/') 
+  : currentFilePath;
+
+// Check if this file is being run directly
+if (currentFilePathNormalized === process.argv[1]) {
   main().catch(error => {
     printError(`Unhandled error: ${error.message}`);
     process.exit(1);
