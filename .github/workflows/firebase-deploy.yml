@@ -14,12 +14,12 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
       
       - name: Install dependencies
@@ -36,9 +36,19 @@ jobs:
           chmod +x ./deploy-ci.sh
           ./deploy-ci.sh
           
+      # Only try to upload artifact if the file exists
+      - name: Check for deployment summary
+        id: check_files
+        run: |
+          if [ -f "deployment-summary.json" ]; then
+            echo "summary_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "summary_exists=false" >> $GITHUB_OUTPUT
+          fi
+          
       - name: Upload deployment summary
-        uses: actions/upload-artifact@v3
-        if: always()  # Upload even if the deployment fails
+        uses: actions/upload-artifact@v4
+        if: steps.check_files.outputs.summary_exists == 'true'
         with:
           name: deployment-summary
           path: deployment-summary.json
